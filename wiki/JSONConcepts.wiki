@@ -1,6 +1,4 @@
 #labels Featured
-= JSONpp Concepts =
-
 === Concepts ===
 
 The JSONpp class `push_parser` is parametrized on the JSON type family provided by the user. The JSON type family is a single type function (metafunction) with the following properites:
