@@ -1,10 +1,11 @@
+#labels Featured
 #JSONpp Concepts
 
 = Concepts =
 
 The JSONpp class `push_parser` is parametrized on the JSON type family provided by the user. The JSON type family is a single type function (metafunction) with the following properites:
 
-||*Associated Type*||*Meaning*||
+|| *Associated Type* || *Meaning* ||
 ||`value_t`||The actual JSON type which can hold any JSON type||
 ||`string_t`||Represents a JSON string||
 ||`number_t`||Represents a JSON number||
@@ -18,4 +19,52 @@ This means that any JSON type must have those associated types available. The wa
 Each of the JSON sub types must satisfy certain properties in order to be used with the `push_parser` class.
 
 The following identifiers will be used
-  * `V` : `value_t` _some value_
+  * `V`, `W` : `value_t` _some value_
+  * `s`, `t` : `string_t` _some JSON string_
+  * `n`, `m` : `number_t` _some JSON number_
+  * `o`, `p` : `object_t` _some JSON object_
+  * `x`, `y` : `array_t` _some JSON array_
+  * `true`, `false`, `b` : `bool_t` _JSON_ `true` _and_ `false` _values_
+  * `Q`, `null` : `null_t` _JSON_ `null` _value_
+  * `ss` : `std::basic_stream<string_t::value_type>` _a string-stream type from the STL_
+
+
+The following expressions must hold true for all `value_t`:
+
+|| *Expression* || *Meaning* || *Notes * ||
+|| `V` = `W` || assignment || ||
+|| `value_t V` || default constructible || ||
+|| `value_t V(W)` || copy constructible || ||
+|| `V = s` || assignment || ||
+|| `V = n` || assignment || ||
+|| `V = o` || assignment || ||
+|| `V = x` || assignment || ||
+|| `V = b` || assignment || _not expected to know the built in type C++ type `true` or `false` ||
+|| `V = Q` || assignment || ||
+
+The following expressions must hold true for all `string_t`:
+
+|| *Expression* || *Meaning* || *Notes * ||
+|| _string interface_ || _n/a_ || the `string_t` type must satisfy the string interface as implied by the STL `std::basic_string` interface ||
+
+The following expressions must hold true for all `number_t`:
+
+|| *Expression* || *Meaning* || *Notes * ||
+|| _integral_ || must satisfy the Integral concept || ||
+|| _floating_ || must satisfy the Floating concept || ||
+|| `ss >> n` || stream-to-number injection || _the format for the internal string is specified by JSON_ ||
+
+
+The following expressions must hold true for all `object_t`:
+
+|| *Expression* || *Meaning* || *Notes * ||
+|| `o` = `p` || assignment || ||
+|| `object_t o` || default constructible || ||
+|| `obect_t o(p)` || copy constructible || ||
+|| `o[s] = V` || assignment || ||
+|| `o[s] = s` || assignment || ||
+|| `o[s] = n` || assignment || ||
+|| `o[s] = p` || assignment || ||
+|| `o[s] = x` || assignment || ||
+|| `o[s] = b` || assignment || ||
+|| `o[s] = Q` || assignment || ||
