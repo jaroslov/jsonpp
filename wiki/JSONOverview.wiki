@@ -1,3 +1,10 @@
 = Overview =
 
-The JSONpp library is parameterized over the JSON data type. Most of the constraints that JSON data types must meet are described in the [JSONConcepts JSON Concepts] page. 
+The JSONpp library is parameterized over the JSON data type. Most of the constraints that JSON data types must meet are described in the [JSONConcepts JSON Concepts] page, note that these are focussed to the requirements of the parser.
+
+= Tutorial =
+
+Using the JSON library is relatively straightforward. The following example opens a set of JSON files specified as input arguments on the command line, and prints out their contents:
+
+{{{
+}}} 
