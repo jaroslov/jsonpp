@@ -24,8 +24,8 @@ The following identifiers will be used
   * `n`, `m` : `number_t` _some JSON number_
   * `o`, `p` : `object_t` _some JSON object_
   * `x`, `y` : `array_t` _some JSON array_
-  * `true`, `false`, `b` : `bool_t` _JSON_ `true` _and_ `false` _values_
-  * `Q`, `null` : `null_t` _JSON_ `null` _value_
+  * `true`, `false`, `b`, `c` : `bool_t` _JSON_ `true` _and_ `false` _values_
+  * `Q`, `R`, `null` : `null_t` _JSON_ `null` _value_
   * `ss` : `std::basic_stream<string_t::value_type>` _a string-stream type from the STL_
 
 
@@ -61,10 +61,39 @@ The following expressions must hold true for all `object_t`:
 || `o` = `p` || assignment || ||
 || `object_t o` || default constructible || ||
 || `obect_t o(p)` || copy constructible || ||
-|| `o[s] = V` || assignment || ||
-|| `o[s] = s` || assignment || ||
-|| `o[s] = n` || assignment || ||
-|| `o[s] = p` || assignment || ||
-|| `o[s] = x` || assignment || ||
-|| `o[s] = b` || assignment || ||
-|| `o[s] = Q` || assignment || ||
+|| `o[s] = V` || keyed-assignment || ||
+|| `o[s] = s` || keyed-assignment || ||
+|| `o[s] = n` || keyed-assignment || ||
+|| `o[s] = p` || keyed-assignment || ||
+|| `o[s] = x` || keyed-assignment || ||
+|| `o[s] = b` || keyed-assignment || ||
+|| `o[s] = Q` || keyed-assignment || ||
+
+The following expressions must hold true for all `array_t`:
+
+|| *Expression* || *Meaning* || *Notes * ||
+|| `x` = `y` || assignment || ||
+|| `array_t x` || default constructible || ||
+|| `array_t x(y)` || copy constructible || ||
+|| `x.push_back(V)` || keyed-assignment || ||
+|| `x.push_back(s)` || keyed-assignment || ||
+|| `x.push_back(n)` || keyed-assignment || ||
+|| `x.push_back(o)` || keyed-assignment || ||
+|| `x.push_back(y)` || keyed-assignment || ||
+|| `x.push_back(b)` || keyed-assignment || ||
+|| `x.push_back(Q)` || keyed-assignment || ||
+
+The following expressions must hold true for all `bool_t`:
+
+|| *Expression* || *Meaning* || *Notes * ||
+|| `bool_t b` || default constructible || ||
+|| `b(c)` || copy constructible || ||
+|| `b = true` || assignment || `true` is the built-in C++ value ||
+|| `b = false` || assignment || `false` is the built-in C++ value ||
+
+
+The following expressions must hold true for all `null_t`:
+
+|| *Expression* || *Meaning* || *Notes * ||
+|| `null_t Q` || default constructible || ||
+|| `Q(R)` || copy constructible || ||
