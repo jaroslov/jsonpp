@@ -1,0 +1,5 @@
+["10", // here I am!
+  false, "blah", /* wtf? */
+  ["blargh"],
+  null,
+  {"bar":"baz"}]
