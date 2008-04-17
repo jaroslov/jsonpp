@@ -1,0 +1,1 @@
+{"values": ["a", "b", "all"], "joins": {"ab_all": {"inputs": ["a", "b"], "outputs": ["all"]}, "all_ab": {"inputs": ["all"], "outputs": ["a", "b"]}}, "arcs": {"only": {"joins": ["ab_all", "all_ab"], "select": 1}}}
