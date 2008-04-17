@@ -1,0 +1,3 @@
+= Overview =
+
+The JSONpp library is parameterized over the JSON data type. Most of the constraints that JSON data types must meet are described in the [JSONConcepts JSON Concepts] page. 
