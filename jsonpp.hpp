@@ -25,8 +25,9 @@ std::string to_ascii_string (String const& str) {
     const char C = static_cast<char>(*first);
     if ((32 < C) and (C < 127))
       rstr += C;
-    else
-      rstr += '?';
+    else {
+      rstr += "\\u?";
+    }
     ++first;
   }
   return rstr;
@@ -195,12 +196,18 @@ public:
   template <typename String>
   value_t parse (String const& filestr,
       bool print_tokens=false, std::ostream& ostr=std::cout) {
+    return parse(filestr.begin(),filestr.end(),false,ostr);
+  }
+
+  template <typename Iter>
+  value_t parse (Iter begin, Iter end,
+      bool print_tokens=false, std::ostream& ostr=std::cout) {
       // make a copy of the input string into our internal
       // string type to simplify things, heavy-weight, but
       // we can optimize later
-      string_t lcp(filestr.begin(),filestr.end());
+      string_t lcp(begin,end);
       // lex the file and get the tokens
-      std::vector<token> tokens = this->lex(lcp);
+      std::vector<token> tokens = this->lex(lcp.begin(),lcp.end());
       // this is our optional printing
       if (print_tokens) {
         for (std::size_t i=0; i<tokens.size(); ++i)
@@ -226,13 +233,12 @@ private:
 
   // This function lexes a string into a list of tokens
   // it is NOT recursive, it is iterative.
-  template <typename String>
+  template <typename Iter>
   std::vector<token>
-  lex (String const& str) {
+  lex (Iter first, Iter last) {
     std::vector<token> tokens;
 
-    typename String::const_iterator begin = str.begin(),
-      last = str.end(), first = str.begin(), init = str.begin();
+    Iter begin = first, init = first;
 
     // Iterate over all the characters to generat tokens.
     // Since we're going to generate a token in each "pass"
@@ -245,7 +251,7 @@ private:
     while (first != last) {
       token tok;
       tok.offset_ = first - init;
-      tok.value_ = String(first,first+1);
+      tok.value_ = string_t(first,first+1);
       bool skip = false;
       // we're going to greedily eat the following things:
       // 1. strings "...", which include the legal escapes
@@ -309,7 +315,7 @@ private:
               }
             }
           }
-          tok.value_ = String(begin, first);
+          tok.value_ = string_t(begin, first);
           ++first; // eat last " character
         } break;
       case '0':case '1':case '2':case '3':case '4':
@@ -337,7 +343,7 @@ private:
               ++first;
             first = get_digits(first,last);
           }
-          tok.value_ = String(begin, first);
+          tok.value_ = string_t(begin, first);
         } break;
       case 't': case 'f': case 'n': {
           // possibly an identifier, there are three legal ones:
@@ -364,7 +370,7 @@ private:
             }
             ++first; ++whs;
           }
-          tok.value_ = String(begin, first);
+          tok.value_ = string_t(begin, first);
         } break;
       case '/': {
           // comments are actually an optional construt for JSON, but
