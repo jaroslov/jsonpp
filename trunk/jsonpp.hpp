@@ -22,9 +22,13 @@ std::string to_ascii_string (String const& str) {
   typedef typename String::const_iterator citer;
   citer first = str.begin(), last = str.end();
   std::string rstr;
+#ifdef DEBUG_JSON
   std::cout << std::endl;
+#endif
   while (first != last) {
+#ifdef DEBUG_JSON
     std::cout << (int)*first << std::endl;
+#endif
     const char C = static_cast<char>(*first);
     if ((32 < C) and (C < 127))
       rstr += C;
