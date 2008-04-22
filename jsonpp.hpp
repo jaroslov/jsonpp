@@ -708,6 +708,21 @@ struct make_json_value {
   typedef Null                            null_t;
 };
 
+typedef make_json_value<> json_gen;
+typedef json_gen::value_t json_v;
+
+template <typename Iter>
+json_v parse (Iter first, Iter last) {
+  JSONpp::push_parser<json_gen> parser;
+  return parser(first, last);
+}
+
+void print (json_v const& value, std::ostream& ostr=std::cout) {
+  variant_json_printer<json_gen> printer;
+  printer.buffer = &ostr;
+  boost::apply_visitor(printer, value);
+}
+
 }
 
 #endif//JSON_PARSER

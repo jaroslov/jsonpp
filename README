@@ -1,0 +1,19 @@
+JSONpp
+
+A small hand-written recursive-descent generic push-parser for JSON.
+JSONpp is dependent upon boost::variant, so this must be in the path.
+
+JSONpp relies on a JSON type, which defaults to a boost::variant over double, bool, std::wstring, a marker for null, std::map, and std::vector. The user can specify a different JSON type so long as the JSON type satisfies the constraints (mostly the json_traits class must be implemented).
+
+The main class of JSONpp is the push_parser function-object that is parameterized over the JSONType. Once created, the function-object can be called with a pair of iterators, or some string type. The push-parser will parse the JSON file and return a JSONType.
+
+A secondary class called variant_json_printer can print JSONTypes that are based upon the boost::variant.
+
+Within the header is a default JSON type generator which is found at make_json_value. A default instantiation of this generator is called "json_gen" and the default value type of this JSON type is called "json_v".
+
+A simple front-end to the push-parser is available for the default type under the name "parse" which takes two iterators. Likewise, a default json_v printer is available under the name "print".
+
+The file "vpath.hpp" will (eventually) contain a library for performing XPath-like queries on the resultant JSON. vpath should, hopefully, be generic for any boost::variant which describes the appropriate recursion-metafunction and child-accessors.
+
+TODO
+  1. finish specifying vpath and implement
