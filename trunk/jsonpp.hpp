@@ -378,7 +378,7 @@ private:
           }
           tok.value_ = string_t(begin, first);
         } break;
-      case '/': {
+      case '/': case '#': {
           // comments are actually an optional construt for JSON, but
           // they're so useful, it just feels right to have them; also,
           // this is more liberal than not having them, and they're pretty
@@ -409,14 +409,16 @@ private:
             }
           } else if ('/' == *first) { // C++ style comment must have //
             // c++ style
-            while (first != last) { // go to the end of the line or file
+          comment: while (first != last) { // go to the end of the line or file
               if ('\n' == *first)
                 break;
               ++first;
             }
             if (first != last)
               ++first;
-          } else // /? is not legal
+          } else if ('#' == *first)
+            goto comment; // blech
+          else // /? is not legal
             throw unknown_token(string_t(first,first+1));
         } break;
       default: // don't know ... but also don't care (for now)
