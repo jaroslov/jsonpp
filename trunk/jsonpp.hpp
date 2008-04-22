@@ -2,6 +2,7 @@
 #define JSON_PARSER
 
 #include <exception>
+#include <stdexcept>
 #include <vector>
 #include <map>
 #include <string>
@@ -190,6 +191,11 @@ public:
   value_t operator () (String const& filestr,
       bool print_tokens=false, std::ostream& ostr=std::cout) {
     return this->parse(filestr,print_tokens,ostr);
+  }
+  template <typename Iter>
+  value_t operator () (Iter begin, Iter end,
+      bool print_tokens=false, std::ostream& ostr=std::cout) {
+    return this->parse(begin,end,print_tokens,ostr);
   }
 
   // exactly like operator (), but with a name
@@ -408,7 +414,8 @@ private:
                 break;
               ++first;
             }
-            ++first;
+            if (first != last)
+              ++first;
           } else // /? is not legal
             throw unknown_token(string_t(first,first+1));
         } break;
@@ -452,6 +459,7 @@ private:
   // These are the only legal (top-level) tokens. We reject everything
   // else.
   tok_iter parse (tok_iter first, tok_iter last, value_t& val) {
+    if (first == last) return last;
     string_t string;
     number_t number;
     object_t object;
@@ -492,12 +500,14 @@ private:
 
   // a string is a single token, just assign to the out value
   tok_iter parse (tok_iter first, tok_iter last, string_t& str) {
+    if (first == last) return last;
     str = first->value_;
     return ++first;
   }
   // a number is a single token, just assign to the out value
   // NB: we build our own stringstream for conversion ... oy
   tok_iter parse (tok_iter first, tok_iter last, number_t& num) {
+    if (first == last) return last;
     typedef std::basic_stringstream<typename string_t::value_type> sstream_t;
     sstream_t ss(first->value_);
     ss >> num; // this is where our requirement
@@ -506,6 +516,7 @@ private:
   }
   // a boolean is a single token, just assign the right value
   tok_iter parse (tok_iter first, tok_iter last, bool_t& b) {
+    if (first == last) return last;
     if (True == first->value_)
       b = true;
     else if (False == first->value_)
@@ -516,6 +527,7 @@ private:
   }
   // a null is a single token, eat it
   tok_iter parse (tok_iter first, tok_iter last, null_t& n) {
+    if (first == last) return last;
     if (Null != first->value_) // reject other kinds of identifiers
       throw unknown_identifier(first->value_);
     return ++first;
@@ -526,6 +538,7 @@ private:
   // Where value could ALSO be an object.
   // However, there is still the "string : value" to maintain
   tok_iter parse (tok_iter first, tok_iter last, object_t& obj) {
+    if (first == last) return last;
     // eat the {
     ++first;
     tok_iter prog; // we must guarantee progress
@@ -558,6 +571,9 @@ private:
         ++first;
     } while (first != last);
     // had better be a }, if so, eat it
+    if (first == last)
+      throw expected_got(this->to_string_t("}"),
+        this->to_string_t("nothing"));
     if (token::curlyR != first->kind_)
       throw expected_got(this->to_string_t("}"),first->value_);
     return ++first;
@@ -567,6 +583,7 @@ private:
   //    array ::= `[` (value [, value]*)? `]`
   // Note the nesting
   tok_iter parse (tok_iter first, tok_iter last, array_t& arr) {
+    if (first == last) return last;
     // eat the [
     ++first;
     tok_iter prog;
@@ -587,6 +604,9 @@ private:
       else
         ++first;
     } while (first != last);
+    if (first == last)
+      throw expected_got(this->to_string_t("]"),
+        this->to_string_t("nothing"));
     if (token::brakR != first->kind_)
       throw expected_got(this->to_string_t("]"),first->value_);
     // eat the ]
