@@ -14,6 +14,7 @@ int main (int argc, char *argv[]) {
     std::cout << *argv << std::endl;
     try {
       std::ifstream ifstr(*argv);
+      ifstr >> std::noskipws;
       std::istream_iterator<char> ctr(ifstr);
       std::istream_iterator<char> cnd;
       JSONpp::json_v json = JSONpp::parse(ctr, cnd);
