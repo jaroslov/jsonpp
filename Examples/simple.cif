@@ -1,4 +1,4 @@
-["10", // here I am!
+["10", // foo
   false, "blah", /* wtf? */
   ["blargh"],
   null,
