@@ -409,7 +409,8 @@ private:
             }
           } else if ('/' == *first) { // C++ style comment must have //
             // c++ style
-          comment: while (first != last) { // go to the end of the line or file
+            // go to the end of the line or file
+            cppcomment: while (first != last) {
               if ('\n' == *first)
                 break;
               ++first;
@@ -417,7 +418,7 @@ private:
             if (first != last)
               ++first;
           } else if ('#' == *first)
-            goto comment; // blech
+            goto cppcomment; // blech
           else // /? is not legal
             throw unknown_token(string_t(first,first+1));
         } break;
