@@ -2,6 +2,12 @@
 #include <iostream>
 #include <fstream>
 #include <locale>
+#include <boost/mpl/bool.hpp>
+
+#include <vector>
+#include <list>
+#include <map>
+#include <set>
 
 /*
 
@@ -25,7 +31,35 @@
 
 */
 
-template <typename Variant>
+struct xpath__ {};
+static const xpath__ xpath_ = xpath__();
+
+template <typename T>
+struct recursive {
+  typedef boost::mpl::false_ type;
+};
+
+template <typename T, typename A>
+std::string tag (std::vector<T,A> const& v, xpath__ x) {
+  return "vector<"+tag(T(),x)+">";
+}
+
+template <typename T, typename A>
+std::string tag (std::list<T,A> const& v, xpath__ x) {
+  return "list<"+tag(T(),x)+">";
+}
+
+template <typename K, typename V, typename C, typename A>
+std::string tag (std::map<K,V,C,A> const& v, xpath__ x) {
+  return "map<"+tag(K(),x)+","+tag(V(),x)+">";
+}
+
+template <typename V, typename C, typename A>
+std::string tag (std::set<V,C,A> const& v, xpath__ x) {
+  return "set<"+tag(V(),x)+">";
+}
+
+/*template <typename Variant>
 struct xpath_visitor {
   struct visitor {
     template <typename T>
@@ -48,7 +82,7 @@ struct xpath_visitor {
   template <typename Path>
   void visit (Variant& variant, Path const& path) const {
   }
-};
+};*/
 
 int main (int argc, char *argv[]) {
 
@@ -67,7 +101,6 @@ int main (int argc, char *argv[]) {
       std::istream_iterator<wchar_t,wchar_t> ctr(wifstr);
       std::istream_iterator<wchar_t,wchar_t> cnd;
       JSONpp::json_v json = JSONpp::parse(ctr, cnd);
-      std::wcout << str << std::endl;
     } catch (std::exception& e) {
       std::cout << "error: " << e.what() << std::endl;
     }
