@@ -1,4 +1,4 @@
-#include <utilities>
+#include <utility>
 
 #ifndef BEGIN_END
 #define BEGIN_END
@@ -10,12 +10,12 @@ struct mutable__ {};
 struct reverse__ {};
 struct const_reverse__ {};
 
-static const const_ = const__();
-static const mutable_ = mutable__();
-static const reverse_ = reverse__();
-static const const_reverse_ = const_reverse__();
+static const const__ const_ = const__();
+static const mutable__ mutable_ = mutable__();
+static const reverse__ reverse_ = reverse__();
+static const const_reverse__ const_reverse_ = const_reverse__();
 
-template <typename Tag, typename Container=void>
+template <typename Container, typename Tag=void>
 struct iterator {
   typedef typename Container::iterator type;
 };

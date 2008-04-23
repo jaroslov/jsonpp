@@ -10,6 +10,7 @@
 #include <sstream>
 #include <boost/variant.hpp>
 #include <boost/variant/recursive_variant.hpp>
+#include <begin-end.hpp>
 
 namespace JSONpp {
 
@@ -20,7 +21,7 @@ namespace JSONpp {
 template <typename String>
 std::string to_ascii_string (String const& str) {
   typedef typename String::const_iterator citer;
-  citer first = str.begin(), last = str.end();
+  citer first = bel::begin(str), last = bel::end(str);
   std::string rstr;
 #ifdef DEBUG_JSON
   std::cout << std::endl;
@@ -216,7 +217,7 @@ public:
   // exactly like operator (), but with a name
   template <typename String>
   value_t parse (String const& filestr) {
-    return parse(filestr.begin(),filestr.end());
+    return parse(bel::begin(filestr),bel::end(filestr));
   }
 
   template <typename Iter>
@@ -226,7 +227,7 @@ public:
       // we can optimize later
       string_t lcp(begin,end);
       // lex the file and get the tokens
-      std::vector<token> tokens = this->lex(lcp.begin(),lcp.end());
+      std::vector<token> tokens = this->lex(bel::begin(lcp),bel::end(lcp));
       // parse tokens
       return this->parse(tokens);
   }
@@ -238,7 +239,7 @@ private:
   // so this is pretty easy to parse.
   value_t parse (tokens_t const& toks) {
     value_t val;
-    tok_iter first = toks.begin(), last = toks.end(), prog;
+    tok_iter first = bel::begin(toks), last = bel::end(toks), prog;
     if (first != last) // prevent naughtiness
       prog = this->parse(first, last, val);
     return val;
@@ -374,7 +375,7 @@ private:
             tok.kind_ = token::null;
           }
           // compare the next few chars to our identifier
-          typename string_t::const_iterator whs = wh.begin(), whd = wh.end();
+          typename string_t::const_iterator whs = bel::begin(wh), whd = bel::end(wh);
           while (first != last and whs != whd) {
             if (*first != *whs) {
               throw unknown_token(
@@ -660,7 +661,7 @@ struct json_to_string {
   }
   template <typename String>
   static string_t to_string_t (String const& str) {
-    return string_t(str.begin(),str.end());
+    return string_t(bel::begin(str),bel::end(str));
   }
 
   json_to_string () {}
@@ -682,7 +683,7 @@ struct json_to_string {
     }
     string_t operator () (array_t const& A) const {
       typedef typename array_t::const_iterator citer;
-      citer F = A.begin(), L = A.end();
+      citer F = bel::begin(A), L = bel::end(A);
       string_t result = to_string_t("[");
       if (F != L) {
         result += boost::apply_visitor(*this, *F);
@@ -698,7 +699,7 @@ struct json_to_string {
     }
     string_t operator () (object_t const& O) const {
       typedef typename object_t::const_iterator citer;
-      citer F = O.begin(), L = O.end();
+      citer F = bel::begin(O), L = bel::end(O);
       string_t result = to_string_t("{");
       if (F != L) {
         result += to_string_t("\"")
