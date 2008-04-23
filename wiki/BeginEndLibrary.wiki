@@ -32,3 +32,19 @@ void neat_function (..., Container ... C, ..., IterKind ... iterK, ...) {
 }}}
 
 Note that the user of the function can select the iterator kind needed within the function. (This assumes that the different iterators satisfy the same iterator category, with possibly variant semantic meanings.)
+
+The Begin-End library provides a number of built-in tags. Built-in tags have a _type_ and a _name_; the _name_ represents a statically allocated (constant) instance of the tag of the same _type_.
+
+|| *Tag Type* || *Tag Name* || *Meaning* ||
+|| `mutable__` || `mutable_` || the value referenced by the iterator can be mutated through the iterator ||
+|| `const__` || `const_` || the value referenced is roughly `const` ||
+|| `reverse__` || `reverse_` || the sequence is reversed (and `mutable__`) ||
+|| `const_reverse__` || `const_reverse_` || the sequence is reversed (and `const__`) ||
+|| `trivial__` || `trivial_` || a trivial category iterator ||
+|| `input__` || `input_` || an input category iterator ||
+|| `output__` || `output_` || an output category iterator ||
+|| `forward__` || `forward_` || a forward category iterator ||
+|| `bidirectional__` || `bidirectional_` || a bidirectional category iterator ||
+|| `random_access__` || `random_access_` || a random access category iterator ||
+
+For convenience, the Begin-End library also provides functions for getting the `begin`, `end` and `sequence` of `stream`s; the functionality is provisional based upon your compiler's support for default function template parameters.
