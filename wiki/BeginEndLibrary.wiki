@@ -1,0 +1,5 @@
+#labels
+= Begin-End Library =
+
+The Begin-End library adds support for non-member access to the `begin` and `end` functions, and also adds support for the `sequence` function. Default support exists for containers which satisfy the _de facto_ container concept used by the STL.
+
