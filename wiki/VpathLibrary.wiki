@@ -1,2 +1,32 @@
 #labels
 = V-Path Library =
+
+The V-Path library will be a generic XPath-like query system for data-structures which satisfy the VPath requirements.
+
+The actual interface of the V-Path library is still being fleshed out, however:
+  * dependence upon the [BeginEndLibrary BEL]
+    * defines the tag `xpath__` and an instance of the tag `xpath` (will almost certainly be changed)
+    * to define the `iterator<T,xpath__>`, specifically for the STL containers `vector`, `list`, `map`, `set`, etc.
+    * to define the associated `begin` and `end` functions for the above (right now defines `sequence` instead)
+  * initially being targeted at the [JSONOverview JSONpp] library
+    * default visitation using built-in visitors (see above)
+  * defines the `recursive` metatemplate function to determine if there are legal children to recurse on
+
+Current capabilities: right now `make && make test_vpath` will read in all the examples in the Examples folder, and parse them as JSON files using the [JSONOverview JSONpp] library. A "dummy" query is then formed using the preliminary V-Path library and data is dumped to the terminal. Mostly what you'll see is that it traverses the entire JSON data-structure (variant.)
+
+TODO:
+  * build a basic `std::string` based path-specification mechanism
+  * build a small virtual machine to interpret the path-specification once it has been parsed into tokens
+  * actually calculate and return result sets based on the path
+
+PATH:
+  * path support will be for `/` and `//` for now, with no support for predicates, i.e., support for `child("foo")` and `descendent-or-self("foo")` from the X-Path specification
+  * support for the rest of the non-attribute, non-predicate specification
+
+LONG-TERM:
+  * use the `boost::lambda` to provide support for attribute access
+  * also add predicate support via identifiers
+
+IDEAS
+
+|| Jaroslov || `path("/foo[$0]/bar/[$1]/baz")[fobj1,fobj2]` || the function-object `fobj1` is bound to the predicate `$0`, `fobj2` to `$1`, etc. ||
