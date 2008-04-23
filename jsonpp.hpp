@@ -30,7 +30,7 @@ std::string to_ascii_string (String const& str) {
     std::cout << (int)*first << std::endl;
 #endif
     const char C = static_cast<char>(*first);
-    if ((32 < C) and (C < 127))
+    if ((31 < C) and (C < 127))
       rstr += C;
     else {
       rstr += "\\u?";
