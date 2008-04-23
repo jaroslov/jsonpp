@@ -2,10 +2,12 @@
 
 #include <iostream>
 #include <fstream>
-#include <cstdlib>
-#include <cstring>
+#include <locale>
 
 int main (int argc, char *argv[]) {
+
+  std::locale loc("");
+  std::wcout.imbue(loc);
 
   if (argc < 1)
     return 1;
@@ -14,6 +16,7 @@ int main (int argc, char *argv[]) {
     std::cout << *argv << std::endl;
     try {
       std::wifstream wifstr(*argv);
+      wifstr.imbue(loc);
       wifstr >> std::noskipws;
       std::istream_iterator<wchar_t,wchar_t> ctr(wifstr);
       std::istream_iterator<wchar_t,wchar_t> cnd;
