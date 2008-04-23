@@ -1,5 +1,9 @@
 #include <utility>
 #include <boost/mpl/vector.hpp>
+#ifdef BEL_IOSTREAM
+#include <iostream>
+#include <iterator>
+#endif
 
 #ifndef BEGIN_END
 #define BEGIN_END
@@ -156,6 +160,49 @@ std::pair<typename iterator<Container,const_reverse__>::type,
 sequence (Container& ctr, const_reverse__ const& r) {
   return std::make_pair(bel::begin(ctr,r),bel::end(ctr,r));
 }
+
+#ifdef BEL_IOSTREAM
+
+#ifdef CPP0x
+#define BEL_EQ_CHART =CharT
+#else
+#define BEL_EQ_CHART
+#endif
+template <typename CharT, typename CharS BEL_EQ_CHART>
+std::istream_iterator<CharT,CharS>
+begin (std::basic_istream<CharT>& bistr, forward__ const& f=forward__()) {
+  return std::istream_iterator<CharT,CharS>(bistr);
+}
+template <typename CharT, typename CharS BEL_EQ_CHART>
+std::istream_iterator<CharT,CharS>
+end (std::basic_istream<CharT>&, forward__ const& f=forward__()) {
+  return std::istream_iterator<CharT,CharS>();
+}
+template <typename CharT, typename CharS BEL_EQ_CHART>
+std::pair<std::istream_iterator<CharT,CharS>,
+  std::istream_iterator<CharT,CharS> >
+sequence (std::basic_istream<CharT>& bistr, forward__ const& f=forward__()) {
+  return std::make_pair(bel::begin(bistr,f),bel::end(bistr,f));
+}
+
+template <typename CharT, typename CharS BEL_EQ_CHART>
+std::ostream_iterator<CharT,CharS>
+begin (std::basic_ostream<CharT>& bistr, forward__ const& f=forward__()) {
+  return std::ostream_iterator<CharT,CharS>(bistr);
+}
+template <typename CharT, typename CharS BEL_EQ_CHART>
+std::ostream_iterator<CharT,CharS>
+end (std::basic_ostream<CharT>&, forward__ const& f=forward__()) {
+  return std::ostream_iterator<CharT,CharS>();
+}
+template <typename CharT, typename CharS BEL_EQ_CHART>
+std::pair<std::ostream_iterator<CharT,CharS>,
+  std::ostream_iterator<CharT,CharS> >
+sequence (std::basic_ostream<CharT>& bistr, forward__ const& f=forward__()) {
+  return std::make_pair(bel::begin(bistr,f),bel::end(bistr,f));
+}
+
+#endif
 
 /// [Generalized Tag Support] ======
 //    the following functions support containers which are iterator-tag
