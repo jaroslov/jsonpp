@@ -14,16 +14,16 @@ The actual interface of the V-Path library is still being fleshed out, however:
 
 Current capabilities: right now `make && make test_vpath` will read in all the examples in the Examples folder, and parse them as JSON files using the [JSONOverview JSONpp] library. A "dummy" query is then formed using the preliminary V-Path library and data is dumped to the terminal. Mostly what you'll see is that it traverses the entire JSON data-structure (variant.)
 
-TODO:
+*TODO:*
   * build a basic `std::string` based path-specification mechanism
   * build a small virtual machine to interpret the path-specification once it has been parsed into tokens
   * actually calculate and return result sets based on the path
 
-PATH:
+*PATH:*
   * path support will be for `/` and `//` for now, with no support for predicates, i.e., support for `child("foo")` and `descendent-or-self("foo")` from the X-Path specification
   * support for the rest of the non-attribute, non-predicate specification
 
-LONG-TERM:
+*LONG-TERM:*
   * use the `boost::lambda` to provide support for attribute access
   * also add predicate support via identifiers
 
