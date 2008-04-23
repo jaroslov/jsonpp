@@ -215,23 +215,23 @@ sequence (std::basic_ostream<CharT>& bistr, forward__ const& f=forward__()) {
 template <typename Tag, typename Container>
 typename iterator<Container,Tag>::type
 begin (Container& ctr, Tag const& t=Tag()) {
-  return ctr.begin(t);
+  return ctr.begin();
 }
 template <typename Tag, typename Container>
 typename iterator<Container,Tag>::type
 begin (Container const& ctr, Tag const& t=Tag()) {
-  return ctr.begin(t);
+  return ctr.begin();
 }
 
 template <typename Tag, typename Container>
 typename iterator<Container,Tag>::type
 end (Container& ctr, Tag const& t=Tag()) {
-  return ctr.end(t);
+  return ctr.end();
 }
 template <typename Tag, typename Container>
 typename iterator<Container,Tag>::type
 end (Container const& ctr, Tag const& t=Tag()) {
-  return ctr.end(t);
+  return ctr.end();
 }
 
 template <typename Tag, typename Container>
