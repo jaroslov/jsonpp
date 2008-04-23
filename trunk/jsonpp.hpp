@@ -147,6 +147,15 @@ struct push_parser {
   static const string_t False;
   static const string_t Null;
 
+  // so we know how to write stuff
+  typedef typename string_t::value_type char_type;
+  typedef std::basic_ostream<char_type> ostream;
+
+  // short hand
+  static string_t to_string_t (const char* cstr) {
+    return string_t(cstr,cstr+std::strlen(cstr));
+  }
+
 private:
   // internal token class, should not be publically exposed
   // this thing is a little bulky because it stores a string
@@ -172,10 +181,11 @@ private:
       null = '0',
     };
     token () : kind_(unk), value_(), offset_(0) {}
+
     // mainly for debug purposes
-    friend std::ostream& operator << (std::ostream& ostr, token const& tok) {
-      ostr << "`" << to_ascii_string(tok.value_)
-           << "`@" << tok.offset_;
+    friend ostream& operator << (ostream& ostr, token const& tok) {
+      ostr << to_string_t("`") << to_ascii_string(tok.value_)
+           << to_string_t("`@") << tok.offset_;
       return ostr;
     }
     kind kind_;           // which kind of token we are
@@ -194,38 +204,28 @@ public:
   // the optional arguments are for printing the tokens, and where
   // to print them
   template <typename String>
-  value_t operator () (String const& filestr,
-      bool print_tokens=false, std::ostream& ostr=std::cout) {
-    return this->parse(filestr,print_tokens,ostr);
+  value_t operator () (String const& filestr) {
+    return this->parse(filestr);
   }
   template <typename Iter>
-  value_t operator () (Iter begin, Iter end,
-      bool print_tokens=false, std::ostream& ostr=std::cout) {
-    return this->parse(begin,end,print_tokens,ostr);
+  value_t operator () (Iter begin, Iter end) {
+    return this->parse(begin,end);
   }
 
   // exactly like operator (), but with a name
   template <typename String>
-  value_t parse (String const& filestr,
-      bool print_tokens=false, std::ostream& ostr=std::cout) {
-    return parse(filestr.begin(),filestr.end(),false,ostr);
+  value_t parse (String const& filestr) {
+    return parse(filestr.begin(),filestr.end());
   }
 
   template <typename Iter>
-  value_t parse (Iter begin, Iter end,
-      bool print_tokens=false, std::ostream& ostr=std::cout) {
+  value_t parse (Iter begin, Iter end) {
       // make a copy of the input string into our internal
       // string type to simplify things, heavy-weight, but
       // we can optimize later
       string_t lcp(begin,end);
       // lex the file and get the tokens
       std::vector<token> tokens = this->lex(lcp.begin(),lcp.end());
-      // this is our optional printing
-      if (print_tokens) {
-        for (std::size_t i=0; i<tokens.size(); ++i)
-          ostr << tokens[i] << "   ";
-        ostr << std::endl;
-      }
       // parse tokens
       return this->parse(tokens);
   }
@@ -299,8 +299,7 @@ private:
             if ('\\' == *first) { // escape sequence
               ++first; // looking at the next character
               if (first == last) // ran out of characters
-                throw unknown_token(
-                        this->to_string_t("\\"));
+                throw unknown_token(to_string_t("\\"));
               switch (*first) {
               case '\"': case '\\': case '/':
               case 'b': case 'f': case 'n': case 'r': case 't':
@@ -311,19 +310,19 @@ private:
                     ++first; // look at next char
                     if (first == last)
                       throw expected_got(
-                        this->to_string_t("\\u[0-9a-fA-F]*4"),
+                        to_string_t("\\u[0-9a-fA-F]*4"),
                         string_t(begin,first));
                     if (not ((('0' <= *first) and (*first <= '9'))
                       or (('a' <= *first) and (*first <= 'f'))
                       or (('A' <= *first) and (*first <= 'F'))))
                       throw expected_got(
-                        this->to_string_t("\\u[0-9a-fA-F]*4"),
+                        to_string_t("\\u[0-9a-fA-F]*4"),
                         string_t(first,first+1));
                   }
                 } break;
               default: // uhoh
                 throw unknown_token(
-                        this->to_string_t("\\")+*first);
+                        to_string_t("\\")+*first);
               }
             }
           }
@@ -397,7 +396,7 @@ private:
           ++first;
           if (first == last) // / is not a legal anything
             throw unknown_token(
-                    this->to_string_t("/"));
+                    to_string_t("/"));
           if ('*' == *first) { // C-style comment
             // c-style
             while (first != last) {
@@ -405,7 +404,7 @@ private:
                 ++first;
                 if (first == last) // comment ended before */
                   throw unknown_token(
-                          this->to_string_t("*"));
+                          to_string_t("*"));
                 if ('/' == *first) { // it is done!
                   ++first;
                   break;
@@ -447,11 +446,6 @@ private:
       ++first;
     }
     return first;
-  }
-
-  // short hand
-  string_t to_string_t (const char* cstr) const {
-    return string_t(cstr,cstr+std::strlen(cstr));
   }
 
   // The parser is recursive-descent...
@@ -561,14 +555,14 @@ private:
       first = prog;
       // eat the colon (:)
       if (token::colon != first->kind_)
-        throw expected_got(this->to_string_t(":"),first->value_);
+        throw expected_got(to_string_t(":"),first->value_);
       ++first;
       // eat the value
       prog = this->parse(first, last, val);
       if (prog == first) // maintain progress
         throw expected_got(
-                this->to_string_t("value"),
-                this->to_string_t("nothing"));
+                to_string_t("value"),
+                to_string_t("nothing"));
       first = prog;
       // eat possible comma (,)
       obj[key] = val;
@@ -581,10 +575,10 @@ private:
     } while (first != last);
     // had better be a }, if so, eat it
     if (first == last)
-      throw expected_got(this->to_string_t("}"),
-        this->to_string_t("nothing"));
+      throw expected_got(to_string_t("}"),
+        to_string_t("nothing"));
     if (token::curlyR != first->kind_)
-      throw expected_got(this->to_string_t("}"),first->value_);
+      throw expected_got(to_string_t("}"),first->value_);
     return ++first;
   }
   // arrays are a simpler versino of objects, the format is easier,
@@ -614,10 +608,10 @@ private:
         ++first;
     } while (first != last);
     if (first == last)
-      throw expected_got(this->to_string_t("]"),
-        this->to_string_t("nothing"));
+      throw expected_got(to_string_t("]"),
+        to_string_t("nothing"));
     if (token::brakR != first->kind_)
-      throw expected_got(this->to_string_t("]"),first->value_);
+      throw expected_got(to_string_t("]"),first->value_);
     // eat the ]
     return ++first;
   }
@@ -646,71 +640,89 @@ push_parser<JsonType>::Null
 //=== [PRINTER] ===
 // the usual boost::variant visitor class
 template <typename JsonType>
-struct variant_json_printer : boost::static_visitor<void> {
+struct json_to_string {
   typedef JSONpp::json_traits<JsonType> json_type;
-  typedef typename json_type::string_t string_t;
-  typedef typename json_type::number_t number_t;
-  typedef typename json_type::object_t object_t;
-  typedef typename json_type::array_t  array_t;
-  typedef typename json_type::bool_t   bool_t;
-  typedef typename json_type::null_t   null_t;
+  typedef typename json_type::value_t   value_t;
+  typedef typename json_type::string_t  string_t;
+  typedef typename json_type::number_t  number_t;
+  typedef typename json_type::object_t  object_t;
+  typedef typename json_type::array_t   array_t;
+  typedef typename json_type::bool_t    bool_t;
+  typedef typename json_type::null_t    null_t;
 
-  variant_json_printer (std::ostream& ostr=std::cout)
-    : buffer(&ostr) {}
+  typedef typename string_t::value_type char_type;
+  typedef std::basic_stringstream<char_type> bsstream;
 
-  void operator () (number_t const& N) const {
-    (*buffer) << N;
+  // short hand
+  static string_t to_string_t (const char* cstr) {
+    return string_t(cstr,cstr+std::strlen(cstr));
   }
-  void operator () (string_t const& S) const {
-    (*buffer) << "\"" << to_ascii_string(S) << "\"";
+  template <typename String>
+  static string_t to_string_t (String const& str) {
+    return string_t(str.begin(),str.end());
   }
-  void operator () (bool_t const& B) const {
-    (*buffer) << (B?"true":"false");
-  }
-  void operator () (null_t const& N) const {
-    (*buffer) << "null";
-  }
-  void operator () (array_t const& A) const {
-    typedef typename array_t::const_iterator citer;
-    citer F = A.begin(), L = A.end();
-    (*buffer) << "[";
-    if (F != L) {
-      boost::apply_visitor(*this, *F);
-      ++F;
+
+  json_to_string () {}
+
+  struct __detail : boost::static_visitor<string_t> {
+    string_t operator () (number_t const& N) const {
+      bsstream bss;
+      bss << N;
+      return bss.str();
     }
-    while (F != L) {
-      (*buffer) << ", ";
-      boost::apply_visitor(*this, *F);
-      ++F;
+    string_t operator () (string_t const& S) const {
+      return to_string_t("\"") + S + to_string_t("\"");
     }
-    (*buffer) << "]";
+    string_t operator () (bool_t const& B) const {
+      return to_string_t(B?"true":"false");
+    }
+    string_t operator () (null_t const& N) const {
+      return to_string_t("null");;
+    }
+    string_t operator () (array_t const& A) const {
+      typedef typename array_t::const_iterator citer;
+      citer F = A.begin(), L = A.end();
+      string_t result = to_string_t("[");
+      if (F != L) {
+        result += boost::apply_visitor(*this, *F);
+        ++F;
+      }
+      while (F != L) {
+        result += to_string_t(", ");
+        result += boost::apply_visitor(*this, *F);
+        ++F;
+      }
+      result += to_string_t("]");
+      return result;
+    }
+    string_t operator () (object_t const& O) const {
+      typedef typename object_t::const_iterator citer;
+      citer F = O.begin(), L = O.end();
+      string_t result = to_string_t("{");
+      if (F != L) {
+        result += to_string_t("\"")
+          + F->first
+          + to_string_t("\" : ");
+        result += boost::apply_visitor(*this, F->second);
+        ++F;
+      }
+      while (F != L) {
+        result += to_string_t(", \"")
+          + F->first
+          + to_string_t("\" : ");
+        result += boost::apply_visitor(*this, F->second);
+        ++F;
+      }
+      result += to_string_t("}");
+      return result;
+    }
+  };
+
+  string_t translate (value_t const& v) const {
+    __detail D;
+    return boost::apply_visitor(D, v);
   }
-  void operator () (object_t const& O) const {
-    typedef typename object_t::const_iterator citer;
-    citer F = O.begin(), L = O.end();
-    (*buffer) << "{";
-    if (F != L) {
-      (*buffer) << "\"" << to_ascii_string(F->first) << "\" : ";
-      boost::apply_visitor(*this, F->second);
-      ++F;
-    }
-    while (F != L) {
-      (*buffer) << ", \"" << to_ascii_string(F->first) << "\" : ";
-      boost::apply_visitor(*this, F->second);
-      ++F;
-    }
-    (*buffer) << "}";
-  }
-  std::ostream *buffer;
 };
-
-// wraps the above into a nice print stmt
-// note that this doesn't work (yet) with boost::variant
-// due to the specialization thing
-template <typename JsonType>
-void pretty_print (JsonType const& value, std::ostream& ostr=std::cout) {
-  variant_json_printer<JsonType> printer;
-}
 
 //=== [PREDEFINED JSON Type] ===
 // a predefined family of JSON Types using boost::variant
@@ -746,10 +758,10 @@ json_v parse (Iter first, Iter last) {
   return parser(first, last);
 }
 
-void print (json_v const& value, std::ostream& ostr=std::cout) {
-  variant_json_printer<json_gen> printer;
-  printer.buffer = &ostr;
-  boost::apply_visitor(printer, value);
+json_gen::string_t
+to_string (json_v const& value) {
+  json_to_string<json_gen> printer;
+  return printer.translate(value);
 }
 
 }
