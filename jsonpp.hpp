@@ -27,7 +27,8 @@ std::string to_ascii_string (String const& str) {
 #endif
   while (first != last) {
 #ifdef DEBUG_JSON
-    std::cout << (int)*first << std::endl;
+    std::cout << (wchar_t)*first << std::endl;
+    std::wcout << (wchar_t)*first << std::endl;
 #endif
     const char C = static_cast<char>(*first);
     if ((31 < C) and (C < 127))
