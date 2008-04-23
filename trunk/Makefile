@@ -1,4 +1,4 @@
-all: json
+all: json bel vpath
 
 json: jsonpp.cpp jsonpp.hpp
 	g++ -O3 -I. jsonpp.cpp -o jsonpp
@@ -12,5 +12,13 @@ bel: begin-end.hpp bel.cpp
 test_bel: bel begin-end.hpp bel.cpp
 	./bel
 
-clean: jsonpp
-	rm jsonpp
+vpath: vpath.hpp vpath.cpp
+	g++ -O3 -I. vpath.cpp -o vpath
+
+test_vpath: vpath vpath.hpp vpath.cpp
+	./vpath
+
+clean:
+	rm jsonpp;
+	rm vpath;
+	rm bel;
