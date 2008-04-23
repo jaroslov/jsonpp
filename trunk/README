@@ -17,3 +17,4 @@ The file "vpath.hpp" will (eventually) contain a library for performing XPath-li
 
 TODO
   1. finish specifying vpath and implement
+  2. unicode support is dodgy, especially on Linux
