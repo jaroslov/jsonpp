@@ -16,7 +16,7 @@ vpath: vpath.hpp vpath.cpp
 	g++ -O3 -I. vpath.cpp -o vpath
 
 test_vpath: vpath vpath.hpp vpath.cpp
-	./vpath
+	./vpath Examples/*.*if
 
 clean:
 	rm jsonpp;
