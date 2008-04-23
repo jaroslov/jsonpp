@@ -6,14 +6,29 @@ The Begin-End library adds support for non-member access to the `begin` and `end
 All of the functionality of the Begin-End library is within the namespace `bel` in the file "begin-end.hpp".
 
 The following identifiers will be used:
+  * `K` : `container` _some container type_
   * `C` : `container` _some container value_
   * `T`, `U` : `tag` _some tag type_
   * `t`, `u` : `tag` _some tag value_
 
 || *Expression* || *Meaning* || *Notes * ||
+|| `iterator<K,T>::type` || the type of iterator for a container of type _K_ with tag _T_ || ||
 || `begin(C)` || returns the start of the sequence || implemented as `begin(C,mutable__)`; calls `C.begin()` ||
 || `begin(C,t)` || returns the start of the sequence || calls `C.begin()` ||
 || `end(C)` || returns the end of the sequence || implemented as `end(C,mutable__)`; calls `C.end()` ||
 || `end(C,t)` || returns the start of the sequence || calls `C.end()` ||
 || `sequence(C)` || returns a pair of iterators to the start and end of the sequence || implemented as `sequence(C,mutable__)`; calls `begin(C)` and `end(C)` ||
 || `sequence(C,t)` || returns a pair of iterators to the start and end of the sequence || calls `begin(C,t)` and `end(C,t)` ||
+
+Because the `begin`, `end`, and `sequence` functions are not members, the set of kinds of iterators that are selected from a given container type is open. This means that a single container can provide multiple different types of iterators, while leaving the determination of the selection of the iterator kind up to the user. For example:
+
+{{{
+template <typename Container, typename IterKind>
+void neat_function (..., Container ... C, ..., IterKind ... iterK, ...) {
+  typedef typename iterator<Container,IterKind>::type iterK_type;
+  iterK_type itr, ind;
+  boost::tie(itr,ind) = bel::sequence(C,iterK);
+}
+}}}
+
+Note that the user of the function can select the iterator kind needed within the function. (This assumes that the different iterators satisfy the same iterator category, with possibly variant semantic meanings.)
