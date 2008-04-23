@@ -19,8 +19,7 @@ static const reverse__ reverse_ = reverse__();
 static const paired__ paired_ = paired__();
 
 // composite
-typedef boost::mpl::vector<const__,reverse__> const_reverse__;
-
+struct const_reverse__ {};
 static const const_reverse__ const_reverse_ = const_reverse__();
 
 // these are the standard iterator "tag class" kind tags, i.e.,
@@ -77,8 +76,13 @@ typename iterator<Container,reverse__>::type begin (Container& ctr, reverse__) {
 }
 template <typename Container>
 typename iterator<Container,const_reverse__>::type
-begin (Container const& ctr, reverse__) {
+begin (Container const& ctr, const_reverse__) {
   return ctr.rbegin();
+}
+template <typename Container>
+typename iterator<Container,const_reverse__>::type
+begin (Container& ctr, const_reverse__) {
+  return const_cast<const Container*>(&ctr)->rbegin();
 }
 
 template <typename Container>
@@ -96,6 +100,16 @@ typename iterator<Container,const__>::type end (Container& ctr, const__) {
 template <typename Container>
 typename iterator<Container,reverse__>::type end (Container& ctr, reverse__) {
   return ctr.rend();
+}
+template <typename Container>
+typename iterator<Container,const_reverse__>::type
+end (Container const& ctr, const_reverse__) {
+  return ctr.rend();
+}
+template <typename Container>
+typename iterator<Container,const_reverse__>::type
+end (Container& ctr, const_reverse__) {
+  return const_cast<const Container*>(&ctr)->rend();
 }
 
 template <typename Container>
@@ -122,6 +136,18 @@ std::pair<typename iterator<Container,reverse__>::type,
 sequence (Container& ctr, reverse__ const& r) {
   return std::make_pair(begin(ctr,r),end(ctr,r));
 }
+template <typename Container>
+std::pair<typename iterator<Container,const_reverse__>::type,
+  typename iterator<Container,const_reverse__>::type>
+sequence (Container const& ctr, const_reverse__ const& r) {
+  return std::make_pair(begin(ctr,r),end(ctr,r));
+}
+template <typename Container>
+std::pair<typename iterator<Container,const_reverse__>::type,
+  typename iterator<Container,const_reverse__>::type>
+sequence (Container& ctr, const_reverse__ const& r) {
+  return std::make_pair(begin(ctr,r),end(ctr,r));
+}
 
 /// [Generalized Tag Support] ======
 //    the following functions support containers which are iterator-tag
@@ -141,11 +167,6 @@ typename iterator<Container,Tag>::type
 begin (Container const& ctr, Tag const& t=Tag()) {
   return ctr.begin(t);
 }
-template <typename Tag, typename Container>
-typename iterator<Container,Tag>::type
-const_begin (Container& ctr, Tag const& t=Tag()) {
-  return const_cast<const Container*>(&ctr)->begin(t);
-}
 
 template <typename Tag, typename Container>
 typename iterator<Container,Tag>::type
@@ -156,11 +177,6 @@ template <typename Tag, typename Container>
 typename iterator<Container,Tag>::type
 end (Container const& ctr, Tag const& t=Tag()) {
   return ctr.end(t);
-}
-template <typename Tag, typename Container>
-typename iterator<Container,Tag>::type
-const_end (Container& ctr, Tag const& t=Tag()) {
-  return const_cast<const Container*>(&ctr)->end(t);
 }
 
 template <typename Tag, typename Container>
@@ -174,12 +190,6 @@ std::pair<typename iterator<Container,Tag>::type,
   typename iterator<Container,Tag>::type>
 sequence (Container const& ctr, Tag const& t=Tag()) {
   return std::make_pair(begin(ctr,t),end(ctr,t));
-}
-template <typename Tag, typename Container>
-std::pair<typename iterator<Container,Tag>::type,
-  typename iterator<Container,Tag>::type>
-const_sequence (Container& ctr, Tag const& t=Tag()) {
-  return std::make_pair(const_begin(ctr,t),const_end(ctr,t));
 }
 
 }
