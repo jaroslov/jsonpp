@@ -139,6 +139,55 @@ sequence (std::map<V,K,C,A> const& m, xpath__) {
 
 template <typename Variant>
 struct query_generator {
+  enum type_e {
+    ancestor,
+    ancestor_or_self,
+    attribute,
+    child,
+    descendent,
+    descendent_or_self,
+    following,
+    following_sibling,
+    namespace_,
+    parent,
+    preceding,
+    preceding_sibling,
+    self,
+  };
+
+  template <typename Iter>
+  void lex (Iter first, Iter second) const {
+    /*
+      Our "generalized" xpath language is this:
+      
+      Start ::= AbsPath 
+              | RelPathS
+      AbsPath ::= / RelPathS
+      RelPathS ::= RelPath
+                | RelPath / RelPathS
+      RelPath ::= Step
+                | Step Predicate
+                | Step Attribute
+      Step ::= Identifier
+             | .
+             | ..
+      Predicate ::= [ $ Number ]
+      Attribute ::= @ Number
+    */
+    switch (*first) {
+    case '[' : break;
+    case ']' : break;
+    case '(' : break;
+    case ')' : break;
+    case '$' : break;
+    case '/' : break;
+    case ':' : break;
+    case '@' : break;
+    case '.' : break;
+    default : break;
+    }
+  }
+
   struct visitor : boost::static_visitor<> {
     std::string depth;
 
