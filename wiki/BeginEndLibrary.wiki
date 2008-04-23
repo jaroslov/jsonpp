@@ -3,3 +3,14 @@
 
 The Begin-End library adds support for non-member access to the `begin` and `end` functions, and also adds support for the `sequence` function. Default support exists for containers which satisfy the _de facto_ container concept used by the STL.
 
+All of the functionality of the Begin-End library is within the namespace `bel` in the file "begin-end.hpp".
+
+The following identifiers will be used:
+  * `C` : `container` _some container value_
+  * `T`, `U` : `tag` _some tag type_
+  * `t`, `u` : `tag` _some tag value_
+
+|| *Expression* || *Meaning* || *Notes * ||
+|| `begin(C)` || returns the start of the sequence || defaults to `begin(C,mutable__)`; calls `C.begin()` ||
+|| `end(C)` || returns the end of the sequence || defaults to `end(C,mutable__)`; calls `C.end()` ||
+|| `sequence(C)` || returns a pair of iterators to the start and end of the sequence || calls `begin(C)` and `end(C)` ||
