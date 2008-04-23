@@ -1,19 +1,44 @@
 #include <utility>
+#include <boost/mpl/vector.hpp>
 
 #ifndef BEGIN_END
 #define BEGIN_END
 
 namespace bel {
 
+// these are the standard library iterator kind tags, i.e.,
+// the kinds of iterators that the containers in the STL provide
 struct const__ {};
 struct mutable__ {};
 struct reverse__ {};
-struct const_reverse__ {};
+struct paired__ {};
 
 static const const__ const_ = const__();
 static const mutable__ mutable_ = mutable__();
 static const reverse__ reverse_ = reverse__();
+static const paired__ paired_ = paired__();
+
+// composite
+typedef boost::mpl::vector<const__,reverse__> const_reverse__;
+
 static const const_reverse__ const_reverse_ = const_reverse__();
+
+// these are the standard iterator "tag class" kind tags, i.e.,
+// the semantic properties rather than syntactic properties supported by the
+// STL
+struct trivial__ {};
+struct input__ {};
+struct output__ {};
+struct forward__ {};
+struct bidirection__ {};
+struct random_access__ {};
+
+static const trivial__ trivial_ = trivial__();
+static const input__ input_ = input__();
+static const output__ output_ = output__();
+static const forward__ forward_ = forward__();
+static const bidirection__ bidirection_ = bidirection__();
+static const random_access__ random_access_ = random_access__();
 
 template <typename Container, typename Tag=void>
 struct iterator {
@@ -32,6 +57,8 @@ struct iterator<Container,const_reverse__> {
   typedef typename Container::const_reverse_iterator type;
 };
 
+/// [STL Tag Support] ======
+//      properly dispatch to the "named" begin/end function
 template <typename Container>
 typename iterator<Container>::type begin (Container& ctr) {
   return ctr.begin();
@@ -41,9 +68,19 @@ typename iterator<Container,const__>::type begin (Container const& ctr) {
   return ctr.begin();
 }
 template <typename Container>
-typename iterator<Container,const__>::type const_begin (Container& ctr) {
-  return const_cast<const Container>(ctr).begin();
+typename iterator<Container,const__>::type begin (Container& ctr, const__) {
+  return const_cast<const Container*>(&ctr)->begin();
 }
+template <typename Container>
+typename iterator<Container,reverse__>::type begin (Container& ctr, reverse__) {
+  return ctr.rbegin();
+}
+template <typename Container>
+typename iterator<Container,const_reverse__>::type
+begin (Container const& ctr, reverse__) {
+  return ctr.rbegin();
+}
+
 template <typename Container>
 typename iterator<Container>::type end (Container& ctr) {
   return ctr.end();
@@ -53,9 +90,14 @@ typename iterator<Container,const__>::type end (Container const& ctr) {
   return ctr.end();
 }
 template <typename Container>
-typename iterator<Container,const__>::type const_end (Container& ctr) {
-  return const_cast<const Container>(ctr).end();
+typename iterator<Container,const__>::type end (Container& ctr, const__) {
+  return const_cast<const Container*>(&ctr)->end();
 }
+template <typename Container>
+typename iterator<Container,reverse__>::type end (Container& ctr, reverse__) {
+  return ctr.rend();
+}
+
 template <typename Container>
 std::pair<typename iterator<Container>::type,
   typename iterator<Container>::type>
@@ -71,10 +113,24 @@ sequence (Container const& ctr) {
 template <typename Container>
 std::pair<typename iterator<Container,const__>::type,
   typename iterator<Container,const__>::type>
-const_sequence (Container& ctr) {
-  return std::make_pair(const_begin(ctr),const_end(ctr));
+sequence (Container& ctr, const__ const& c) {
+  return std::make_pair(begin(ctr,c),end(ctr,c));
+}
+template <typename Container>
+std::pair<typename iterator<Container,reverse__>::type,
+  typename iterator<Container,reverse__>::type>
+sequence (Container& ctr, reverse__ const& r) {
+  return std::make_pair(begin(ctr,r),end(ctr,r));
 }
 
+/// [Generalized Tag Support] ======
+//    the following functions support containers which are iterator-tag
+//    aware:
+//        C -- a container
+//        t -- a tag
+//      Valid Expressions:
+//        C.begin(t);
+//        C.end(t);
 template <typename Tag, typename Container>
 typename iterator<Container,Tag>::type
 begin (Container& ctr, Tag const& t=Tag()) {
@@ -88,8 +144,9 @@ begin (Container const& ctr, Tag const& t=Tag()) {
 template <typename Tag, typename Container>
 typename iterator<Container,Tag>::type
 const_begin (Container& ctr, Tag const& t=Tag()) {
-  return const_cast<const Container>(ctr).begin(t);
+  return const_cast<const Container*>(&ctr)->begin(t);
 }
+
 template <typename Tag, typename Container>
 typename iterator<Container,Tag>::type
 end (Container& ctr, Tag const& t=Tag()) {
@@ -103,8 +160,9 @@ end (Container const& ctr, Tag const& t=Tag()) {
 template <typename Tag, typename Container>
 typename iterator<Container,Tag>::type
 const_end (Container& ctr, Tag const& t=Tag()) {
-  return const_cast<const Container>(ctr).end(t);
+  return const_cast<const Container*>(&ctr)->end(t);
 }
+
 template <typename Tag, typename Container>
 std::pair<typename iterator<Container,Tag>::type,
   typename iterator<Container,Tag>::type>
