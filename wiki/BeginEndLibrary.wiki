@@ -48,3 +48,5 @@ The Begin-End library provides a number of built-in tags. Built-in tags have a _
 || `random_access__` || `random_access_` || a random access category iterator ||
 
 For convenience, the Begin-End library also provides functions for getting the `begin`, `end` and `sequence` of `stream`s; the functionality is provisional based upon your compiler's support for default function template parameters.
+
+Extending support for new kinds of iterators (tags) or specific acquisition of an iterator category or kind from a container simply requires that the `iterator` metatemplate function be specialized for either your tag, your container, or both. In addition, you may need to write overloads specialized for your tag for the `begin` and `end` functions. Since the `sequence` function relies on the `begin` and `end` functions, it is not necessary to override this function, unless it is more efficient to do so.
