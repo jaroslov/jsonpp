@@ -140,6 +140,7 @@ sequence (std::map<V,K,C,A> const& m, xpath__) {
 template <typename Variant>
 struct query_generator {
   enum type_e {
+    unknown,
     ancestor,
     ancestor_or_self,
     attribute,
@@ -153,6 +154,13 @@ struct query_generator {
     preceding,
     preceding_sibling,
     self,
+  };
+  struct token {
+    type_e type_;
+    std::string value_;
+
+    token (type_e t=unknown, std::string const& v="")
+      : type_(t), value_(v) {}
   };
 
   template <typename Iter>
@@ -175,15 +183,9 @@ struct query_generator {
       Attribute ::= @ Number
     */
     switch (*first) {
-    case '[' : break;
-    case ']' : break;
-    case '(' : break;
-    case ')' : break;
-    case '$' : break;
-    case '/' : break;
-    case ':' : break;
-    case '@' : break;
-    case '.' : break;
+    case '/' : {
+        
+      } break;
     default : break;
     }
   }
