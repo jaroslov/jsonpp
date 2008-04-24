@@ -18,6 +18,7 @@ enum kind_e {
   following = 'f',
   following_sibling = 'F',
   identifier = 'I',
+  index = 'x',
   namespace_ = 'n',
   parent = ':',
   preceding = 'p',
@@ -71,7 +72,7 @@ struct lexer_t {
   }
 
   template <typename Iter>
-  void operator () (Iter first, Iter last) const {
+  tokens_t operator () (Iter first, Iter last) const {
     tokens_t tokens;
     while (first != last) {
       token_t token;
@@ -91,9 +92,9 @@ struct lexer_t {
           // predicate: [$digits]
           ++first;
           if (first == last)
-            throw std::runtime_error("Invalid predicate construction (no $)");
+            throw std::runtime_error("Invalid predicate construction (no $ or digit)");
           if ('$' != *first)
-            throw std::runtime_error("Invalid predicate construction (not $)");
+            token.kind = index;
           ++first;
           if (first == last)
             throw std::runtime_error("Invalid predicate construction (no digits)");
@@ -158,9 +159,22 @@ struct lexer_t {
       if (first == last)
         break;
     }
+    return tokens;
   }
 };
 static const lexer_t lexer = lexer_t();
+
+struct code_t {
+  kind_e kind;
+};
+typedef std::vector<code_t> codes_t;
+
+struct parser_t {
+  typedef std::vector<std::string> string_store_t;
+
+  string_store_t string_store;
+};
+static parser_t parser = parser_t();
 
 struct path {
   path (std::string const& P) {
@@ -168,8 +182,7 @@ struct path {
   }
   void build_path (std::string const& P) {
     // parse in place
-    typedef std::string::const_iterator str_iter;
-    lexer(bel::begin(P),bel::end(P));
+    tokens_t tokens = lexer(bel::begin(P),bel::end(P));
   }
 };
 
