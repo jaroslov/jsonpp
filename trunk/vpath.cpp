@@ -155,8 +155,13 @@ int main (int argc, char *argv[]) {
   if (argc < 1)
     return 1;
 
-  //vpath::path P("/map-string-wchar_t-json[0]/vector-json[$1]");
-  vpath::strparser("/map-string-wchar_t-json[0]/vector-json[$1]");
+  vpath::path_type two
+    = vpath::strparser("/namespace/child::foo[$10]//bar/ancestor-or-self::ns/@$10");
+  std::cout << two << std::endl;
+
+  vpath::path_type one
+    = vpath::strparser("/map-string-wchar_t-json[0]/vector-json[$1]");
+  std::cout << one << std::endl;
 
   for (++argv; argc > 0; --argc, ++argv) {
     std::cout << *argv << std::endl;
