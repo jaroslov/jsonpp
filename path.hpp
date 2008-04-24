@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <cstring>
 
 #include <iostream>
 
@@ -35,6 +36,11 @@ struct axis_t {
   axis_t (name_e name=unknown, index_t test=None, index_t pred=None)
     : name(name), test(test), predicate(pred) {}
 
+  friend std::ostream& operator << (std::ostream& ostr, axis_t const& a) {
+    ostr << (char)a.name << "(" << a.test << "," << a.predicate << ")";
+    return ostr;
+  }
+
   name_e name;
   index_t test, predicate;
 };
@@ -42,9 +48,22 @@ typedef std::vector<axis_t> axes_t;
 
 template <typename String=std::string>
 struct path {
-  typedef std::vector<String> string_store_t;
+  typedef std::vector<String>           string_store_t;
+  typedef typename String::value_type   char_type;
+  typedef std::basic_ostream<char_type> bostream_t;
 
   path () {}
+
+  friend bostream_t& operator << (bostream_t& bostr, path const& P) {
+    for (std::size_t a=0; a<P.axes.size(); ++a) {
+      bostr << "/" << (char)P.axes[a].name;
+      if (-1 != P.axes[a].test)
+        bostr << "::" << P.string_store[P.axes[a].test];
+      if (-1 != P.axes[a].predicate)
+        bostr << "[$" << P.axes[a].predicate << "]";
+    }
+    return bostr;
+  }
 
   axes_t axes;
   string_store_t string_store;
@@ -52,7 +71,10 @@ struct path {
 
 template <typename String=std::string>
 struct path_parser_generator {
-  typedef path<String>                    path_t;
+  typedef path<String>                        path_t;
+  typedef typename String::value_type         char_type;
+  typedef std::basic_stringstream<char_type>  bsstream_t;
+  typedef std::basic_ostream<char_type>       bostream_t;
 private:
   typedef typename path_t::string_store_t strstore_t;
   struct token_t {
@@ -61,20 +83,26 @@ private:
       predicate = '$',
       index = '#',
       separator = '/',
-      ancestor_or_self = 'A',
-      self = '.',
-      parent = '^',
-      attribute_predicate = '&',
-      attribute_named = '@',
+      indexed_attribute = '&',
+      named_attribute = '@',
       identifier = 'i',
     };
 
-    token_t () : kind_(self), index_(0) {}
+    token_t () : name_(axis_t::unknown), kind_(identifier), index_(0) {}
 
-    token_kind_e kind_;
-    std::size_t  index_;
+    friend bostream_t& operator << (bostream_t& bostr, token_t const& token) {
+      bostr << "[" << (char)token.kind_ << "]{"
+            << (int)token.kind_ << "w/" << (char)token.name_ << "}("
+            << token.index_ << ")";
+      return bostr;
+    }
+
+    axis_t::name_e  name_;
+    token_kind_e    kind_;
+    std::size_t     index_;
   };
-  typedef std::vector<token_t> tokens_t;
+  typedef std::vector<token_t>                tokens_t;
+  typedef typename tokens_t::const_iterator   tok_citer;
 public:
   path_t operator () (String const& pathstr) const {
     return (*this)(bel::begin(pathstr), bel::end(pathstr));
@@ -83,13 +111,51 @@ public:
   path_t operator () (Iter first, Iter last) const {
     path_t path;
     tokens_t tokens = this->lex(first, last, path.string_store);
+    this->parse(bel::begin(tokens), bel::end(tokens), path.axes);
     return path;
   }
 private:
+  template <typename Str>
+  static String to_str (Str const& str) {
+    return String(str.begin(),str.end());
+  }
+  template <typename Char>
+  static String to_str (const Char* str) {
+    return String(str,std::strlen(str)+str);
+  }
+  void parse (tok_citer first, tok_citer last, axes_t& axes) const {
+    axes.clear();
+    while (first != last) {
+      std::cout << *first << std::endl;
+      tok_citer prog = first;
+      switch (first->kind_) {
+      case token_t::separator: ++first; break; // skip separators
+      case token_t::identifier: {
+          axis_t axis;
+          throw std::runtime_error("Internal error: unknown axis-name (parser).");
+        } break;
+      case token_t::named_attribute:
+      case token_t::indexed_attribute: {
+          // named/indexed_attribute
+          // named/indexed_attribute predicate
+          axis_t axis;
+          axis.name = axis_t::attribute;
+          if (token_t::named_attribute == first->kind_)
+            axis.predicate = first->index_;
+          else
+            axis.test = first->index_;
+          ++first;
+        } break;
+      default: {
+          std::cout << "DEFAULT " << *first << std::endl;
+        }
+      }
+      if (prog == first)
+        throw std::runtime_error("Internal error: no progress (parser)");
+    }
+  }
   template <typename Iter>
   Iter lex_digits (Iter first, Iter last, std::size_t& val) const {
-    typedef typename String::value_type char_type;
-    typedef std::basic_stringstream<char_type> bsstream_t;
     Iter start = first;
     while ((first != last) and std::isdigit(*first))
       ++first;
@@ -119,15 +185,15 @@ private:
     //   //                ancestor_or_self
     //   .                 self
     //   ..                parent
-    //   @$digits          attribute_predicate
-    //   @identifier       attribute_named
+    //   @$digits          indexed_attribute
+    //   @identifier       named_attribute
     //   identifier        identifier
     //
     //   what is identifier?
     //   [a-zA-Z][a-zA-Z0-9\-\_]*
     tokens_t tokens;
     while (first != last) {
-      std::cout << *first << std::endl;
+      const Iter prog = first;
       token_t token;
       switch (*first) {
       case ':' : { // ::
@@ -139,14 +205,16 @@ private:
       case '/' : { // / | //
           token.kind_ = token_t::separator;
           ++first; if ((first != last) and ('/' == *first)) {
-            token.kind_ = token_t::ancestor_or_self;
+            token.kind_ = token_t::identifier;
+            token.name_ = axis_t::ancestor_or_self;
             ++first;
           }
         } break;
       case '.' : { // . | ..
-          token.kind_ = token_t::self;
+          token.kind_ = token_t::identifier;
+          token.name_ = axis_t::self;
           ++first; if ((first != last) and ('.' == *first)) {
-            token.kind_ = token_t::parent;
+            token.name_ = axis_t::parent;
             ++first;
           }
         } break;
@@ -170,8 +238,24 @@ private:
           ++first; if (first == last)
             throw std::runtime_error("Malformed attribute, no test!");
           if ('$' == *first) {
+            token.kind_ = token_t::indexed_attribute;
             ++first; // eat $
+            if (first == last)
+              throw std::runtime_error("Malformed attribute: no index!");
+            const Iter prog = this->lex_digits(first, last, token.index_);
+            if (prog == first)
+              throw std::runtime_error("Malformed attribute: no index!");
+            first = prog;
           } else {
+            throw std::runtime_error("Predicate expressions are unsupported.");
+            token.kind_ = token_t::named_attribute;
+            String id;
+            const Iter prog = this->lex_identifier(first, last, id);
+            if (prog == first)
+              throw std::runtime_error("Malformed attribute: no test!");
+            first = prog;
+            token.index_ = store.size();
+            store.push_back(id);            
           }
         } break;
       default: { // accepts identifiers
@@ -180,16 +264,49 @@ private:
           const Iter prog = this->lex_identifier(first, last, id);
           if (prog == first)
             throw std::runtime_error("There was no legal identifier!");
+          if (to_str("ancestor") == id)
+            token.name_ = axis_t::ancestor;
+          else if (to_str("ancestor-or-self") == id)
+            token.name_ = axis_t::ancestor_or_self;
+          else if (to_str("attribute") == id)
+            token.name_ = axis_t::attribute;
+          else if (to_str("child") == id)
+            token.name_ = axis_t::child;
+          else if (to_str("descendent") == id)
+            token.name_ = axis_t::descendent;
+          else if (to_str("descendent-or-self") == id)
+            token.name_ = axis_t::descendent_or_self;
+          else if (to_str("following") == id)
+            token.name_ = axis_t::following;
+          else if (to_str("following-sibling") == id)
+            token.name_ = axis_t::following_sibling;
+          else if (to_str("namespace") == id)
+            token.name_ = axis_t::namespace_;
+          else if (to_str("parent") == id)
+            token.name_ = axis_t::parent;
+          else if (to_str("preceding") == id)
+            token.name_ = axis_t::preceding;
+          else if (to_str("preceding-sibling") == id)
+            token.name_ = axis_t::preceding_sibling;
+          else if (to_str("self") == id)
+            token.name_ = axis_t::self;
+          else
+            token.name_ = axis_t::unknown;
+          token.index_ = store.size();
           store.push_back(id);
           first = prog;
         }
       }
+      if (prog == first)
+        throw std::runtime_error("Internal error: no progress (lexer)");
       tokens.push_back(token);
     }
+    return tokens;
   }
 };
 
 static const path_parser_generator<> strparser = path_parser_generator<>();
+typedef path_parser_generator<>::path_t path_type;
 
 }
 
