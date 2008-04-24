@@ -160,7 +160,7 @@ int main (int argc, char *argv[]) {
   std::cout << two << std::endl;
 
   vpath::path_type one
-    = vpath::strparser("/map-string-wchar_t-json[0]/vector-json[$1]");
+    = vpath::strparser("/map-string-wchar_t-json[$0]/vector-json[$1]");
   std::cout << one << std::endl;
 
   for (++argv; argc > 0; --argc, ++argv) {
