@@ -30,20 +30,14 @@ enum kind_e {
 
 struct token_t {
   kind_e kind;
-  std::string identifier;
-  std::size_t digit;
+  signed long value;
 
-  token_t (kind_e k=unknown)
-    : kind(k), identifier(""), digit(0) {}
-  token_t (kind_e k, std::string const& i)
-    : kind(k), identifier(i), digit(0) {}
-  token_t (kind_e k, std::size_t const& d)
-    : kind(k), identifier(""), digit(d) {}
+  token_t (kind_e k=unknown, signed long d=-1)
+    : kind(k), value(d) {}
 
   friend std::ostream& operator << (std::ostream& ostr, token_t const& t) {
-    ostr << (char)t.kind << "] \""
-      << t.identifier << "\" ("
-      << t.digit  << ")";
+    ostr << "[" << (char)t.kind << "]=>"
+      << t.value;
     return ostr;
   }
 };
@@ -51,6 +45,7 @@ struct token_t {
 typedef std::vector<token_t> tokens_t;
 typedef std::map<std::string,kind_e> name_kind_map_t;
 typedef name_kind_map_t::const_iterator nkm_citer;
+typedef std::vector<std::string> string_store_t;
 
 struct lexer_t {
   name_kind_map_t name_kind_map;
@@ -72,7 +67,8 @@ struct lexer_t {
   }
 
   template <typename Iter>
-  tokens_t operator () (Iter first, Iter last) const {
+  tokens_t
+  operator () (Iter first, Iter last, string_store_t& string_store) const {
     tokens_t tokens;
     while (first != last) {
       token_t token;
@@ -104,7 +100,7 @@ struct lexer_t {
           if (first == last)
             throw std::runtime_error("Invalid predicate construction (not ])");
           std::stringstream ss(std::string(start,first));
-          ss >> token.digit;
+          ss >> token.value;
           if (']' != *first)
             throw std::runtime_error("Invalid predicate construction (not ])");
           ++first;
@@ -139,7 +135,8 @@ struct lexer_t {
               throw std::runtime_error("Invalid literal (not \')");
             ++first;
             token.kind = identifier;
-            token.identifier = std::string(start+1,first-1);
+            token.value = string_store.size();
+            string_store.push_back(std::string(start+1,first-1));
           } break;
         default: {
             if (std::isalpha(*first)) {
@@ -147,14 +144,17 @@ struct lexer_t {
               Iter start = first;
               while ((first != last) and std::isalnum(*first))
                 ++first;
-              token.identifier = std::string(start,first);
-              nkm_citer nkmtr = this->name_kind_map.find(token.identifier);
+              token.value = string_store.size();
+              string_store.push_back(std::string(start,first));
+              nkm_citer nkmtr = this->name_kind_map.find(
+                                    string_store[token.value]);
               if (this->name_kind_map.end() != nkmtr)
                 token.kind = nkmtr->second;
             } else
               throw std::runtime_error("Unknown character");
           } break;
       }
+      std::cout << token << std::endl;
       tokens.push_back(token);
       if (first == last)
         break;
@@ -170,9 +170,6 @@ struct code_t {
 typedef std::vector<code_t> codes_t;
 
 struct parser_t {
-  typedef std::vector<std::string> string_store_t;
-
-  string_store_t string_store;
 };
 static parser_t parser = parser_t();
 
@@ -181,9 +178,11 @@ struct path {
     this->build_path(P);
   }
   void build_path (std::string const& P) {
+    this->string_store.clear();
     // parse in place
-    tokens_t tokens = lexer(bel::begin(P),bel::end(P));
+    tokens_t tokens = lexer(bel::begin(P),bel::end(P),this->string_store);
   }
+  string_store_t string_store;
 };
 
 }
