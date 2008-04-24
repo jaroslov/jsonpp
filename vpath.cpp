@@ -1,3 +1,4 @@
+#include <path.hpp>
 #include <jsonpp.hpp>
 #include <iostream>
 #include <fstream>
@@ -5,8 +6,6 @@
 #include <locale>
 #include <boost/mpl/bool.hpp>
 #include <boost/tuple/tuple.hpp>
-
-#include <vpath.hpp>
 
 #include <vector>
 #include <list>
@@ -156,7 +155,8 @@ int main (int argc, char *argv[]) {
   if (argc < 1)
     return 1;
 
-  vpath::path P("/map-string-wchar_t-json[0]/vector-json[$1]");
+  //vpath::path P("/map-string-wchar_t-json[0]/vector-json[$1]");
+  vpath::strparser("/map-string-wchar_t-json[0]/vector-json[$1]");
 
   for (++argv; argc > 0; --argc, ++argv) {
     std::cout << *argv << std::endl;
