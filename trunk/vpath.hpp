@@ -84,28 +84,29 @@ struct lexer_t {
           ++first;
         } break;
       case '[' : {
-          token.kind = predicate;
-          // predicate: [$digits]
-          ++first;
-          if (first == last)
-            throw std::runtime_error("Invalid predicate construction (no $ or digit)");
-          if ('$' != *first)
-            token.kind = index;
-          else // skip passed the $
+            token.kind = predicate;
+            // predicate: [$digits]
+            // accessor:  [digits]
             ++first;
-          if (first == last)
-            throw std::runtime_error("Invalid predicate construction (no digits)");
-          Iter start = first;
-          while ((first != last) and std::isdigit(*first))
+            if (first == last)
+              throw std::runtime_error("Invalid predicate construction (no $ or digit)");
+            if ('$' != *first)
+              token.kind = index;
+            else // skip passed the $
+              ++first;
+            if (first == last)
+              throw std::runtime_error("Invalid predicate construction (no digits)");
+            Iter start = first;
+            while ((first != last) and std::isdigit(*first))
+              ++first;
+            if (first == last)
+              throw std::runtime_error("Invalid predicate construction (not ])");
+            std::stringstream ss(std::string(start,first));
+            ss >> token.value;
+            if (']' != *first)
+              throw std::runtime_error("Invalid predicate construction (not ])");
             ++first;
-          if (first == last)
-            throw std::runtime_error("Invalid predicate construction (not ])");
-          std::stringstream ss(std::string(start,first));
-          ss >> token.value;
-          if (']' != *first)
-            throw std::runtime_error("Invalid predicate construction (not ])");
-          ++first;
-        } break;
+          } break;
         case '.' : {
             // if it is "//" then it is a descendent-or-self
             // else we have "/" then it is an axis
@@ -143,7 +144,6 @@ struct lexer_t {
               throw std::runtime_error("Unknown character");
           } break;
       }
-      std::cout << token << std::endl;
       tokens.push_back(token);
       if (first == last)
         break;
@@ -156,37 +156,61 @@ static const lexer_t lexer = lexer_t();
 struct code_t {
   kind_e axis;
   std::size_t test, predicate;
+
+  friend std::ostream& operator << (std::ostream& ostr, code_t const& code) {
+    ostr << (int)code.axis << " :: " << code.test << " [" << code.predicate << "]";
+    return ostr;
+  }
 };
 typedef std::vector<code_t> codes_t;
 
 struct parser_t {
   template <typename Iter>
   codes_t operator () (Iter first, Iter last) {
+    codes_t codes;
     // test
     // test pred
     // axis select test
     // axis select test pred
     while (first != last) {
-      switch (*first) {
-      case axis: ++first; break;
+      code_t code;
+      bool use_code = true;
+      switch (first->kind) {
+      case axis: ++first; use_code = false; break;
       case identifier: {
-          code_t code;
           ++first; if (last == first) {
             // nothing else, we just have a test
             code.axis = first->kind;
-            code.test = code.predicate = -1
+            code.test = code.predicate = -1;
           } else switch (first->kind) {
           case select: {
               ++first; if (last == first)
                 throw std::runtime_error(":: must be followed by a node-test");
+              if (identifier != first->kind)
+                throw std::runtime_error(":: must be followed by a node-test");
+              code.test = first->value; // value holds the test string
+              ++first; if (last == first) break;
+              if (predicate != first->kind)
+                break;
+              // otherwise, fall through!
             }
-          case predicate: {
-              
+          case predicate: case index: {
+              code.predicate = first->value; // value holds the predicate
+              ++first;
             } break;
+          default:
+            throw std::runtime_error("Malformed Axis"); break;
           }
         } break;
+      default:
+        throw std::runtime_error("Malformed Path"); break;
+      }
+      if (use_code) {
+        std::cout << code << std::endl;
+        codes.push_back(code);
       }
     }
+    return codes;
   }
 };
 static parser_t parser = parser_t();
@@ -199,6 +223,7 @@ struct path {
     this->string_store.clear();
     // parse in place
     tokens_t tokens = lexer(bel::begin(P),bel::end(P),this->string_store);
+    parser(bel::begin(tokens),bel::end(tokens));
   }
   string_store_t string_store;
 };
