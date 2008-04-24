@@ -82,8 +82,8 @@ struct path {
     return bostr;
   }
 
-  axes_t axes;
-  string_store_t string_store;
+  axes_t          axes;
+  string_store_t  string_store;
 };
 
 template <typename String=std::string>

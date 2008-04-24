@@ -156,7 +156,7 @@ int main (int argc, char *argv[]) {
     return 1;
 
   vpath::path_type two
-    = vpath::strparser("/namespace/child::foo[$0]//bar/ancestor-or-self::ns/@$0");
+    = vpath::strparser("/namespace/*/child::foo[$0]//bar/ancestor-or-self::ns/@$0");
   std::cout << two << std::endl;
 
   vpath::path_type one
