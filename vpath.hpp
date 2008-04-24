@@ -3,6 +3,7 @@
 #include <cctype>
 #include <vector>
 #include <string>
+#include <map>
 #include <sstream>
 #include <cstring>
 
@@ -56,7 +57,23 @@ struct path {
 
   friend bostream_t& operator << (bostream_t& bostr, path const& P) {
     for (std::size_t a=0; a<P.axes.size(); ++a) {
-      bostr << "/" << (char)P.axes[a].name;
+      bostr << "/";
+      switch (P.axes[a].name) {
+      case axis_t::ancestor: bostr << "ancestor"; break;
+      case axis_t::ancestor_or_self: bostr << "ancestor-or-self"; break;
+      case axis_t::attribute: bostr << "attribute"; break;
+      case axis_t::child: bostr << "child"; break;
+      case axis_t::descendent: bostr << "descendent"; break;
+      case axis_t::descendent_or_self: bostr << "descendent-or-self"; break;
+      case axis_t::following: bostr << "following"; break;
+      case axis_t::following_sibling: bostr << "following-sibling"; break;
+      case axis_t::namespace_: bostr << "namespace"; break;
+      case axis_t::parent: bostr << "parent"; break;
+      case axis_t::preceding: bostr << "preceding"; break;
+      case axis_t::preceding_sibling: bostr << "preceding-sibling"; break;
+      case axis_t::self: bostr << "self"; break;
+      default: bostr << "unknown"; break;
+      }
       if (-1 != P.axes[a].test)
         bostr << "::" << P.string_store[P.axes[a].test];
       if (-1 != P.axes[a].predicate)
@@ -91,9 +108,9 @@ private:
     token_t () : name_(axis_t::unknown), kind_(identifier), index_(0) {}
 
     friend bostream_t& operator << (bostream_t& bostr, token_t const& token) {
-      bostr << "[" << (char)token.kind_ << "]{"
-            << (int)token.kind_ << "w/" << (char)token.name_ << "}("
-            << token.index_ << ")";
+      bostr << (char)token.kind_
+            << (char)token.name_
+            << token.index_;
       return bostr;
     }
 
@@ -101,9 +118,29 @@ private:
     token_kind_e    kind_;
     std::size_t     index_;
   };
-  typedef std::vector<token_t>                tokens_t;
-  typedef typename tokens_t::const_iterator   tok_citer;
+  typedef std::vector<token_t>                    tokens_t;
+  typedef typename tokens_t::const_iterator       tok_citer;
+  typedef std::map<String,axis_t::name_e>         str_kind_map_t;
+  typedef typename str_kind_map_t::const_iterator skm_citer;
+
+  // members (constant)
+  str_kind_map_t str_kind_map;
 public:
+  path_parser_generator () {
+    this->str_kind_map[to_str("ancestor")] = axis_t::ancestor;
+    this->str_kind_map[to_str("ancestor-or-self")] = axis_t::ancestor_or_self;
+    this->str_kind_map[to_str("attribute")] = axis_t::attribute;
+    this->str_kind_map[to_str("child")] = axis_t::child;
+    this->str_kind_map[to_str("descendent")] = axis_t::descendent;
+    this->str_kind_map[to_str("descendent-or-self")] = axis_t::descendent_or_self;
+    this->str_kind_map[to_str("following")] = axis_t::following;
+    this->str_kind_map[to_str("following-sibling")] = axis_t::following_sibling;
+    this->str_kind_map[to_str("namespace")] = axis_t::namespace_;
+    this->str_kind_map[to_str("parent")] = axis_t::parent;
+    this->str_kind_map[to_str("preceding")] = axis_t::preceding;
+    this->str_kind_map[to_str("preceding-sibling")] = axis_t::preceding_sibling;
+    this->str_kind_map[to_str("self")] = axis_t::self;
+  }
   path_t operator () (String const& pathstr) const {
     return (*this)(bel::begin(pathstr), bel::end(pathstr));
   }
@@ -126,41 +163,39 @@ private:
   void parse (tok_citer first, tok_citer last, axes_t& axes) const {
     axes.clear();
     while (first != last) {
-      std::cout << *first << std::endl;
       tok_citer prog = first;
       switch (first->kind_) {
       case token_t::separator: ++first; break; // skip separators
       case token_t::identifier: {
           axis_t axis;
-          if ((first == last)
-            or (axis_t::unknown == first->name_)
-            or (token_t::separator == (first+1)->kind_)) {
-            axis.name = axis_t::child;
-            axis.test = first->index_;
+          axis.name = axis_t::child;
+          axis.test = first->index_;
+          // we know from the lexer that "unknown" identifiers
+          // must be "child", so we keep the default above
+          // otherwise we have an axis-name axis-test
+          if (axis_t::unknown != first->name_) {
+            axis.name = first->name_;
+            if (first == last)
+              throw std::runtime_error("The axis-name does not have an axis-test!");
             ++first;
-            if (first != last)
-              ++first;
-          } else {
-            /*tok_citer next = first+1;
-            if ((token_t::selector == next->kind_)
-              and (axis_t::unknown != first->name_)) {
-              axis.name = first->name_;
-              ++++first; if (first == last)
-                throw std::runtime_error("Malformed axis: no test!");
+            if ((axis_t::unknown == first->name_)
+              and (token_t::identifier == first->kind_))
               axis.test = first->index_;
-              ++first; // eat the test
-            } else
-              throw std::runtime_error("Unknown axis name!");
-            if ((first != last) {
-              if (token_t::index == first->kind_) {
-                axis.predicate = first->index_;
-                throw std::runtime_error("Failed to build the index predicate!");
-                ++first;
-              } else if (token_t::predicate == first->kind_) {
-                axis.predicate = first->index_;
-                ++first;
-              }
-            }*/
+            else
+              throw std::runtime_error("The axis-test must be an identifier!");
+            ++first;
+          } else
+            ++first; // eat the bare identifier
+          // get optional predicate
+          if (first != last) {
+            if (token_t::index == first->kind_) {
+              axis.predicate = first->index_;
+              throw std::runtime_error("Failed to build the index predicate!");
+              ++first;
+            } else if (token_t::predicate == first->kind_) {
+              axis.predicate = first->index_;
+              ++first;
+            }
           }
           axes.push_back(axis);
         } break;
@@ -171,9 +206,9 @@ private:
           axis_t axis;
           axis.name = axis_t::attribute;
           if (token_t::named_attribute == first->kind_)
-            axis.predicate = first->index_;
-          else
             axis.test = first->index_;
+          else
+            axis.predicate = first->index_;
           axes.push_back(axis);
           ++first;
         } break;
@@ -182,8 +217,7 @@ private:
         }
       }
       if (prog == first)
-        //throw std::runtime_error("Internal error: no progress (parser)");
-        return;
+        throw std::runtime_error("Internal error: no progress (parser)");
     }
   }
   template <typename Iter>
@@ -228,12 +262,6 @@ private:
       const Iter prog = first;
       token_t token;
       switch (*first) {
-      case ':' : { // ::
-          ++first; if ((first == last) or (':' != *first))
-            throw std::runtime_error("Final \':\' is missing.");
-          ++first;
-          token.kind_ = token_t::selector;
-        } break;
       case '/' : { // / | //
           token.kind_ = token_t::separator;
           ++first; if ((first != last) and ('/' == *first)) {
@@ -296,37 +324,29 @@ private:
           const Iter prog = this->lex_identifier(first, last, id);
           if (prog == first)
             throw std::runtime_error("There was no legal identifier!");
-          if (to_str("ancestor") == id)
-            token.name_ = axis_t::ancestor;
-          else if (to_str("ancestor-or-self") == id)
-            token.name_ = axis_t::ancestor_or_self;
-          else if (to_str("attribute") == id)
-            token.name_ = axis_t::attribute;
-          else if (to_str("child") == id)
-            token.name_ = axis_t::child;
-          else if (to_str("descendent") == id)
-            token.name_ = axis_t::descendent;
-          else if (to_str("descendent-or-self") == id)
-            token.name_ = axis_t::descendent_or_self;
-          else if (to_str("following") == id)
-            token.name_ = axis_t::following;
-          else if (to_str("following-sibling") == id)
-            token.name_ = axis_t::following_sibling;
-          else if (to_str("namespace") == id)
-            token.name_ = axis_t::namespace_;
-          else if (to_str("parent") == id)
-            token.name_ = axis_t::parent;
-          else if (to_str("preceding") == id)
-            token.name_ = axis_t::preceding;
-          else if (to_str("preceding-sibling") == id)
-            token.name_ = axis_t::preceding_sibling;
-          else if (to_str("self") == id)
-            token.name_ = axis_t::self;
+          first = prog;
+          skm_citer skmtr = this->str_kind_map.find(id);
+          if (this->str_kind_map.end() != skmtr)
+            token.name_ = skmtr->second;
           else
             token.name_ = axis_t::unknown;
-          token.index_ = store.size();
-          store.push_back(id);
-          first = prog;
+          bool is_test_name = true;
+          if (axis_t::unknown != token.name_) {
+            // it is only a *real* axis-name if it is followed by `::`
+            if (first != last) {
+              if (':' == *(first+1)) { // there is a selector!
+                ++first; if ((last == first) or (':' != *first))
+                  throw std::runtime_error("The selector (::) is missing the last `:`");
+                ++first; // eat the second `:`
+                is_test_name = false; // it is NOT an axis-test!
+              }
+            }
+          }
+          if (is_test_name) {
+            token.name_  = axis_t::unknown;
+            token.index_ = store.size();
+            store.push_back(id);
+          }
         }
       }
       if (prog == first)
