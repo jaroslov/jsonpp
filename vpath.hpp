@@ -91,7 +91,8 @@ struct lexer_t {
             throw std::runtime_error("Invalid predicate construction (no $ or digit)");
           if ('$' != *first)
             token.kind = index;
-          ++first;
+          else // skip passed the $
+            ++first;
           if (first == last)
             throw std::runtime_error("Invalid predicate construction (no digits)");
           Iter start = first;
@@ -124,25 +125,13 @@ struct lexer_t {
             ++first;
             token.kind = select;
           } break;
-        case '`' : {
-            Iter start = first;
-            ++first;
-            while ((first != last) and ('\'' != *first))
-              ++first;
-            if (first == last)
-              throw std::runtime_error("Invalid literal (no \')");
-            if ('\'' != *first)
-              throw std::runtime_error("Invalid literal (not \')");
-            ++first;
-            token.kind = identifier;
-            token.value = string_store.size();
-            string_store.push_back(std::string(start+1,first-1));
-          } break;
         default: {
             if (std::isalpha(*first)) {
               token.kind = identifier;
               Iter start = first;
-              while ((first != last) and std::isalnum(*first))
+              while ((first != last)
+                and (std::isalnum(*first) or ('-' == *first)
+                or ('_' == *first)))
                 ++first;
               token.value = string_store.size();
               string_store.push_back(std::string(start,first));
@@ -165,11 +154,40 @@ struct lexer_t {
 static const lexer_t lexer = lexer_t();
 
 struct code_t {
-  kind_e kind;
+  kind_e axis;
+  std::size_t test, predicate;
 };
 typedef std::vector<code_t> codes_t;
 
 struct parser_t {
+  template <typename Iter>
+  codes_t operator () (Iter first, Iter last) {
+    // test
+    // test pred
+    // axis select test
+    // axis select test pred
+    while (first != last) {
+      switch (*first) {
+      case axis: break;
+      case identifier: {
+          code_t code;
+          ++first; if (last == first) {
+            // nothing else, we just have a test
+            code.axis = first->kind;
+            code.test = code.predicate = -1
+          } else switch (first->kind) {
+          case select: {
+              ++first; if (last == first)
+                throw std::runtime_error(":: must be followed by a node-test");
+            }
+          case predicate: {
+              
+            } break;
+          }
+        } break;
+      }
+    }
+  }
 };
 static parser_t parser = parser_t();
 
