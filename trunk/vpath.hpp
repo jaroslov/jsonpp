@@ -6,49 +6,72 @@
 
 namespace vpath {
 
-struct path {
-  enum kind_e {
-    unknown = '0',
-    axis = 'a',
-    self = '.',
-    child = '/',
-    parent = ':',
-    predicate = '$',
-    descendent_or_self = ';',
-    select = 's',
-  };
+enum kind_e {
+  unknown = '0',
+  ancestor = 'a',
+  ancestor_or_self = 'A',
+  attribute = '@',
+  axis = '/',
+  child = 'c',
+  descendent = ',',
+  descendent_or_self = ';',
+  following = 'f',
+  following_sibling = 'F',
+  identifier = 'I',
+  namespace_ = 'n',
+  parent = ':',
+  preceding = 'p',
+  preceding_sibling = 'P',
+  predicate = '$',
+  select = 's',
+  self = '.',
+};
 
-  struct token_t {
-    kind_e kind;
-    std::string identifier;
-    std::size_t digit;
+struct token_t {
+  kind_e kind;
+  std::string identifier;
+  std::size_t digit;
 
-    token_t (kind_e k=unknown)
-      : kind(k), identifier(""), digit(0) {}
-    token_t (kind_e k, std::string const& i)
-      : kind(k), identifier(i), digit(0) {}
-    token_t (kind_e k, std::size_t const& d)
-      : kind(k), identifier(""), digit(d) {}
+  token_t (kind_e k=unknown)
+    : kind(k), identifier(""), digit(0) {}
+  token_t (kind_e k, std::string const& i)
+    : kind(k), identifier(i), digit(0) {}
+  token_t (kind_e k, std::size_t const& d)
+    : kind(k), identifier(""), digit(d) {}
 
-    friend std::ostream& operator << (std::ostream& ostr, token_t const& t) {
-      ostr << (char)t.kind << "] \""
-        << t.identifier << "\" ("
-        << t.digit  << ")";
-      return ostr;
-    }
-  };
-  typedef std::vector<token_t> tokens_t;
-
-  path (std::string const& P) {
-    this->build_path(P);
+  friend std::ostream& operator << (std::ostream& ostr, token_t const& t) {
+    ostr << (char)t.kind << "] \""
+      << t.identifier << "\" ("
+      << t.digit  << ")";
+    return ostr;
   }
-  void build_path (std::string const& P) {
-    // parse in place
-    typedef std::string::const_iterator str_iter;
-    this->lex(bel::begin(P),bel::end(P));
+};
+
+typedef std::vector<token_t> tokens_t;
+typedef std::map<std::string,kind_e> name_kind_map_t;
+typedef name_kind_map_t::const_iterator nkm_citer;
+
+struct lexer_t {
+  name_kind_map_t name_kind_map;
+
+  lexer_t () {
+    this->name_kind_map["ancestor"] = ancestor;
+    this->name_kind_map["ancestor-or-self"] = ancestor_or_self;
+    this->name_kind_map["attribute"] = attribute;
+    this->name_kind_map["child"] = child;
+    this->name_kind_map["descendent"] = descendent;
+    this->name_kind_map["descendent-or-self"] = descendent_or_self;
+    this->name_kind_map["following"] = following;
+    this->name_kind_map["following-sibling"] = following_sibling;
+    this->name_kind_map["namespace"] = namespace_;
+    this->name_kind_map["parent"] = parent;
+    this->name_kind_map["preceding"] = preceding;
+    this->name_kind_map["preceding-sibling"] = preceding_sibling;
+    this->name_kind_map["self"] = self;
   }
+
   template <typename Iter>
-  void lex (Iter first, Iter last) const {
+  void operator () (Iter first, Iter last) const {
     tokens_t tokens;
     while (first != last) {
       token_t token;
@@ -104,16 +127,49 @@ struct path {
             ++first;
             token.kind = select;
           } break;
-        default: {
-            
+        case '`' : {
+            Iter start = first;
             ++first;
+            while ((first != last) and ('\'' != *first))
+              ++first;
+            if (first == last)
+              throw std::runtime_error("Invalid literal (no \')");
+            if ('\'' != *first)
+              throw std::runtime_error("Invalid literal (not \')");
+            ++first;
+            token.kind = identifier;
+            token.identifier = std::string(start+1,first-1);
+          } break;
+        default: {
+            if (std::isalpha(*first)) {
+              token.kind = identifier;
+              Iter start = first;
+              while ((first != last) and std::isalnum(*first))
+                ++first;
+              token.identifier = std::string(start,first);
+              nkm_citer nkmtr = this->name_kind_map.find(token.identifier);
+              if (this->name_kind_map.end() != nkmtr)
+                token.kind = nkmtr->second;
+            } else
+              throw std::runtime_error("Unknown character");
           } break;
       }
-      std::cout << token << std::endl;
       tokens.push_back(token);
       if (first == last)
         break;
     }
+  }
+};
+static const lexer_t lexer = lexer_t();
+
+struct path {
+  path (std::string const& P) {
+    this->build_path(P);
+  }
+  void build_path (std::string const& P) {
+    // parse in place
+    typedef std::string::const_iterator str_iter;
+    lexer(bel::begin(P),bel::end(P));
   }
 };
 
