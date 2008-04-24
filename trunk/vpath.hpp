@@ -79,7 +79,7 @@ private:
   typedef typename path_t::string_store_t strstore_t;
   struct token_t {
     enum token_kind_e {
-      select = ':',
+      selector = ':',
       predicate = '$',
       index = '#',
       separator = '/',
@@ -132,7 +132,37 @@ private:
       case token_t::separator: ++first; break; // skip separators
       case token_t::identifier: {
           axis_t axis;
-          throw std::runtime_error("Internal error: unknown axis-name (parser).");
+          if ((first == last)
+            or (axis_t::unknown == first->name_)
+            or (token_t::separator == (first+1)->kind_)) {
+            axis.name = axis_t::child;
+            axis.test = first->index_;
+            ++first;
+            if (first != last)
+              ++first;
+          } else {
+            /*tok_citer next = first+1;
+            if ((token_t::selector == next->kind_)
+              and (axis_t::unknown != first->name_)) {
+              axis.name = first->name_;
+              ++++first; if (first == last)
+                throw std::runtime_error("Malformed axis: no test!");
+              axis.test = first->index_;
+              ++first; // eat the test
+            } else
+              throw std::runtime_error("Unknown axis name!");
+            if ((first != last) {
+              if (token_t::index == first->kind_) {
+                axis.predicate = first->index_;
+                throw std::runtime_error("Failed to build the index predicate!");
+                ++first;
+              } else if (token_t::predicate == first->kind_) {
+                axis.predicate = first->index_;
+                ++first;
+              }
+            }*/
+          }
+          axes.push_back(axis);
         } break;
       case token_t::named_attribute:
       case token_t::indexed_attribute: {
@@ -144,6 +174,7 @@ private:
             axis.predicate = first->index_;
           else
             axis.test = first->index_;
+          axes.push_back(axis);
           ++first;
         } break;
       default: {
@@ -151,7 +182,8 @@ private:
         }
       }
       if (prog == first)
-        throw std::runtime_error("Internal error: no progress (parser)");
+        //throw std::runtime_error("Internal error: no progress (parser)");
+        return;
     }
   }
   template <typename Iter>
@@ -200,7 +232,7 @@ private:
           ++first; if ((first == last) or (':' != *first))
             throw std::runtime_error("Final \':\' is missing.");
           ++first;
-          token.kind_ = token_t::separator;
+          token.kind_ = token_t::selector;
         } break;
       case '/' : { // / | //
           token.kind_ = token_t::separator;
