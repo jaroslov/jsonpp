@@ -17,6 +17,7 @@ namespace vpath {
 struct axis_t {
   typedef signed long index_t;
   static const index_t None = -1;
+  static const index_t WildCard = -2;
   enum name_e {
     unknown = '0',
     ancestor = 'a',
@@ -74,8 +75,10 @@ struct path {
       case axis_t::self: bostr << "self"; break;
       default: bostr << "unknown"; break;
       }
-      if (-1 != P.axes[a].test)
+      if (-1 < P.axes[a].test)
         bostr << "::" << P.string_store[P.axes[a].test];
+      else if (axis_t::WildCard == P.axes[a].test)
+        bostr << "::*";
       if (-1 != P.axes[a].predicate)
         bostr << "[$" << P.axes[a].predicate << "]";
     }
@@ -212,9 +215,8 @@ private:
           axes.push_back(axis);
           ++first;
         } break;
-      default: {
-          std::cout << "DEFAULT " << *first << std::endl;
-        }
+      default:
+        throw std::runtime_error("Unexpected token!");
       }
       if (prog == first)
         throw std::runtime_error("Internal error: no progress (parser)");
@@ -317,6 +319,11 @@ private:
             token.index_ = store.size();
             store.push_back(id);            
           }
+        } break;
+      case '*': { // wild-card child identifier
+          ++first;
+          token.kind_ = token_t::identifier;
+          token.index_ = axis_t::WildCard;
         } break;
       default: { // accepts identifiers
           token.kind_ = token_t::identifier;
