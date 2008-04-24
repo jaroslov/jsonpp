@@ -168,7 +168,7 @@ struct parser_t {
     // axis select test pred
     while (first != last) {
       switch (*first) {
-      case axis: break;
+      case axis: ++first; break;
       case identifier: {
           code_t code;
           ++first; if (last == first) {
