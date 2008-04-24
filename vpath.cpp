@@ -156,7 +156,7 @@ int main (int argc, char *argv[]) {
   if (argc < 1)
     return 1;
 
-  vpath::path P("/joins[$34]//inputs/./../child::foo");
+  vpath::path P("/`map<string<wchar_t>,json>'[$0]/`vector<json>'[$1]");
 
   for (++argv; argc > 0; --argc, ++argv) {
     std::cout << *argv << std::endl;
