@@ -6,6 +6,8 @@
 #include <boost/mpl/bool.hpp>
 #include <boost/tuple/tuple.hpp>
 
+#include <vpath.hpp>
+
 #include <vector>
 #include <list>
 #include <map>
@@ -137,95 +139,7 @@ sequence (std::map<V,K,C,A> const& m, xpath__) {
 
 }
 
-template <typename Variant>
-struct query_generator {
-  enum type_e {
-    unknown,
-    ancestor,
-    ancestor_or_self,
-    attribute,
-    child,
-    descendent,
-    descendent_or_self,
-    following,
-    following_sibling,
-    namespace_,
-    parent,
-    preceding,
-    preceding_sibling,
-    self,
-  };
-  struct token {
-    type_e type_;
-    std::string value_;
 
-    token (type_e t=unknown, std::string const& v="")
-      : type_(t), value_(v) {}
-  };
-
-  template <typename Iter>
-  void lex (Iter first, Iter second) const {
-    /*
-      Our "generalized" xpath language is this:
-      
-      Start ::= AbsPath 
-              | RelPathS
-      AbsPath ::= / RelPathS
-      RelPathS ::= RelPath
-                | RelPath / RelPathS
-      RelPath ::= Step
-                | Step Predicate
-                | Step Attribute
-      Step ::= Identifier
-             | .
-             | ..
-      Predicate ::= [ $ Number ]
-      Attribute ::= @ Number
-    */
-    switch (*first) {
-    case '/' : {
-        
-      } break;
-    default : break;
-    }
-  }
-
-  struct visitor : boost::static_visitor<> {
-    std::string depth;
-
-    visitor (std::string const& depth="") : depth(depth) {}
-
-    template <typename T>
-    typename boost::enable_if<recursive<T> >::type
-    operator () (T const& t) const {
-      typedef typename bel::iterator<T,xpath__>::type iterator;
-      std::cout << this->depth << name(t, xpath_) << std::endl;
-      visitor V(this->depth+"  ");
-      iterator itr, ind;
-      for (boost::tie(itr,ind)=bel::sequence(t, xpath_); itr!=ind; ++itr)
-        boost::apply_visitor(V, *itr);
-    }
-    template <typename T>
-    typename boost::disable_if<recursive<T> >::type
-    operator () (T const& t) const {
-      std::cout << this->depth << name(t, xpath_) << std::endl;
-    }
-  };
-
-  template <typename Path>
-  void operator () (Variant const& variant, Path const& path) const {
-    // for now, assume that Path is a std::string
-    //
-    visitor V;
-    boost::apply_visitor(V, variant);
-  }
-};
-
-template <typename Variant, typename Path>
-void query (Variant const& variant, Path const& path) {
-  query_generator<Variant> Qg;
-  Qg(variant, path);
-}
 
 std::string name (JSONpp::nil, xpath__) {
   return "nil";
@@ -242,6 +156,8 @@ int main (int argc, char *argv[]) {
   if (argc < 1)
     return 1;
 
+  vpath::path P("/joins[$34]//inputs/./../child::foo");
+
   for (++argv; argc > 0; --argc, ++argv) {
     std::cout << *argv << std::endl;
     try {
@@ -251,7 +167,6 @@ int main (int argc, char *argv[]) {
       std::istream_iterator<wchar_t,wchar_t> ctr(wifstr);
       std::istream_iterator<wchar_t,wchar_t> cnd;
       JSONpp::json_v json = JSONpp::parse(ctr, cnd);
-      query(json, "/joins/inputs");
     } catch (std::exception& e) {
       std::cout << "error: " << e.what() << std::endl;
     }
