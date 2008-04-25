@@ -12,10 +12,10 @@ bel: begin-end.hpp bel.cpp
 test_bel: bel begin-end.hpp bel.cpp
 	./bel
 
-vpath: xpath/vpath.hpp vpath.cpp
+vpath: xpath/path.hpp vpath.cpp
 	g++ -O3 -I. vpath.cpp -o vpath
 
-test_vpath: vpath xpath/vpath.hpp vpath.cpp
+test_vpath: vpath xpath/path.hpp vpath.cpp
 	./vpath Examples/*.*if
 
 clean:
