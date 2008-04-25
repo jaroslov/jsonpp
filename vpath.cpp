@@ -152,20 +152,13 @@ int main (int argc, char *argv[]) {
   std::locale loc("");
   std::wcout.imbue(loc);
 
-  if (argc < 2) {
-    std::string input;
-    std::istream_iterator<char> ctr(std::cin), cnd;
-    std::copy(ctr, cnd, std::back_inserter(input));
-    vpath::path::path path
-      = vpath::path::parser(input);
-    std::cout << input << std::endl;
-    std::cout << path << std::endl;
-    return 0;
-  }
-
-  /*vpath::path::path one
-    = vpath::path::parser("/map-string-wchar_t-json[$0]/vector-json[$1]");
-  std::cout << one << std::endl;
+  /*std::string input;
+  std::istream_iterator<char> ctr(std::cin), cnd;
+  std::copy(ctr, cnd, std::back_inserter(input));
+  vpath::path::path path
+    = vpath::path::parser(input);
+  std::cout << input << std::endl;
+  std::cout << path << std::endl;*/
 
   for (++argv; argc > 0; --argc, ++argv) {
     std::cout << *argv << std::endl;
@@ -179,7 +172,7 @@ int main (int argc, char *argv[]) {
     } catch (std::exception& e) {
       std::cout << "error: " << e.what() << std::endl;
     }
-  }*/
+  }
 
   return 0;
 }
