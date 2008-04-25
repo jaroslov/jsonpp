@@ -152,14 +152,18 @@ int main (int argc, char *argv[]) {
   std::locale loc("");
   std::wcout.imbue(loc);
 
-  if (argc < 1)
-    return 1;
+  if (argc < 2) {
+    std::string input;
+    std::istream_iterator<char> ctr(std::cin), cnd;
+    std::copy(ctr, cnd, std::back_inserter(input));
+    vpath::path::path path
+      = vpath::path::parser(input);
+    std::cout << input << std::endl;
+    std::cout << path << std::endl;
+    return 0;
+  }
 
-  vpath::path::path two
-    = vpath::path::parser("/namespace/*/child::foo[$0]//bar/ancestor-or-self::ns/@$0");
-  std::cout << two << std::endl;
-
-  vpath::path::path one
+  /*vpath::path::path one
     = vpath::path::parser("/map-string-wchar_t-json[$0]/vector-json[$1]");
   std::cout << one << std::endl;
 
@@ -175,8 +179,7 @@ int main (int argc, char *argv[]) {
     } catch (std::exception& e) {
       std::cout << "error: " << e.what() << std::endl;
     }
-  }
-
+  }*/
 
   return 0;
 }
