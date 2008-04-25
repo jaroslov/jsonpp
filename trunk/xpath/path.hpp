@@ -98,26 +98,26 @@ struct path_parser_generator {
 private:
   typedef typename path_t::string_store_t strstore_t;
   struct token_t {
-    enum token_kind_e {
-      selector = ':',
-      predicate = '$',
-      separator = '/',
-      named_attribute = '@',
-      identifier = 'i',
+    enum kind_e {
+      axis_name = 'N',
+      axis_test = 'T',
+      axis_predicate = '$',
     };
 
-    token_t () : name_(axis_t::unknown), kind_(identifier), index_(0) {}
+    token_t (axis_t::name_e nm=axis_t::unknown,
+      kind_e kd=axis_name, std::size_t idx=0)
+      : name(nm), kind(axis_name), index(0) {}
 
     friend bostream_t& operator << (bostream_t& bostr, token_t const& token) {
-      bostr << (char)token.kind_
-            << (char)token.name_
-            << token.index_;
+      bostr << (char)token.kind
+            << (char)token.name
+            << token.index;
       return bostr;
     }
 
     axis_t::name_e  name;
-    token_kind_e    kind;
-    String          values;
+    kind_e          kind;
+    std::size_t     index;
   };
   typedef std::vector<token_t>                    tokens_t;
   typedef typename tokens_t::const_iterator       tok_citer;
@@ -148,7 +148,7 @@ public:
   template <typename Iter>
   path_t operator () (Iter first, Iter last) const {
     path_t path;
-    tokens_t tokens = this->lex(first, last);
+    tokens_t tokens = this->lex(first, last, path.string_store);
     //this->parse(bel::begin(tokens), bel::end(tokens), path.axes);
     return path;
   }
@@ -162,7 +162,18 @@ private:
     return String(str,std::strlen(str)+str);
   }
   template <typename Iter>
-  tokens_t lex (Iter first, Iter last) {
+  tokens_t lex (Iter first, Iter last, strstore_t &strstore) const {
+    tokens_t tokens;
+    for (; first != last; ++first) {
+      switch (*first) {
+      case '/': {
+          if ((first !=last) && ('/' == *(first+1))) {
+            tokens.push_back(token_t(axis_t::ancestor_or_self,token_t::axis_test));
+          }
+        } break;
+      }
+    }
+    return tokens;
   }
 };
 
