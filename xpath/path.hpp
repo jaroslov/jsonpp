@@ -162,17 +162,67 @@ private:
     return String(str,std::strlen(str)+str);
   }
   template <typename Iter>
+  Iter lex_identifier (Iter first, Iter last) const {
+    if (not (('-' == *first) or ('_' == *first) or std::isalpha(*first)))
+      return first;
+    while ((first != last) and
+      (('-' == *first) or ('_' == *first) or std::isalnum(*first)))
+      ++first;
+    return first;
+  }
+  template <typename Iter>
   tokens_t lex (Iter first, Iter last, strstore_t &strstore) const {
     tokens_t tokens;
-    for (; first != last; ++first) {
+    for (; first != last; ) {
       switch (*first) {
       case '/': {
-          if ((first !=last) && ('/' == *(first+1))) {
+          if ((first !=last) and ('/' == *(first+1))) {
             tokens.push_back(token_t(axis_t::ancestor_or_self,token_t::axis_test));
+            ++first;
           }
+          ++first;
         } break;
+      case '@': {
+          ++first;
+          tokens.push_back(token_t(axis_t::attribute,token_t::axis_test));
+        } break;
+      case '.': {
+          if ((first != last) and ('.' == *(first+1))) {
+            tokens.push_back(token_t(axis_t::parent,token_t::axis_test));
+            ++first;
+          } else {
+            tokens.push_back(token_t(axis_t::self,token_t::axis_test));
+          }
+          ++first;
+        } break;
+      case '*': {
+          // BUG! how do I represent an wildcard?
+          tokens.push_back(token_t(axis_t::unknown,token_t::axis_name));
+          ++first;
+        } break;
+      default: {
+          const Iter prog = this->lex_identifier(first, last);
+          if (prog == first) {
+            ++first; continue;
+            //throw std::runtime_error("(lexer) unable to identify the next token");
+          }
+          String id(first,prog);
+          skm_citer is_axis_name = this->str_kind_map.find(id);
+          if (this->str_kind_map.end() == is_axis_name) {
+            tokens.push_back(token_t(axis_t::unknown,token_t::axis_name,strstore.size()));
+            strstore.push_back(id);
+          } else {
+            // check for "::" to guarantee that it is an axis-name
+            // BUG!
+            tokens.push_back(token_t(is_axis_name->second,token_t::axis_test));
+          }
+          first = prog;
+        }
       }
     }
+    for (std::size_t t=0; t<tokens.size(); ++t)
+      std::cout << tokens[t] << " ";
+    std::cout << std::endl;
     return tokens;
   }
 };
