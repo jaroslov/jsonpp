@@ -9,8 +9,8 @@
 
 #include <iostream>
 
-#ifndef VPATH_LIB
-#define VPATH_LIB
+#ifndef VPATH_LIB_PATH
+#define VPATH_LIB_PATH
 
 namespace vpath { namespace path {
 
@@ -49,14 +49,14 @@ struct axis_t {
 typedef std::vector<axis_t> axes_t;
 
 template <typename String=std::string>
-struct path {
+struct path_type {
   typedef std::vector<String>           string_store_t;
   typedef typename String::value_type   char_type;
   typedef std::basic_ostream<char_type> bostream_t;
 
-  path () {}
+  path_type () {}
 
-  friend bostream_t& operator << (bostream_t& bostr, path const& P) {
+  friend bostream_t& operator << (bostream_t& bostr, path_type const& P) {
     for (std::size_t a=0; a<P.axes.size(); ++a) {
       bostr << "/";
       switch (P.axes[a].name) {
@@ -80,7 +80,7 @@ struct path {
       else if (axis_t::WildCard == P.axes[a].test)
         bostr << "::*";
       if (-1 != P.axes[a].predicate)
-        bostr << "[$" << P.axes[a].predicate << "]";
+        bostr << "[" << P.axes[a].predicate << "]";
     }
     return bostr;
   }
@@ -91,7 +91,7 @@ struct path {
 
 template <typename String=std::string>
 struct path_parser_generator {
-  typedef path<String>                        path_t;
+  typedef path_type<String>                   path_t;
   typedef typename String::value_type         char_type;
   typedef std::basic_stringstream<char_type>  bsstream_t;
   typedef std::basic_ostream<char_type>       bostream_t;
@@ -193,7 +193,6 @@ private:
           if (first != last) {
             if (token_t::index == first->kind_) {
               axis.predicate = first->index_;
-              throw std::runtime_error("Failed to build the index predicate!");
               ++first;
             } else if (token_t::predicate == first->kind_) {
               axis.predicate = first->index_;
@@ -243,6 +242,19 @@ private:
     str = String(start,first);
     return first;
   }
+  template <typename Iter, typename Expr>
+  Iter lex_predicate_expression (Iter first, Iter last,
+    Expr& expr, typename token_t::token_kind_e& kind) const {
+    if ('$' == *first) {
+      kind = token_t::predicate; // a predicate
+      ++first;
+    }
+    const Iter prog = this->lex_digits(first, last, expr);
+    if (prog == first)
+      throw std::runtime_error("There was no numeric value in predicate or index!");
+    first = prog;
+    return first;
+  }
   template <typename Iter>
   tokens_t lex (Iter first, Iter last, strstore_t& store) const {
     // lexemes:
@@ -284,11 +296,7 @@ private:
           token.kind_ = token_t::index; // default to index accessor
           ++first; if (first == last)
             throw std::runtime_error("Malformed predicate or index-accessor.");
-          if ('$' == *first) {
-            token.kind_ = token_t::predicate; // a predicate
-            ++first;
-          }
-          const Iter prog = this->lex_digits(first, last, token.index_);
+          const Iter prog = this->lex_predicate_expression(first, last, token.index_, token.kind_);
           if (prog == first)
             throw std::runtime_error("There was no numeric value in predicate or index!");
           first = prog;
@@ -299,26 +307,8 @@ private:
       case '@' : { // @$digits | @identifier
           ++first; if (first == last)
             throw std::runtime_error("Malformed attribute, no test!");
-          if ('$' == *first) {
-            token.kind_ = token_t::indexed_attribute;
-            ++first; // eat $
-            if (first == last)
-              throw std::runtime_error("Malformed attribute: no index!");
-            const Iter prog = this->lex_digits(first, last, token.index_);
-            if (prog == first)
-              throw std::runtime_error("Malformed attribute: no index!");
-            first = prog;
-          } else {
-            throw std::runtime_error("Predicate expressions are unsupported.");
-            token.kind_ = token_t::named_attribute;
-            String id;
-            const Iter prog = this->lex_identifier(first, last, id);
-            if (prog == first)
-              throw std::runtime_error("Malformed attribute: no test!");
-            first = prog;
-            token.index_ = store.size();
-            store.push_back(id);            
-          }
+          token.kind_ = token_t::identifier;
+          token.name_ = axis_t::attribute;
         } break;
       case '*': { // wild-card child identifier
           ++first;
@@ -370,4 +360,4 @@ typedef path_parser_generator<>::path_t path;
   }// namespace: path
 }// namespace: vpath
 
-#endif//VPATH_LIB
+#endif//VPATH_LIB_PATH
