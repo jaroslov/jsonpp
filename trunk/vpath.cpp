@@ -1,4 +1,4 @@
-#include <xpath/vpath.hpp>
+#include <xpath/path.hpp>
 #include <jsonpp.hpp>
 #include <iostream>
 #include <fstream>
