@@ -55,10 +55,10 @@ attribute (T const& t, std::string const& str, xpath<GlobalDS>) {
   return t.attribute(str);
 }
 
-template <typename GlobalDS>
+template <typename String, typename GlobalDS>
 struct query_generator {
-  template <typename String>
-  void operator () (path::path_type<String> const& path, GlobalDS const& gds) {
+  typedef path::path_type<String> path_t;
+  void operator () (path_t const& path, GlobalDS const& gds) {
   }
 };
 
