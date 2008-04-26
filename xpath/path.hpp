@@ -57,11 +57,13 @@ struct path_type {
   typedef typename String::value_type   char_type;
   typedef std::basic_ostream<char_type> bostream_t;
 
-  path_type () {}
+  path_type ()
+    : axes(), string_store(), rooted(false) {}
 
   friend bostream_t& operator << (bostream_t& bostr, path_type const& P) {
-    for (std::size_t a=0; a<P.axes.size(); ++a) {
+    if (P.rooted)
       bostr << "/";
+    for (std::size_t a=0; a<P.axes.size(); ++a) {
       switch (P.axes[a].name) {
       case axis_t::ancestor: bostr << "ancestor"; break;
       case axis_t::ancestor_or_self: bostr << "ancestor-or-self"; break;
@@ -88,12 +90,15 @@ struct path_type {
         bostr << "[" << P.axes[a].predicate << "]";
       else if (axis_t::NilPredicate == P.axes[a].predicate)
         bostr << "[?]";
+      if ((a+1) < P.axes.size())
+        bostr << "/";
     }
     return bostr;
   }
 
   axes_t          axes;
   string_store_t  string_store;
+  bool            rooted;
 };
 
 template <typename String=std::string>
@@ -159,7 +164,7 @@ public:
   path_t operator () (Iter first, Iter last) const {
     path_t path;
     tokens_t tokens = this->lex(first, last, path.string_store);
-    this->parse(bel::begin(tokens), bel::end(tokens), path.axes);
+    path.rooted = this->parse(bel::begin(tokens), bel::end(tokens), path.axes);
     return path;
   }
 private:
@@ -172,8 +177,13 @@ private:
     return String(str,std::strlen(str)+str);
   }
   template <typename Iter>
-  void parse (Iter first, Iter last, axes_t& axes) const {
+  bool parse (Iter first, Iter last, axes_t& axes) const {
     axes.clear();
+    bool rooted = false;
+    if (token_t::axis_root == first->kind) {
+      rooted = true;
+      ++first;
+    }
     while (first != last) {
       // axis-name? axis-test predicate?
       axis_t axis(axis_t::child); // default to a child
@@ -195,6 +205,7 @@ private:
       }
       axes.push_back(axis);
     }
+    return rooted;
   }
   template <typename Iter>
   Iter lex_identifier (Iter first, Iter last) const {
