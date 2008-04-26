@@ -106,7 +106,7 @@ private:
 
     token_t (axis_t::name_e nm=axis_t::unknown,
       kind_e kd=axis_name, signed long idx=axis_t::None)
-      : name(nm), kind(axis_name), index(idx) {}
+      : name(nm), kind(kd), index(idx) {}
 
     friend bostream_t& operator << (bostream_t& bostr, token_t const& token) {
       bostr << (char)token.kind
@@ -197,7 +197,7 @@ private:
         } break;
       case '*': { // wild card
           tokens.push_back(token_t(axis_t::unknown,
-                                    token_t::axis_name,axis_t::WildCard));
+                                    token_t::axis_test,axis_t::WildCard));
           ++first;
         } break;
       default: {
@@ -209,7 +209,7 @@ private:
           String id(first,prog);
           skm_citer is_axis_name = this->str_kind_map.find(id);
           if (this->str_kind_map.end() == is_axis_name) {
-            tokens.push_back(token_t(axis_t::unknown,token_t::axis_name,strstore.size()));
+            tokens.push_back(token_t(axis_t::unknown,token_t::axis_test,strstore.size()));
             strstore.push_back(id);
           } else {
             // check for "::" to guarantee that it is an axis-name
