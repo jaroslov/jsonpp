@@ -1,4 +1,5 @@
 #include <xpath/path.hpp>
+#include <xpath/query.hpp>
 #include <jsonpp.hpp>
 #include <iostream>
 #include <fstream>
@@ -157,7 +158,7 @@ int main (int argc, char *argv[]) {
   std::copy(ctr, cnd, std::back_inserter(input));
   vpath::path::path path
     = vpath::path::parser(input);
-  std::cout << path << std::endl << std::endl;;
+  std::cout << path << std::endl << std::endl;
 
   for (++argv; argc > 0; --argc, ++argv) {
     std::cout << *argv << std::endl;
@@ -168,6 +169,7 @@ int main (int argc, char *argv[]) {
       std::istream_iterator<wchar_t,wchar_t> ctr(wifstr);
       std::istream_iterator<wchar_t,wchar_t> cnd;
       JSONpp::json_v json = JSONpp::parse(ctr, cnd);
+      vpath::query::query(path, json);
     } catch (std::exception& e) {
       std::cout << "error: " << e.what() << std::endl;
     }

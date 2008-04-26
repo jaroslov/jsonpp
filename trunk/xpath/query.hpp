@@ -30,7 +30,7 @@ namespace vpath { namespace query {
 */
 
 struct illegal_assignment : public std::exception {
-  virtual ~ illegal_assignment () {}
+  virtual ~ illegal_assignment () throw() {}
   virtual const char* what () const throw() {
     return "Illegal assignment to discriminated union.";
   }
@@ -53,6 +53,26 @@ template <typename T, typename GlobalDS>
 typename attribute_<T,xpath<GlobalDS> >::type const&
 attribute (T const& t, std::string const& str, xpath<GlobalDS>) {
   return t.attribute(str);
+}
+
+template <typename GlobalDS>
+struct query_generator {
+  template <typename String>
+  void operator () (path::path_type<String> const& path, GlobalDS const& gds) {
+  }
+};
+
+template <typename GlobalDS, typename String>
+void query (path::path_type<String> const& path, GlobalDS const& gds) {
+  query_generator<GlobalDS> qg;
+  qg(path, gds);
+}
+
+template <typename GlobalDS, typename String>
+void query (String const& path, GlobalDS const& gds) {
+  path::path_type<String> path_t(path);
+  query_generator<GlobalDS> qg;
+  qg(path_t, gds);
 }
 
   } // end query
