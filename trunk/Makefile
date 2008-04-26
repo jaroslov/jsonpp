@@ -20,6 +20,10 @@ test_vpath: vpath xpath/path.hpp xpath/query.hpp vpath.cpp
 	echo "$(PROG_ARG)" | ./vpath Examples/*.*if
 
 vpath_tests: vpath xpath/path.hpp xpath/query.hpp vpath.cpp
+	echo "/" | ./vpath
+	echo "foo" | ./vpath
+	echo "foo[0]" | ./vpath
+	echo "parent::node()[0]" | ./vpath
 	echo "/foo/bar" | ./vpath
 	echo "/foo/bar[0]" | ./vpath
 	echo "/foo/*[0]" | ./vpath
