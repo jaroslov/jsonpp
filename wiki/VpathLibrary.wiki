@@ -40,3 +40,4 @@ The following identifiers will be used:
 
 || *Expression* || *Meaning* || *Notes* ||
 || `X* x = cast(u, X*);` || retrieve an object of type `X` from `u` || returns 0 on failure ||
+|| `u = x;` || stores an object `x` into a union `u` || throws `illegal_assigment` if `u` cannot store `x` ||
