@@ -33,6 +33,8 @@ IDEAS
 
 = Concepts =
 
+== Discriminated Union ==
+
 The following identifiers will be used:
 
   * u : U _some discriminated union of type `U`_
