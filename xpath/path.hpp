@@ -97,30 +97,6 @@ struct path_parser_generator {
   typedef std::basic_ostream<char_type>       bostream_t;
 private:
   typedef typename path_t::string_store_t strstore_t;
-  struct token_t {
-    enum kind_e {
-      axis_name = 'N',
-      axis_test = 'T',
-      axis_predicate = '$',
-    };
-
-    token_t (axis_t::name_e nm=axis_t::unknown,
-      kind_e kd=axis_name, signed long idx=axis_t::None)
-      : name(nm), kind(kd), index(idx) {}
-
-    friend bostream_t& operator << (bostream_t& bostr, token_t const& token) {
-      bostr << (char)token.kind
-            << (char)token.name
-            << token.index;
-      return bostr;
-    }
-
-    axis_t::name_e  name;
-    kind_e          kind;
-    signed long     index;
-  };
-  typedef std::vector<token_t>                    tokens_t;
-  typedef typename tokens_t::const_iterator       tok_citer;
   typedef std::map<String,axis_t::name_e>         str_kind_map_t;
   typedef typename str_kind_map_t::const_iterator skm_citer;
 
@@ -147,10 +123,7 @@ public:
   }
   template <typename Iter>
   path_t operator () (Iter first, Iter last) const {
-    path_t path;
-    tokens_t tokens = this->lex(first, last, path.string_store);
-    //this->parse(bel::begin(tokens), bel::end(tokens), path.axes);
-    return path;
+    return this->parse(first, last);
   }
 private:
   template <typename Str>
@@ -171,59 +144,16 @@ private:
     return first;
   }
   template <typename Iter>
-  tokens_t lex (Iter first, Iter last, strstore_t &strstore) const {
-    tokens_t tokens;
-    for (; first != last; ) {
-      switch (*first) {
-      case '/': {
-          if ((first !=last) and ('/' == *(first+1))) {
-            tokens.push_back(token_t(axis_t::ancestor_or_self,token_t::axis_test));
-            ++first;
-          }
-          ++first;
-        } break;
-      case '@': {
-          ++first;
-          tokens.push_back(token_t(axis_t::attribute,token_t::axis_test));
-        } break;
-      case '.': {
-          if ((first != last) and ('.' == *(first+1))) {
-            tokens.push_back(token_t(axis_t::parent,token_t::axis_test));
-            ++first;
-          } else {
-            tokens.push_back(token_t(axis_t::self,token_t::axis_test));
-          }
-          ++first;
-        } break;
-      case '*': { // wild card
-          tokens.push_back(token_t(axis_t::unknown,
-                                    token_t::axis_test,axis_t::WildCard));
-          ++first;
-        } break;
-      default: {
-          const Iter prog = this->lex_identifier(first, last);
-          if (prog == first) {
-            ++first; continue;
-            //throw std::runtime_error("(lexer) unable to identify the next token");
-          }
-          String id(first,prog);
-          skm_citer is_axis_name = this->str_kind_map.find(id);
-          if (this->str_kind_map.end() == is_axis_name) {
-            tokens.push_back(token_t(axis_t::unknown,token_t::axis_test,strstore.size()));
-            strstore.push_back(id);
-          } else {
-            // check for "::" to guarantee that it is an axis-name
-            // BUG!
-            tokens.push_back(token_t(is_axis_name->second,token_t::axis_test));
-          }
-          first = prog;
-        }
-      }
-    }
-    for (std::size_t t=0; t<tokens.size(); ++t)
-      std::cout << tokens[t] << " ";
-    std::cout << std::endl;
-    return tokens;
+  path_t parse (Iter first, Iter last) {
+    // we're going to parse this according to the EBNF described at:
+    // http://www.w3.org/TR/xpath#NT-RelativeLocationPath
+    path_t path;
+    Iter prog = this->relative_location_path(first, last, path);
+    if (prog == first)
+      prog = this->absolute_location_path(first, last, path);
+    if (prog == first)
+      throw std::runtime_error("A top-level path must be an absolute or relative path.");
+    return path;
   }
 };
 
