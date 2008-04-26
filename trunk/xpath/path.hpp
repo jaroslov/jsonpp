@@ -105,8 +105,8 @@ private:
     };
 
     token_t (axis_t::name_e nm=axis_t::unknown,
-      kind_e kd=axis_name, std::size_t idx=0)
-      : name(nm), kind(axis_name), index(0) {}
+      kind_e kd=axis_name, signed long idx=axis_t::None)
+      : name(nm), kind(axis_name), index(idx) {}
 
     friend bostream_t& operator << (bostream_t& bostr, token_t const& token) {
       bostr << (char)token.kind
@@ -117,7 +117,7 @@ private:
 
     axis_t::name_e  name;
     kind_e          kind;
-    std::size_t     index;
+    signed long     index;
   };
   typedef std::vector<token_t>                    tokens_t;
   typedef typename tokens_t::const_iterator       tok_citer;
@@ -195,9 +195,9 @@ private:
           }
           ++first;
         } break;
-      case '*': {
-          // BUG! how do I represent an wildcard?
-          tokens.push_back(token_t(axis_t::unknown,token_t::axis_name));
+      case '*': { // wild card
+          tokens.push_back(token_t(axis_t::unknown,
+                                    token_t::axis_name,axis_t::WildCard));
           ++first;
         } break;
       default: {
