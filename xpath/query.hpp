@@ -1,9 +1,41 @@
 #include "path.hpp"
+#include <stdexcept>
 
 #ifndef VPATH_LIB_QUERY
 #define VPATH_LIB_QUERY
 
 namespace vpath { namespace query {
+
+/*
+
+  Definition:
+
+  Discriminated Union
+  
+  template <typename T, typename U>
+  U* u = cast(T, U*);
+  if 0 == u:
+    T does not store a "U"
+  else
+    T stores a "U"
+
+  X_1, X_2, ..., X_N -- types
+  x_i : X_i -- x_i is a value of X_i
+  t : T -- t is a discriminated union
+  
+  t = x_i;
+  if legal, then return type is t
+  else, throw std::illegal_assignment();
+
+*/
+
+struct illegal_assignment : public std::exception {
+  virtual ~ illegal_assignment () {}
+  virtual const char* what () const throw() {
+    return "Illegal assignment to discriminated union.";
+  }
+};
+
   } // end query
 } // end vpath
 
