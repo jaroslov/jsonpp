@@ -144,7 +144,7 @@ private:
     return first;
   }
   template <typename Iter>
-  path_t parse (Iter first, Iter last) {
+  path_t parse (Iter first, Iter last) const {
     // we're going to parse this according to the EBNF described at:
     // http://www.w3.org/TR/xpath#NT-RelativeLocationPath
     path_t path;
@@ -154,6 +154,14 @@ private:
     if (prog == first)
       throw std::runtime_error("A top-level path must be an absolute or relative path.");
     return path;
+  }
+  template <typename Iter, typename Path>
+  Iter relative_location_path (Iter first, Iter last, Path& path) const {
+    return first;
+  }
+  template <typename Iter, typename Path>
+  Iter absolute_location_path (Iter first, Iter last, Path& path) const {
+    return first;
   }
 };
 
