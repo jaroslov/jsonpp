@@ -38,8 +38,17 @@ IDEAS
 The following identifiers will be used:
 
   * `u` : `U` _some discriminated union of type `U`_
-  * `x`_,,i,,_, `x` : `X`,,i,,, `X` _some value of type `X`,,i,, or `X`_
+  * `x`_,,i,,_, `x` : `X`_,,i,,_, `X` _some value of type `X`_,,i,,_ or `X`_
 
 || *Expression* || *Meaning* || *Notes* ||
 || `X* x = cast(u, X*);` || retrieve an object of type `X` from `u` || returns 0 on failure ||
 || `u = x;` || stores an object `x` into a union `u` || throws `illegal_assigment` if `u` cannot store `x` ||
+
+== Recursive Type ==
+
+The following identifiers will be used:
+
+|| *Expression* || *Return Type* || *Meaning* || *Notes* ||
+|| `tag(T, xpath<GlobalDS>)` || `std::string` || the identifying tag || per-type or per-object are both supported ||
+|| `sequence(T, xpath<GlobalDS>)` || iterator<T,xpath<GlobalDS>>::type || random-access iterator of the children of the object T || ||
+|| `attribute(T, std::string, xpath<GlobalDS>)` || attribute<T,xpath<GlobalDS>>::type || retrieves attribute (member?) labeled with the string || attribute normally refers to a given member ||
