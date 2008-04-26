@@ -30,3 +30,13 @@ Current capabilities: right now `make && make test_vpath` will read in all the e
 IDEAS
 
 || Jaroslov || `path("/foo[$0]/bar/[$1]/baz")[fobj1,fobj2]` || the function-object `fobj1` is bound to the predicate `$0`, `fobj2` to `$1`, etc. ||
+
+= Concepts =
+
+The following identifiers will be used:
+
+  * u : U _some discriminated union of type `U`_
+  * x,,i, x : X,,i, X _some value of type X,,i or X_
+
+|| *Expression* || *Meaning* || *Notes* ||
+|| `X* x = cast(u, X*);` || retrieve an object of type `X` from `u` || returns 0 on failure ||
