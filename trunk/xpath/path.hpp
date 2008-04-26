@@ -106,6 +106,7 @@ private:
   typedef typename path_t::string_store_t strstore_t;
   struct token_t {
     enum kind_e {
+      axis_root = 'R',
       axis_name = 'N',
       axis_test = 'T',
       axis_predicate = '$',
@@ -222,6 +223,10 @@ private:
   template <typename Iter>
   tokens_t lex (Iter first, Iter last, strstore_t &strstore) const {
     tokens_t tokens;
+    if ('/' == *first) {
+      tokens.push_back(token_t(axis_t::unknown,token_t::axis_root));
+      ++first;
+    }
     for (; first != last; ) {
       switch (*first) {
       case '[': {
@@ -234,7 +239,7 @@ private:
                                     axis_t::NilPredicate));
           ++first;
         } break;
-      case '/': {
+      case '/': { // an ancestor-or-self axis-name shorthand
           if ((first !=last) and ('/' == *(first+1))) {
             tokens.push_back(token_t(axis_t::ancestor_or_self,token_t::axis_name));
             ++first;
