@@ -157,8 +157,7 @@ int main (int argc, char *argv[]) {
   std::copy(ctr, cnd, std::back_inserter(input));
   vpath::path::path path
     = vpath::path::parser(input);
-  std::cout << input << std::endl;
-  std::cout << path << std::endl;
+  std::cout << path << std::endl << std::endl;;
 
   for (++argv; argc > 0; --argc, ++argv) {
     std::cout << *argv << std::endl;

@@ -23,8 +23,8 @@ vpath_tests: vpath xpath/path.hpp xpath/query.hpp vpath.cpp
 	echo "/foo/bar" | ./vpath
 	echo "/foo/bar[0]" | ./vpath
 	echo "/foo/*[0]" | ./vpath
-	echo "/foo/@*[0]" | ./vpath
-	echo "//foo[0]/.[10]/ancestor-or-self" | ./vpath
+	echo "/foo/@*[0]/text()" | ./vpath
+	echo "//foo[0]/.[10]/ancestor-or-self/node()" | ./vpath
 	echo "/..[1]/child::bar[0]/&lt;child&gt;" | ./vpath
 
 clean:

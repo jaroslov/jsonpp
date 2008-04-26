@@ -18,9 +18,9 @@ struct axis_t {
   typedef signed long index_t;
   static const index_t None = -1;
   static const index_t WildCard = -2;
-  static const index_t NodeTest = -3;
+  static const index_t NilPredicate = -2;
   enum name_e {
-    unknown = '0',
+    unknown = 'U',
     ancestor = 'a',
     ancestor_or_self = 'A',
     attribute = '@',
@@ -36,8 +36,9 @@ struct axis_t {
     self = 's',
   };
 
-  axis_t (name_e name=unknown, index_t test=None, index_t pred=None)
-    : name(name), test(test), predicate(pred) {}
+  axis_t (name_e name=unknown, index_t test=None,
+          index_t pred=None, bool fun=false)
+    : name(name), test(test), predicate(pred), function(fun) {}
 
   friend std::ostream& operator << (std::ostream& ostr, axis_t const& a) {
     ostr << (char)a.name << "(" << a.test << "," << a.predicate << ")";
@@ -46,6 +47,7 @@ struct axis_t {
 
   name_e name;
   index_t test, predicate;
+  bool function;
 };
 typedef std::vector<axis_t> axes_t;
 
@@ -80,8 +82,12 @@ struct path_type {
         bostr << "::" << P.string_store[P.axes[a].test];
       else if (axis_t::WildCard == P.axes[a].test)
         bostr << "::*";
-      if (-1 != P.axes[a].predicate)
+      if (P.axes[a].function)
+        bostr << "()";
+      if (axis_t::None < P.axes[a].predicate)
         bostr << "[" << P.axes[a].predicate << "]";
+      else if (axis_t::NilPredicate == P.axes[a].predicate)
+        bostr << "[?]";
     }
     return bostr;
   }
@@ -106,19 +112,21 @@ private:
     };
 
     token_t (axis_t::name_e nm=axis_t::unknown,
-      kind_e kd=axis_name, signed long idx=axis_t::None)
-      : name(nm), kind(kd), index(idx) {}
+      kind_e kd=axis_name, signed long idx=axis_t::None, bool fun=false)
+      : name(nm), kind(kd), index(idx), function(fun) {}
 
     friend bostream_t& operator << (bostream_t& bostr, token_t const& token) {
-      bostr << (char)token.kind
-            << (char)token.name
-            << token.index;
+      bostr << (char)token.kind << ""
+            << (char)token.name << ":"
+            << token.index
+            << (token.function?"()":"");
       return bostr;
     }
 
     axis_t::name_e  name;
     kind_e          kind;
     signed long     index;
+    bool            function;
   };
   typedef std::vector<token_t>                    tokens_t;
   typedef typename tokens_t::const_iterator       tok_citer;
@@ -150,7 +158,7 @@ public:
   path_t operator () (Iter first, Iter last) const {
     path_t path;
     tokens_t tokens = this->lex(first, last, path.string_store);
-    //this->parse(bel::begin(tokens), bel::end(tokens), path.axes);
+    this->parse(bel::begin(tokens), bel::end(tokens), path.axes);
     return path;
   }
 private:
@@ -161,6 +169,31 @@ private:
   template <typename Char>
   static String to_str (const Char* str) {
     return String(str,std::strlen(str)+str);
+  }
+  template <typename Iter>
+  void parse (Iter first, Iter last, axes_t& axes) const {
+    axes.clear();
+    while (first != last) {
+      // axis-name? axis-test predicate?
+      axis_t axis(axis_t::child); // default to a child
+      if (token_t::axis_name == first->kind) {
+        axis.name = first->name;
+        ++first;
+        if (first == last)
+          throw std::runtime_error("(parser) an axis-test must follow an axis-name");
+      }
+      if (token_t::axis_test == first->kind) {
+        axis.test = first->index;
+        axis.function = first->function;
+        ++first;
+      } else
+        throw std::runtime_error("(parser) expected an axis-test");
+      if ((first != last) and (token_t::axis_predicate == first->kind)) {
+        axis.predicate = first->index;
+        ++first;
+      }
+      axes.push_back(axis);
+    }
   }
   template <typename Iter>
   Iter lex_identifier (Iter first, Iter last) const {
@@ -197,7 +230,8 @@ private:
             ++first;
           if (first == last)
             throw std::runtime_error("(lexer) expected last `]`");
-          tokens.push_back(token_t(axis_t::unknown,token_t::axis_predicate));
+          tokens.push_back(token_t(axis_t::unknown,token_t::axis_predicate,
+                                    axis_t::NilPredicate));
           ++first;
         } break;
       case '/': {
@@ -218,8 +252,10 @@ private:
           } else {
             tokens.push_back(token_t(axis_t::self,token_t::axis_name));
           }
+          // emulates a function-name: node ()
           tokens.push_back(token_t(axis_t::unknown,token_t::axis_test,
-                                    axis_t::NodeTest));
+                                    strstore.size(),true));
+          strstore.push_back("node");
           ++first;
         } break;
       case '*': { // wild card
@@ -241,6 +277,13 @@ private:
             tokens.push_back(token_t(axis_t::unknown,token_t::axis_test,
                                       strstore.size()));
             strstore.push_back(id);
+            // if it is followed by a '()' then it is a function, as well
+            if ('(' == *first) {
+              ++first; if ((first == last) or (')' != *first))
+                throw std::runtime_error("(lexer) missing closing `)` in `()`");
+              ++first;
+              tokens.back().function = true;
+            }
           } else {
             if ((last == first) or (':' != *(first+1)))
               throw std::runtime_error("(lexer) missing second `:` in `::`");
