@@ -163,8 +163,10 @@ public:
   template <typename Iter>
   path_t operator () (Iter first, Iter last) const {
     path_t path;
-    tokens_t tokens = this->lex(first, last, path.string_store);
-    path.rooted = this->parse(bel::begin(tokens), bel::end(tokens), path.axes);
+    if (first != last) {
+      tokens_t tokens = this->lex(first, last, path.string_store);
+      path.rooted = this->parse(bel::begin(tokens), bel::end(tokens), path.axes);
+    }
     return path;
   }
 private:
@@ -178,6 +180,8 @@ private:
   }
   template <typename Iter>
   bool parse (Iter first, Iter last, axes_t& axes) const {
+    if (first == last)
+      return false;
     axes.clear();
     bool rooted = false;
     if (token_t::axis_root == first->kind) {
@@ -209,6 +213,8 @@ private:
   }
   template <typename Iter>
   Iter lex_identifier (Iter first, Iter last) const {
+    if (first == last)
+      return first;
     if (not (('-' == *first) or ('_' == *first)
       or ('&' == *first) or std::isalpha(*first)))
       return first;
@@ -234,6 +240,8 @@ private:
   template <typename Iter>
   tokens_t lex (Iter first, Iter last, strstore_t &strstore) const {
     tokens_t tokens;
+    if (first == last)
+      return tokens;
     if ('/' == *first) {
       tokens.push_back(token_t(axis_t::unknown,token_t::axis_root));
       ++first;
