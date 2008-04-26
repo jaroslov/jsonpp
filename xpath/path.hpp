@@ -18,6 +18,7 @@ struct axis_t {
   typedef signed long index_t;
   static const index_t None = -1;
   static const index_t WildCard = -2;
+  static const index_t NodeTest = -3;
   enum name_e {
     unknown = '0',
     ancestor = 'a',
@@ -163,11 +164,26 @@ private:
   }
   template <typename Iter>
   Iter lex_identifier (Iter first, Iter last) const {
-    if (not (('-' == *first) or ('_' == *first) or std::isalpha(*first)))
+    if (not (('-' == *first) or ('_' == *first)
+      or ('&' == *first) or std::isalpha(*first)))
       return first;
-    while ((first != last) and
-      (('-' == *first) or ('_' == *first) or std::isalnum(*first)))
-      ++first;
+    bool escape_sequence = false;
+    while (first != last) {
+      if ('&' == *first) {
+        ++first;
+        escape_sequence = true;
+        continue;
+      } else if (escape_sequence and (';' == *first)) {
+        ++first;
+        escape_sequence = true;
+        continue;
+      }
+      if (('-' == *first) or ('_' == *first) or std::isalnum(*first)) {
+        ++first;
+        continue;
+      }
+      break;
+    }
     return first;
   }
   template <typename Iter>
@@ -175,48 +191,62 @@ private:
     tokens_t tokens;
     for (; first != last; ) {
       switch (*first) {
+      case '[': {
+          // eat and throw away the predicate, for now
+          while ((first != last) and (']' != *first))
+            ++first;
+          if (first == last)
+            throw std::runtime_error("(lexer) expected last `]`");
+          tokens.push_back(token_t(axis_t::unknown,token_t::axis_predicate));
+          ++first;
+        } break;
       case '/': {
           if ((first !=last) and ('/' == *(first+1))) {
-            tokens.push_back(token_t(axis_t::ancestor_or_self,token_t::axis_test));
+            tokens.push_back(token_t(axis_t::ancestor_or_self,token_t::axis_name));
             ++first;
           }
           ++first;
         } break;
       case '@': {
           ++first;
-          tokens.push_back(token_t(axis_t::attribute,token_t::axis_test));
+          tokens.push_back(token_t(axis_t::attribute,token_t::axis_name));
         } break;
       case '.': {
           if ((first != last) and ('.' == *(first+1))) {
-            tokens.push_back(token_t(axis_t::parent,token_t::axis_test));
+            tokens.push_back(token_t(axis_t::parent,token_t::axis_name));
             ++first;
           } else {
-            tokens.push_back(token_t(axis_t::self,token_t::axis_test));
+            tokens.push_back(token_t(axis_t::self,token_t::axis_name));
           }
+          tokens.push_back(token_t(axis_t::unknown,token_t::axis_test,
+                                    axis_t::NodeTest));
           ++first;
         } break;
       case '*': { // wild card
-          tokens.push_back(token_t(axis_t::unknown,
-                                    token_t::axis_name,axis_t::WildCard));
+          tokens.push_back(token_t(axis_t::unknown,token_t::axis_test,
+                                    axis_t::WildCard));
           ++first;
         } break;
       default: {
           const Iter prog = this->lex_identifier(first, last);
-          if (prog == first) {
-            ++first; continue;
-            //throw std::runtime_error("(lexer) unable to identify the next token");
-          }
+          if (prog == first)
+            throw std::runtime_error(
+              (std::string("(lexer) unable to identify the next token: `")
+                + char(*first) + "`").c_str());
           String id(first,prog);
+          first = prog;
           skm_citer is_axis_name = this->str_kind_map.find(id);
-          if (this->str_kind_map.end() == is_axis_name) {
-            tokens.push_back(token_t(axis_t::unknown,token_t::axis_test,strstore.size()));
+          if ((this->str_kind_map.end() == is_axis_name)
+            or (':' != *first)) { // if it is an axis-name, has to have a '::'
+            tokens.push_back(token_t(axis_t::unknown,token_t::axis_test,
+                                      strstore.size()));
             strstore.push_back(id);
           } else {
-            // check for "::" to guarantee that it is an axis-name
-            // BUG!
-            tokens.push_back(token_t(is_axis_name->second,token_t::axis_test));
+            if ((last == first) or (':' != *(first+1)))
+              throw std::runtime_error("(lexer) missing second `:` in `::`");
+            tokens.push_back(token_t(is_axis_name->second,token_t::axis_name));
+            ++++first;
           }
-          first = prog;
         }
       }
     }

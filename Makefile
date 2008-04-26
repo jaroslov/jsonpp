@@ -1,3 +1,4 @@
+
 all: json bel vpath
 
 json: jsonpp.cpp jsonpp.hpp
@@ -23,8 +24,8 @@ vpath_tests: vpath xpath/path.hpp xpath/query.hpp vpath.cpp
 	echo "/foo/bar[0]" | ./vpath
 	echo "/foo/*[0]" | ./vpath
 	echo "/foo/@*[0]" | ./vpath
-	echo "//child::foo[0]/.[10]" | ./vpath
-	echo "/..[1]/child::bar[0]" | ./vpath
+	echo "//foo[0]/.[10]/ancestor-or-self" | ./vpath
+	echo "/..[1]/child::bar[0]/&lt;child&gt;" | ./vpath
 
 clean:
 	rm jsonpp;
