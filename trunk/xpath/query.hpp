@@ -4,7 +4,7 @@
 #ifndef VPATH_LIB_QUERY
 #define VPATH_LIB_QUERY
 
-namespace vpath { namespace query {
+namespace vpath {
 
 /*
 
@@ -58,7 +58,18 @@ attribute (T const& t, std::string const& str, xpath<GlobalDS>) {
 template <typename String, typename GlobalDS>
 struct query_generator {
   typedef path::path_type<String> path_t;
+
+  struct visitor {
+    typedef void result_type; // visitor concept
+    template <typename T>
+    void operator () (T const& t) const {
+      std::cout << "HERE" << std::endl;
+    }
+  };
+
   void operator () (path_t const& path, GlobalDS const& gds) {
+    visitor V;
+    visit(V, gds);
   }
 };
 
@@ -73,7 +84,6 @@ void query (String const& path, GlobalDS const& gds) {
   query(path::path_type<String>(path), gds);
 }
 
-  } // end query
 } // end vpath
 
 #endif//VPATH_LIB_QUERY
