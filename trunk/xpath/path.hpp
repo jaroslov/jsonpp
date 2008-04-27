@@ -12,7 +12,7 @@
 #ifndef VPATH_LIB_PATH
 #define VPATH_LIB_PATH
 
-namespace vpath { namespace path {
+namespace vpath {
 
 struct axis_t {
   typedef signed long index_t;
@@ -327,7 +327,6 @@ private:
 static const path_parser_generator<> parser = path_parser_generator<>();
 typedef path_parser_generator<>::path_t path;
 
-  }// namespace: path
-}// namespace: vpath
+}// end namespace: vpath
 
 #endif//VPATH_LIB_PATH
