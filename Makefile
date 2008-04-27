@@ -13,13 +13,16 @@ bel: begin-end.hpp bel.cpp
 test_bel: bel begin-end.hpp bel.cpp
 	./bel
 
-vpath: xpath/path.hpp xpath/query.hpp vpath.cpp
+vpath: xpath/*.hpp vpath.cpp
 	g++ -O3 -I. vpath.cpp -o vpath
 
-test_vpath: vpath xpath/path.hpp xpath/query.hpp vpath.cpp
+test_vpath: vpath xpath/*.hpp vpath.cpp
 	echo "$(PROG_ARG)" | ./vpath Examples/*.*if
 
-vpath_tests: vpath xpath/path.hpp xpath/query.hpp vpath.cpp
+vpatht: vpath xpath/*.hpp vpath.cpp
+	echo "/map/vector" | ./vpath Examples/*.*if
+
+vpath_tests: vpath xpath/*.hpp vpath.cpp
 	echo "/" | ./vpath
 	echo "foo" | ./vpath
 	echo "foo[0]" | ./vpath
