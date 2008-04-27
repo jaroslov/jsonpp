@@ -96,6 +96,14 @@ struct path_type {
     return bostr;
   }
 
+  axis_t const& operator [] (std::size_t idx) const {
+    return this->axes[idx];
+  }
+  std::size_t size () const { return this->axes.size(); }
+  String test (std::size_t idx) const {
+    return this->string_store[this->axes[idx].test];
+  }
+
   axes_t          axes;
   string_store_t  string_store;
   bool            rooted;

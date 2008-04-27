@@ -22,19 +22,45 @@ struct query_generator {
     3. we need to implement the path stuff... =)
   */
 
+  template <typename Node>
   struct visitor {
-    typedef void result_type; // visitor concept
+    typedef path_t  path_type;
+    typedef Node    node_type;
+    typedef void    result_type; // visitor concept
+
+    visitor (node_type const* parent=0,
+      path_type const* path=0, std::size_t axis=0)
+      : parent(parent), path(path), axis(axis) {}
+
     template <typename T>
     void operator () (T const& t) const {
       typedef typename bel::iterator<T,xpath_t>::type iterator;
-      iterator itr, ind;
-      for (boost::tie(itr,ind)=bel::sequence(t, xpath_t()); itr!=ind; ++itr)
-        ;
+      if (this->path->size() <= this->axis)
+        return;
+      std::cout << "Node Tag: " << tag(t, xpath_t()) << std::endl;
+      visitor<T> V(&t, this->path);
+      iterator first, last;
+      boost::tie(first,last) = bel::sequence(t, xpath_t());
+      switch ((*this->path)[this->axis].name) {
+      case axis_t::child : {
+          V.axis = this->axis+1;
+          if (tag(t, xpath_t()) == this->path->test(this->axis))
+            for ( ; first != last; ++first)
+              visit(V, *first);
+        } break;
+      default: {
+          std::cout << "Unsupported axis-name." << std::endl;
+        }
+      }
     }
+
+    node_type const*  parent;
+    path_type const*  path;
+    std::size_t       axis;
   };
 
   void operator () (path_t const& path, GlobalDS const& gds) {
-    visitor V;
+    visitor<GlobalDS> V(&gds,&path);;
     visit(V, gds);
   }
 };

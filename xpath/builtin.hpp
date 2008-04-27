@@ -5,6 +5,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <boost/variant.hpp>
 
 #ifndef VPATH_LIB_BASICS
 #define VPATH_LIB_BASICS
@@ -45,6 +46,10 @@ std::string tag (std::vector<T,A> const& v, xpath<X> x) {
 }
 
 struct no_iterator {
+  struct nil {};
+  typedef boost::variant<nil> zilch_t;
+  typedef zilch_t value_type;
+
   friend bool operator == (no_iterator const& L, no_iterator const& R) {
     return true;
   }
@@ -53,6 +58,10 @@ struct no_iterator {
   }
   no_iterator operator ++ () { return *this; }
   no_iterator operator ++ (int) { return *this; }
+  zilch_t const& operator * () const { return this->nada; }
+  zilch_t const* operator -> () const { return &this->nada; }
+
+  zilch_t nada;
 };
 
 } // end vpath namespace
