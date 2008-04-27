@@ -43,6 +43,9 @@ struct query_generator {
       boost::tie(first,last) = bel::sequence(t, xpath_t());
       switch ((*this->path)[this->axis].name) {
       case axis_t::child : {
+          /// the current test case is with JSON, and right now, the
+          // "map" and "vector" etc. data-structures still return
+          // the xpath::no_iterator iterator
           V.axis = this->axis+1;
           if (tag(t, xpath_t()) == this->path->test(this->axis))
             for ( ; first != last; ++first)
