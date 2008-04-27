@@ -64,15 +64,13 @@ struct query_generator {
 
 template <typename GlobalDS, typename String>
 void query (path::path_type<String> const& path, GlobalDS const& gds) {
-  query_generator<GlobalDS> qg;
+  query_generator<String,GlobalDS> qg;
   qg(path, gds);
 }
 
 template <typename GlobalDS, typename String>
 void query (String const& path, GlobalDS const& gds) {
-  path::path_type<String> path_t(path);
-  query_generator<GlobalDS> qg;
-  qg(path_t, gds);
+  query(path::path_type<String>(path), gds);
 }
 
   } // end query
