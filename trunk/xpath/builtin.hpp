@@ -45,13 +45,14 @@ std::string tag (std::vector<T,A> const& v, xpath<X> x) {
 }
 
 struct no_iterator {
-  bool foozball () const {}
   friend bool operator == (no_iterator const& L, no_iterator const& R) {
     return true;
   }
   friend bool operator != (no_iterator const& L, no_iterator const& R) {
-    return true;
+    return false;
   }
+  no_iterator operator ++ () { return *this; }
+  no_iterator operator ++ (int) { return *this; }
 };
 
 } // end vpath namespace
@@ -72,6 +73,12 @@ template <typename T, typename X>
 typename iterator<T, vpath::xpath<X> >::type
 end (T const& t, vpath::xpath<X>) {
   return typename iterator<T, vpath::xpath<X> >::type();
+}
+template <typename T, typename X>
+std::pair<typename iterator<T, vpath::xpath<X> >::type,
+  typename iterator<T, vpath::xpath<X> >::type>
+sequence (T const& t, vpath::xpath<X> x) {
+  return std::make_pair(bel::begin(t,x),bel::end(t,x));
 }
 
 } // end bel namespace
