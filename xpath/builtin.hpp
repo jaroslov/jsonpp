@@ -51,6 +51,8 @@ std::string tag (std::vector<T,A> const& v, xpath<X> x) {
 // standard (or builtin) recursive types
 template <typename T, typename A>
 struct recursive<std::list<T,A> > : boost::mpl::true_ {};
+template <typename K, typename V, typename C, typename A>
+struct recursive<std::map<K,V,C,A> > : boost::mpl::true_ {};
 template <typename K, typename C, typename A>
 struct recursive<std::set<K,C,A> > : boost::mpl::true_ {};
 template <typename T, typename A>
@@ -74,6 +76,23 @@ template <typename T, typename A, typename X>
 typename iterator<std::list<T,A>, vpath::xpath<X> >::type
 end (std::list<T,A> const& t, vpath::xpath<X>) {
   return t.end();
+}
+// set specialization
+template <typename K, typename V, typename C, typename A, typename X>
+struct iterator<std::map<K,V,C,A>, vpath::xpath<X> > {
+  typedef vpath::assoc_ctr::value_iterator_facade<std::map<K,V,C,A> > type;
+};
+template <typename K, typename V, typename C, typename A, typename X>
+typename iterator<std::map<K,V,C,A>, vpath::xpath<X> >::type
+begin (std::map<K,V,C,A> const& t, vpath::xpath<X>) {
+  typedef typename iterator<std::map<K,V,C,A>, vpath::xpath<X> >::type iter;
+  return iter(t.begin());
+}
+template <typename K, typename V, typename C, typename A, typename X>
+typename iterator<std::map<K,V,C,A>, vpath::xpath<X> >::type
+end (std::map<K,V,C,A> const& t, vpath::xpath<X>) {
+  typedef typename iterator<std::map<K,V,C,A>, vpath::xpath<X> >::type iter;
+  return iter(t.end());
 }
 // set specialization
 template <typename V, typename C, typename A, typename X>
