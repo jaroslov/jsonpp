@@ -10,7 +10,7 @@
 #include <sstream>
 #include <boost/variant.hpp>
 #include <boost/variant/recursive_variant.hpp>
-#include <begin-end.hpp>
+#include <bel/begin-end.hpp>
 
 namespace JSONpp {
 
