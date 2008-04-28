@@ -1,6 +1,4 @@
-#include <xpath/vpath.hpp>
-#include <xpath/path.hpp>
-#include <xpath/query.hpp>
+#include <xpath/xpath.hpp>
 #include <jsonpp.hpp>
 #include <xpath/builtin.hpp>
 #include <iostream>
