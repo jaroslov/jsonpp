@@ -1,7 +1,7 @@
 #include "vpath.hpp"
+#include "assoc_ctr.hpp"
 #include <begin-end.hpp>
 #include <list>
-#include <map>
 #include <set>
 #include <string>
 #include <vector>
@@ -51,27 +51,10 @@ std::string tag (std::vector<T,A> const& v, xpath<X> x) {
 // standard (or builtin) recursive types
 template <typename T, typename A>
 struct recursive<std::list<T,A> > : boost::mpl::true_ {};
-//template <typename K, typename V, typename C, typename A>
-//struct recursive<std::map<K,V,C,A> > : boost::mpl::true_ {};
 template <typename K, typename C, typename A>
 struct recursive<std::set<K,C,A> > : boost::mpl::true_ {};
 template <typename T, typename A>
 struct recursive<std::vector<T,A> > : boost::mpl::true_ {};
-
-// key-value iterator facade
-// 1. the key-value facade must return a boost::variant of itself for simplicity
-// 2. the key-value facade must maintain its key (not just value!)
-// 3. the key-value facade must dereference to something for which the
-//    "sequence" call, calls on the value
-
-// IDEA:
-//  1. sequence(map) -> <iter,iter>
-//  2. *iter -> variant<facade>
-//  3. sequence(facade) -> <iter,iter>
-//  4. *iter -> map::mapped_type
-// WHY?
-//  1. this allows us to interrupt and grab the "key" as a possible
-//      attribute
 
 } // end vpath namespace
 
@@ -92,23 +75,6 @@ typename iterator<std::list<T,A>, vpath::xpath<X> >::type
 end (std::list<T,A> const& t, vpath::xpath<X>) {
   return t.end();
 }
-/*/ map specialization
-template <typename K, typename V, typename C, typename A, typename X>
-struct iterator<std::map<K,V,C,A>, vpath::xpath<X> > {
-  typedef vpath::assoc_ctr_iterator_facade<std::map<K,V,C,A> > type;
-};
-template <typename K, typename V, typename C, typename A, typename X>
-typename iterator<std::map<K,V,C,A>, vpath::xpath<X> >::type
-begin (std::map<K,V,C,A> const& t, vpath::xpath<X>) {
-  typedef typename iterator<std::map<K,V,C,A>, vpath::xpath<X> >::type iter;
-  return iter(t.begin());
-}
-template <typename K, typename V, typename C, typename A, typename X>
-typename iterator<std::map<K,V,C,A>, vpath::xpath<X> >::type
-end (std::map<K,V,C,A> const& t, vpath::xpath<X>) {
-  typedef typename iterator<std::map<K,V,C,A>, vpath::xpath<X> >::type iter;
-  return iter(t.end());
-}//*/
 // set specialization
 template <typename V, typename C, typename A, typename X>
 struct iterator<std::set<V,C,A>, vpath::xpath<X> > {
