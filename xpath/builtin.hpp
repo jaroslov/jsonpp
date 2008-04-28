@@ -72,118 +72,6 @@ struct recursive<std::vector<T,A> > : boost::mpl::true_ {};
 // WHY?
 //  1. this allows us to interrupt and grab the "key" as a possible
 //      attribute
-template <typename T> // T had best be a variant!
-struct trivial_iterator {
-  typedef trivial_iterator<T> self_type;
-
-  trivial_iterator (bool atend=false, T const* value=0)
-    : end(atend), value_(value) {}
-  trivial_iterator (self_type const& st) : end(st.end), value_(st.value_) {}
-  self_type& operator = (self_type const& st) {
-    this->value_ = st.value_; return *this;
-  }
-  self_type& operator ++ () {
-    this->end = false;
-    return *this;
-  }
-  self_type operator ++ () {
-    self_type cp(*this);
-    ++(*this);
-    return cp;
-  }
-  T const& operator * () const { return *this->value_; }
-  T const* operator -> () const { return this->value_; }
-
-  friend bool operator == (self_type const& L, self_type const& R) {
-    return (L.end == R.end) and (L.value_ == R.value_);
-  }
-  friend bool operator != (self_type const& L, self_type const& R) {
-    return (L.end != R.end) or (L.value_ != R.value_);
-  }
-
-  bool end;
-  T const* value_;
-};
-
-template <typename AssociativeContainer>
-struct assoc_ctr_value_facade {
-  typedef AssociativeContainer                          associative_container;
-  typedef assoc_ctr_value_facade<AssociativeContainer>  self_type;
-
-  typedef typename AssociativeContainer::key_type       ac_key_type;
-  typedef typename AssociativeContainer::mapped_type    ac_mapped_type;
-  typedef typename AssociativeContainer::value_type     ac_value_type;
-
-  typedef trivial_iterator<ac_mapped_type>              iterator;
-  typedef trivial_iterator<ac_mapped_type>              const_iterator;
-
-  assoc_ctr_value_facade () {}
-  assoc_ctr_value_facade (ac_value_type const& v) : value_(v) {}
-  assoc_ctr_value_facade (self_type const& acvf) : value_(acvf.value_) {}
-  self_type& operator = (self_type const& acvf) {
-    this->value_ = acvf.value_;
-    return *this;
-  }
-  self_type& operator = (ac_value_type const& acvt) {
-    this->value_ = acvt;
-    return *this;
-  }
-
-  iterator begin () const {
-    return iterator(false,&this->value_.second);
-  }
-  iterator end () const {
-    return iterator(true);
-  }
-
-  ac_value_type value_;
-};
-
-template <typename AssociativeContainer>
-struct assoc_ctr_iterator_facade {
-  typedef AssociativeContainer                            associative_container;
-  typedef assoc_ctr_iterator_facade<AssociativeContainer> self_type;
-
-  typedef typename AssociativeContainer::key_type         key_type;
-  typedef typename AssociativeContainer::mapped_type      mapped_type;
-  typedef typename AssociativeContainer::value_type       value_type;
-  typedef typename AssociativeContainer::const_iterator   iterator;
-
-  typedef assoc_ctr_value_facade<AssociativeContainer>    acvf_t;
-
-  typedef boost::variant<acvf_t>                          value_facade_type;
-
-  assoc_ctr_iterator_facade () {}
-  assoc_ctr_iterator_facade (iterator const& itr) : iter_(itr) {}
-
-  self_type& operator ++ () {
-    ++this->iter_;
-    this->value_ = *this->iter_;
-    return *this;
-  }
-  self_type operator ++ (int) {
-    self_type cp(this->iter_);
-    ++(*this);
-    return cp;  
-  }
-
-  value_facade_type const& operator * () const {
-    return this->value_;
-  }
-  value_facade_type const* operator -> () const {
-    return &this->value_;
-  }
-
-  friend bool operator == (self_type const& L, self_type const& R) {
-    return L.iter_ == R.iter_;
-  }
-  friend bool operator != (self_type const& L, self_type const& R) {
-    return L.iter_ != R.iter_;
-  }
-
-  value_facade_type value_;
-  iterator          iter_;
-};
 
 } // end vpath namespace
 
@@ -204,21 +92,23 @@ typename iterator<std::list<T,A>, vpath::xpath<X> >::type
 end (std::list<T,A> const& t, vpath::xpath<X>) {
   return t.end();
 }
-// map specialization
+/*/ map specialization
 template <typename K, typename V, typename C, typename A, typename X>
 struct iterator<std::map<K,V,C,A>, vpath::xpath<X> > {
-  typedef xpath::assoc_ctr_iterator_facade<std::map<K,V,C,A> > type;
+  typedef vpath::assoc_ctr_iterator_facade<std::map<K,V,C,A> > type;
 };
-/*template <typename K, typename V, typename C, typename A, typename X>
+template <typename K, typename V, typename C, typename A, typename X>
 typename iterator<std::map<K,V,C,A>, vpath::xpath<X> >::type
 begin (std::map<K,V,C,A> const& t, vpath::xpath<X>) {
-  return t.begin();
+  typedef typename iterator<std::map<K,V,C,A>, vpath::xpath<X> >::type iter;
+  return iter(t.begin());
 }
 template <typename K, typename V, typename C, typename A, typename X>
 typename iterator<std::map<K,V,C,A>, vpath::xpath<X> >::type
 end (std::map<K,V,C,A> const& t, vpath::xpath<X>) {
-  return t.end();
-}*/
+  typedef typename iterator<std::map<K,V,C,A>, vpath::xpath<X> >::type iter;
+  return iter(t.end());
+}//*/
 // set specialization
 template <typename V, typename C, typename A, typename X>
 struct iterator<std::set<V,C,A>, vpath::xpath<X> > {
