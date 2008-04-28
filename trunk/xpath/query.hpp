@@ -29,6 +29,8 @@ struct query_generator {
     typedef Node    node_type;
     typedef void    result_type; // visitor concept
 
+    std::string indent;
+
     visitor (node_type const* parent=0,
       path_type const* path=0, std::size_t axis=0)
       : parent(parent), path(path), axis(axis) {}
@@ -37,7 +39,8 @@ struct query_generator {
     typename boost::disable_if<recursive<T> >::type
     operator () (T const& t) const {
       // non-recursive
-      std::cout << "Terminal Tag: " << tag(t, xpath_t()) << std::endl;
+      std::cout << this->indent
+        << "Terminal Tag: " << tag(t, xpath_t()) << std::endl;
     }
 
     template <typename T>
@@ -47,8 +50,10 @@ struct query_generator {
       typedef typename bel::iterator<T,xpath_t>::type iterator;
       if (this->path->size() <= this->axis)
         return;
-      std::cout << "Recursive Tag: " << tag(t, xpath_t()) << std::endl;
+      std::cout << this->indent
+        << "Recursive Tag: " << tag(t, xpath_t()) << std::endl;
       visitor<T> V(&t, this->path);
+      V.indent = this->indent+"  ";
       iterator first, last;
       boost::tie(first,last) = bel::sequence(t, xpath_t());
       switch ((*this->path)[this->axis].name) {

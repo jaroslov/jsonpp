@@ -17,9 +17,11 @@ There are two ways to deal with associative containers:
 
 */
 
+namespace assoc_ctr {
+
 template <typename AssociativeContainer>
-struct assoc_ctr_valued_iterator_facade {
-  typedef assoc_ctr_valued_iterator_facade<
+struct value_iterator_facade {
+  typedef value_iterator_facade<
               AssociativeContainer>         self_type;
 
   typedef AssociativeContainer              ac_type;
@@ -34,10 +36,10 @@ struct assoc_ctr_valued_iterator_facade {
   typedef value_type const&                 reference;
   typedef value_type const*                 pointer;
 
-  assoc_ctr_valued_iterator_facade () {}
-  assoc_ctr_valued_iterator_facade (iterator const& itr)
+  value_iterator_facade () {}
+  value_iterator_facade (iterator const& itr)
     : iterator_(itr) {}
-  assoc_ctr_valued_iterator_facade (self_type const& st)
+  value_iterator_facade (self_type const& st)
     : iterator_(st.iterator_) {}
   self_type& operator = (self_type const& st) {
     this->iterator_ = st.iterator_;
@@ -53,10 +55,10 @@ struct assoc_ctr_valued_iterator_facade {
     ++(*this);
     return cp;
   }
-  ac_value_type const& operator * () const {
+  value_type const& operator * () const {
     return this->iterator_->second;
   }
-  ac_value_type const* operator -> () const {
+  value_type const* operator -> () const {
     return &this->iterator_->second;
   }
 
@@ -70,7 +72,7 @@ struct assoc_ctr_valued_iterator_facade {
   iterator iterator_;
 };
 
-
+  } // end assoc_ctr namespace
 } // end vpath namespace
 
 #endif//VPATH_LIB_ASSOC_CTR
