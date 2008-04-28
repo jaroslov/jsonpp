@@ -21,6 +21,7 @@ test_vpath: vpath xpath/*.hpp vpath.cpp
 
 vpatht: vpath xpath/*.hpp vpath.cpp
 	echo "/map/vector" | ./vpath Examples/*.*if
+	echo "/vector/map" | ./vpath Examples/*.*if
 
 vpath_tests: vpath xpath/*.hpp vpath.cpp
 	echo "/" | ./vpath
