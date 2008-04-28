@@ -1,5 +1,5 @@
 #define BEL_IOSTREAM
-#include <begin-end.hpp>
+#include <bel/begin-end.hpp>
 #include <vector>
 #include <list>
 #include <map>

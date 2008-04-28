@@ -1,41 +1,29 @@
-
 all: json bel vpath
 
-json: jsonpp.cpp jsonpp.hpp
-	g++ -O3 -I. jsonpp.cpp -o jsonpp
+jsonT: test_json.cpp json/*.hpp
+	g++ -O3 -I. test_json.cpp -o jtest
+	./jtest Examples/*.*if
 
-test_json: jsonpp jsonpp.hpp jsonpp.cpp
-	./jsonpp Examples/*.*if
+belT: bel/*.hpp test_bel.cpp
+	g++ -O3 -I. test_bel.cpp -o btest
+	./btest
 
-bel: begin-end.hpp bel.cpp
-	g++ -O3 -I. bel.cpp -o bel
+vpathT: xpath/*.hpp test_vpath.cpp
+	g++ -O3 -I. test_vpath.cpp -o vtest
+	echo "/object/array" | ./vtest Examples/*.*if
+	echo "/array/object" | ./vtest Examples/*.*if
 
-test_bel: bel begin-end.hpp bel.cpp
-	./bel
-
-vpath: xpath/*.hpp vpath.cpp
-	g++ -O3 -I. vpath.cpp -o vpath
-
-test_vpath: vpath xpath/*.hpp vpath.cpp
-	echo "$(PROG_ARG)" | ./vpath Examples/*.*if
-
-vpatht: vpath xpath/*.hpp vpath.cpp
-	echo "/object/array" | ./vpath Examples/*.*if
-	echo "/array/object" | ./vpath Examples/*.*if
-
-vpath_tests: vpath xpath/*.hpp vpath.cpp
-	echo "/" | ./vpath
-	echo "foo" | ./vpath
-	echo "foo[0]" | ./vpath
-	echo "parent::node()[0]" | ./vpath
-	echo "/foo/bar" | ./vpath
-	echo "/foo/bar[0]" | ./vpath
-	echo "/foo/*[0]" | ./vpath
-	echo "/foo/@*[0]/text()" | ./vpath
-	echo "//foo[0]/.[10]/ancestor-or-self/node()" | ./vpath
-	echo "/..[1]/child::bar[0]/&lt;child&gt;" | ./vpath
+vpath_tests: vtest xpath/*.hpp test_vpath.cpp
+	echo "/" | ./vtest
+	echo "foo" | ./vtest
+	echo "foo[0]" | ./vtest
+	echo "parent::node()[0]" | ./vtest
+	echo "/foo/bar" | ./vtest
+	echo "/foo/bar[0]" | ./vtest
+	echo "/foo/*[0]" | ./vtest
+	echo "/foo/@*[0]/text()" | ./vtest
+	echo "//foo[0]/.[10]/ancestor-or-self/node()" | ./vtest
+	echo "/..[1]/child::bar[0]/&lt;child&gt;" | ./vtest
 
 clean:
-	rm jsonpp;
-	rm vpath;
-	rm bel;
+	rm jtest vtest btest;

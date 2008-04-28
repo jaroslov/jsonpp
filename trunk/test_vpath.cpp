@@ -1,5 +1,5 @@
 #include <xpath/xpath.hpp>
-#include <jsonpp.hpp>
+#include <json/jsonpp.hpp>
 #include <xpath/builtin.hpp>
 #include <iostream>
 #include <fstream>
