@@ -15,6 +15,12 @@
 
 namespace vpath {
 
+// the axis structure represents an axis from the xpath specification
+// it contains three parts:
+//   1. name -- one of the 13 actions (axes)
+//   2. test -- the 'tag' value of the object to look for or some special
+//       function, i.e., node(), text(), comment(), etc.
+//   3. predicate -- some predicate to be applied to the result-set
 struct axis_t {
   typedef signed long index_t;
   static const index_t None = -1;
@@ -41,8 +47,12 @@ struct axis_t {
           index_t pred=None, bool fun=false)
     : name(name), test(test), predicate(pred), function(fun) {}
 
+  // mainly for debuggin purposes
   friend std::ostream& operator << (std::ostream& ostr, axis_t const& a) {
-    ostr << (char)a.name << "(" << a.test << "," << a.predicate << ")";
+    ostr << (char)a.name << "("
+      << a.test << ","
+      << a.predicate << ","
+      << a.function << ")";
     return ostr;
   }
 
@@ -52,6 +62,7 @@ struct axis_t {
 };
 typedef std::vector<axis_t> axes_t;
 
+// a custom manipulator for printing paths
 class abbreviator {
   static signed long iword;
   enum kinds {
@@ -74,21 +85,26 @@ private:
   bool abbreviate;
 };
 long abbreviator::iword = -1;
-
-static abbreviator abbreviate = abbreviator(true);
-static abbreviator long_form = abbreviator(false);
-
 bool abbreviated (std::ios_base& ios) {
   return ios.iword(abbreviator::iword) == abbreviator::abbreviate_E;
 }
-
 template <typename CharT>
 std::basic_ostream<CharT>&
 operator << (std::basic_ostream<CharT>& bostr, abbreviator const& abbr) {
   abbr.format(bostr);
   return bostr;
 }
+// let foo = "//one/two/@three
+// std::cout << abbreviate << foo << std::endl;
+// "//one/two/@three"
+static abbreviator abbreviate = abbreviator(true);
+// std::cout << long_form << foo << std::endl;
+// "ancestor-or-self::one/child::two/attribute::three"
+static abbreviator long_form = abbreviator(false);
 
+// a path is our XPath representation of a path, it is (essentially)
+// a list of axis_t, and a string-store; the string-store is where
+// all the strings for the axes are kept
 template <typename String=std::string>
 struct path_type {
   typedef std::vector<String>           string_store_t;
