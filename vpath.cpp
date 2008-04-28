@@ -9,11 +9,11 @@
 #include <locale>
 
 template <typename Xpath>
-std::string name (JSONpp::nil, Xpath) {
+std::string tag (JSONpp::nil, vpath::xpath<Xpath>) {
   return "nil";
 }
 template <typename Xpath>
-std::string name (JSONpp::json_v, Xpath) {
+std::string tag (JSONpp::json_v, vpath::xpath<Xpath>) {
   return "json";
 }
 
