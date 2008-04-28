@@ -117,7 +117,6 @@ struct iterator<std::vector<T,A>, vpath::xpath<X> > {
 template <typename T, typename A, typename X>
 typename iterator<std::vector<T,A>, vpath::xpath<X> >::type
 begin (std::vector<T,A> const& t, vpath::xpath<X>) {
-  std::cout << "vector" << std::endl;
   return t.begin();
 }
 template <typename T, typename A, typename X>
