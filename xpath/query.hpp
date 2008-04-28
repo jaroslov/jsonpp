@@ -70,6 +70,12 @@ struct query_generator {
     }
 
     template <typename T>
+    bool apply_predicate (T const& t) const {
+      // ignore the predicate for now
+      return true;
+    }
+
+    template <typename T>
     typename boost::enable_if<recursive<T>,result_type>::type
     operator () (T const& t) const {
       // recursive
@@ -83,17 +89,18 @@ struct query_generator {
       iterator first, last;
       boost::tie(first,last) = vpath::children(t, xpath_t());
       switch ((*this->path)[this->axis].name) {
+      case axis_t::attribute : {
+          this->handle_attribute(t);
+        } break;
       case axis_t::child : {
           V.axis = this->axis+1;
           if (tag(t, xpath_t()) == this->path->test(this->axis))
-            for ( ; first != last; ++first) {
-              result_type subrs = visit(V, *first);
-              result_set.insert(bel::end(result_set),
-                            bel::begin(subrs), bel::end(subrs));
-            }
-        } break;
-      case axis_t::attribute : {
-          this->handle_attribute(t);
+            for ( ; first != last; ++first)
+              if (this->apply_predicate(t)) {
+                result_type subrs = visit(V, *first);
+                result_set.insert(bel::end(result_set),
+                              bel::begin(subrs), bel::end(subrs));
+              }
         } break;
       default: {
           std::cout << "Unsupported axis-name." << std::endl;
