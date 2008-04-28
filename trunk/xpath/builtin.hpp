@@ -64,6 +64,14 @@ struct recursive<std::vector<T,A> > : boost::mpl::true_ {};
 // 3. the key-value facade must dereference to something for which the
 //    "sequence" call, calls on the value
 
+// IDEA:
+//  1. sequence(map) -> <iter,iter>
+//  2. *iter -> variant<facade>
+//  3. sequence(facade) -> <iter,iter>
+//  4. *iter -> map::mapped_type
+// WHY?
+//  1. this allows us to interrupt and grab the "key" as a possible
+//      attribute
 template <typename AssociativeContainer>
 struct assoc_ctr_value_facade {
   typedef AssociativeContainer                          associative_container;
