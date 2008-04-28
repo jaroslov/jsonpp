@@ -27,6 +27,18 @@ namespace vpath {
   std::string tag (JSONpp::json_v, vpath::xpath<JSONpp::json_v>) {
     return "json";
   }
+
+  template <typename X>
+  struct children_union<JSONpp::json_v, xpath<X> > {
+    typedef boost::variant<
+      typename JSONpp::json_gen::value_t const*,
+      typename JSONpp::json_gen::string_t const*,
+      typename JSONpp::json_gen::number_t const*,
+      typename JSONpp::json_gen::object_t const*,
+      typename JSONpp::json_gen::array_t const*,
+      typename JSONpp::json_gen::bool_t const*,
+      typename JSONpp::json_gen::null_t const*> type;
+  };
 }
 
 int main (int argc, char *argv[]) {
@@ -38,7 +50,6 @@ int main (int argc, char *argv[]) {
   std::istream_iterator<char> ctr(std::cin), cnd;
   std::copy(ctr, cnd, std::back_inserter(input));
   vpath::path path = vpath::parser(input);
-  std::cout << path << std::endl << std::endl;
 
   for (++argv; argc > 0; --argc, ++argv) {
     std::cout << *argv << std::endl;
@@ -50,6 +61,7 @@ int main (int argc, char *argv[]) {
       std::istream_iterator<wchar_t,wchar_t> cnd;
       JSONpp::json_v json = JSONpp::parse(ctr, cnd);
       vpath::query(path, json);
+      std::cout << std::endl;
     } catch (std::exception& e) {
       std::cout << "error: " << e.what() << std::endl;
     }

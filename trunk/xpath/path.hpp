@@ -8,6 +8,7 @@
 #include <cstring>
 
 #include <iostream>
+#include <iomanip>
 
 #ifndef VPATH_LIB_PATH
 #define VPATH_LIB_PATH
@@ -50,6 +51,14 @@ struct axis_t {
   bool function;
 };
 typedef std::vector<axis_t> axes_t;
+
+template <typename CharT>
+class abbreviator {
+  static signed long iword;
+  abbreviator () {
+  }
+};
+long abbreviator::iword = -1;
 
 template <typename String=std::string>
 struct path_type {
@@ -325,9 +334,6 @@ private:
         }
       }
     }
-    for (std::size_t t=0; t<tokens.size(); ++t)
-      std::cout << tokens[t] << " ";
-    std::cout << std::endl;
     return tokens;
   }
 };
