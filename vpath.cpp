@@ -19,8 +19,6 @@ std::string name (JSONpp::json_v, Xpath) {
 
 int main (int argc, char *argv[]) {
 
-  typedef bel::iterator<bool,vpath::xpath<void> >::type biter;
-
   std::locale loc("");
   std::wcout.imbue(loc);
 

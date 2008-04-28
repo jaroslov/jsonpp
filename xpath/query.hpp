@@ -2,6 +2,7 @@
 #include "path.hpp"
 #include "vpath.hpp"
 #include <boost/tuple/tuple.hpp>
+#include <boost/utility/enable_if.hpp>
 #include <stdexcept>
 
 #ifndef VPATH_LIB_QUERY
@@ -33,11 +34,20 @@ struct query_generator {
       : parent(parent), path(path), axis(axis) {}
 
     template <typename T>
-    void operator () (T const& t) const {
+    typename boost::disable_if<recursive<T> >::type
+    operator () (T const& t) const {
+      // non-recursive
+      std::cout << "Terminal Tag: " << tag(t, xpath_t()) << std::endl;
+    }
+
+    template <typename T>
+    typename boost::enable_if<recursive<T> >::type
+    operator () (T const& t) const {
+      // recursive
       typedef typename bel::iterator<T,xpath_t>::type iterator;
       if (this->path->size() <= this->axis)
         return;
-      std::cout << "Node Tag: " << tag(t, xpath_t()) << std::endl;
+      std::cout << "Recursive Tag: " << tag(t, xpath_t()) << std::endl;
       visitor<T> V(&t, this->path);
       iterator first, last;
       boost::tie(first,last) = bel::sequence(t, xpath_t());

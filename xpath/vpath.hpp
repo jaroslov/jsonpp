@@ -1,4 +1,5 @@
 #include <boost/variant.hpp>
+#include <boost/mpl/bool.hpp>
 
 #ifndef VPATH_LIB_VPATH
 #define VPATH_LIB_VPATH
@@ -36,6 +37,9 @@ visit (Visitor const& visitor, Variant const& variant) {
 
 template <typename T, typename GDS>
 std::string tag (T, xpath<GDS>) { return "T"; }
+
+template <typename T>
+struct recursive : boost::mpl::false_ {};
 
 }  // end vpath namespace
 

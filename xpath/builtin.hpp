@@ -6,14 +6,17 @@
 #include <string>
 #include <vector>
 #include <boost/variant.hpp>
+#include <boost/utility/enable_if.hpp>
 
 #ifndef VPATH_LIB_BASICS
 #define VPATH_LIB_BASICS
 
 namespace vpath {
 
+// standard (built-in) tags
 template <typename X> std::string tag (bool, xpath<X>) { return "bool"; }
-template <typename X> std::string tag (char, xpath<X>) { return "char"; }
+template <typename X> std::string tag (signed char, xpath<X>) { return "schar"; }
+template <typename X> std::string tag (unsigned char, xpath<X>) { return "uchar"; }
 template <typename X> std::string tag (wchar_t, xpath<X>) { return "wchar_t"; }
 template <typename X> std::string tag (signed short, xpath<X>) { return "sshort"; }
 template <typename X> std::string tag (unsigned short, xpath<X>) { return "ushort"; }
@@ -45,50 +48,158 @@ std::string tag (std::vector<T,A> const& v, xpath<X> x) {
   return "vector";
 }
 
-struct no_iterator {
-  struct nil {};
-  typedef boost::variant<nil> zilch_t;
-  typedef zilch_t value_type;
+// standard (or builtin) recursive types
+template <typename T, typename A>
+struct recursive<std::list<T,A> > : boost::mpl::true_ {};
+//template <typename K, typename V, typename C, typename A>
+//struct recursive<std::map<K,V,C,A> > : boost::mpl::true_ {};
+template <typename K, typename C, typename A>
+struct recursive<std::set<K,C,A> > : boost::mpl::true_ {};
+template <typename T, typename A>
+struct recursive<std::vector<T,A> > : boost::mpl::true_ {};
 
-  friend bool operator == (no_iterator const& L, no_iterator const& R) {
-    return true;
-  }
-  friend bool operator != (no_iterator const& L, no_iterator const& R) {
-    return false;
-  }
-  no_iterator operator ++ () { return *this; }
-  no_iterator operator ++ (int) { return *this; }
-  zilch_t const& operator * () const { return this->nada; }
-  zilch_t const* operator -> () const { return &this->nada; }
+// key-value iterator facade
+// 1. the key-value facade must return a boost::variant of itself for simplicity
+// 2. the key-value facade must maintain its key (not just value!)
+// 3. the key-value facade must dereference to something for which the
+//    "sequence" call, calls on the value
 
-  zilch_t nada;
+template <typename AssociativeContainer>
+struct assoc_ctr_value_facade {
+  typedef AssociativeContainer                          associative_container;
+  typedef assoc_ctr_value_facade<AssociativeContainer>  self_type;
+
+  typedef typename AssociativeContainer::key_type       ac_key_type;
+  typedef typename AssociativeContainer::mapped_type    ac_mapped_type;
+  typedef typename AssociativeContainer::value_type     ac_value_type;
+
+  assoc_ctr_value_facade () {}
+  assoc_ctr_value_facade (ac_value_type const& v) : value_(v) {}
+  assoc_ctr_value_facade (self_type const& acvf) : value_(acvf.value_) {}
+  self_type& operator = (self_type const& acvf) {
+    this->value_ = acvf.value_;
+    return *this;
+  }
+  self_type& operator = (ac_value_type const& acvt) {
+    this->value_ = acvt;
+    return *this;
+  }
+
+  ac_value_type value_;
+};
+
+template <typename AssociativeContainer>
+struct assoc_ctr_iterator_facade {
+  typedef AssociativeContainer                            associative_container;
+  typedef assoc_ctr_iterator_facade<AssociativeContainer> self_type;
+
+  typedef typename AssociativeContainer::key_type         key_type;
+  typedef typename AssociativeContainer::mapped_type      mapped_type;
+  typedef typename AssociativeContainer::value_type       value_type;
+  typedef typename AssociativeContainer::const_iterator   iterator;
+
+  typedef assoc_ctr_value_facade<AssociativeContainer>    acvf_t;
+
+  typedef boost::variant<acvf_t>                          value_facade_type;
+
+  assoc_ctr_iterator_facade () {}
+  assoc_ctr_iterator_facade (iterator const& itr) : iter_(itr) {}
+
+  self_type& operator ++ () {
+    ++this->iter_;
+    this->value_ = *this->iter_;
+    return *this;
+  }
+  self_type operator ++ (int) {
+    self_type cp(this->iter_);
+    ++(*this);
+    return cp;  
+  }
+
+  value_facade_type const& operator * () const {
+    return this->value_;
+  }
+  value_facade_type const* operator -> () const {
+    return &this->value_;
+  }
+
+  friend bool operator == (self_type const& L, self_type const& R) {
+    return L.iter_ == R.iter_;
+  }
+  friend bool operator != (self_type const& L, self_type const& R) {
+    return L.iter_ != R.iter_;
+  }
+
+  value_facade_type value_;
+  iterator          iter_;
 };
 
 } // end vpath namespace
 
 namespace bel {
 
-template <typename T, typename X>
-struct iterator<T, vpath::xpath<X> > {
-  typedef vpath::no_iterator type;
+// list specialization
+template <typename T, typename A, typename X>
+struct iterator<std::list<T,A>, vpath::xpath<X> > {
+  typedef typename std::list<T,A>::const_iterator type;
 };
+template <typename T, typename A, typename X>
+typename iterator<std::list<T,A>, vpath::xpath<X> >::type
+begin (std::list<T,A> const& t, vpath::xpath<X>) {
+  return t.begin();
+}
+template <typename T, typename A, typename X>
+typename iterator<std::list<T,A>, vpath::xpath<X> >::type
+end (std::list<T,A> const& t, vpath::xpath<X>) {
+  return t.end();
+}
+/*/ map specialization
+template <typename K, typename V, typename C, typename A, typename X>
+struct iterator<std::map<K,V,C,A>, vpath::xpath<X> > {
+  typedef xpath::assoc_ctr_facade<std::map<K,V,C,A> > type;
+};
+template <typename K, typename V, typename C, typename A, typename X>
+typename iterator<std::map<K,V,C,A>, vpath::xpath<X> >::type
+begin (std::map<K,V,C,A> const& t, vpath::xpath<X>) {
+  return t.begin();
+}
+template <typename K, typename V, typename C, typename A, typename X>
+typename iterator<std::map<K,V,C,A>, vpath::xpath<X> >::type
+end (std::map<K,V,C,A> const& t, vpath::xpath<X>) {
+  return t.end();
+}*/
+// set specialization
+template <typename V, typename C, typename A, typename X>
+struct iterator<std::set<V,C,A>, vpath::xpath<X> > {
+  typedef typename std::set<V,C,A>::const_iterator type;
+};
+template <typename V, typename C, typename A, typename X>
+typename iterator<std::set<V,C,A>, vpath::xpath<X> >::type
+begin (std::set<V,C,A> const& t, vpath::xpath<X>) {
+  return t.begin();
+}
+template <typename V, typename C, typename A, typename X>
+typename iterator<std::set<V,C,A>, vpath::xpath<X> >::type
+end (std::set<V,C,A> const& t, vpath::xpath<X>) {
+  return t.end();
+}
+// vector specialization
+template <typename T, typename A, typename X>
+struct iterator<std::vector<T,A>, vpath::xpath<X> > {
+  typedef typename std::vector<T,A>::const_iterator type;
+};
+template <typename T, typename A, typename X>
+typename iterator<std::vector<T,A>, vpath::xpath<X> >::type
+begin (std::vector<T,A> const& t, vpath::xpath<X>) {
+  std::cout << "vector" << std::endl;
+  return t.begin();
+}
+template <typename T, typename A, typename X>
+typename iterator<std::vector<T,A>, vpath::xpath<X> >::type
+end (std::vector<T,A> const& t, vpath::xpath<X>) {
+  return t.end();
+}
 
-template <typename T, typename X>
-typename iterator<T, vpath::xpath<X> >::type
-begin (T const& t, vpath::xpath<X>) {
-  return typename iterator<T, vpath::xpath<X> >::type();
-}
-template <typename T, typename X>
-typename iterator<T, vpath::xpath<X> >::type
-end (T const& t, vpath::xpath<X>) {
-  return typename iterator<T, vpath::xpath<X> >::type();
-}
-template <typename T, typename X>
-std::pair<typename iterator<T, vpath::xpath<X> >::type,
-  typename iterator<T, vpath::xpath<X> >::type>
-sequence (T const& t, vpath::xpath<X> x) {
-  return std::make_pair(bel::begin(t,x),bel::end(t,x));
-}
 
 } // end bel namespace
 
