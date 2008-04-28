@@ -20,8 +20,8 @@ test_vpath: vpath xpath/*.hpp vpath.cpp
 	echo "$(PROG_ARG)" | ./vpath Examples/*.*if
 
 vpatht: vpath xpath/*.hpp vpath.cpp
-	echo "/map/vector" | ./vpath Examples/*.*if
-	echo "/vector/map" | ./vpath Examples/*.*if
+	echo "/object/array" | ./vpath Examples/*.*if
+	echo "/array/object" | ./vpath Examples/*.*if
 
 vpath_tests: vpath xpath/*.hpp vpath.cpp
 	echo "/" | ./vpath

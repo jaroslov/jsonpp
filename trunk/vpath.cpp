@@ -8,13 +8,27 @@
 #include <sstream>
 #include <locale>
 
-template <typename Xpath>
-std::string tag (JSONpp::nil, vpath::xpath<Xpath>) {
-  return "nil";
-}
-template <typename Xpath>
-std::string tag (JSONpp::json_v, vpath::xpath<Xpath>) {
-  return "json";
+//
+// augment the "tag" overload set for nil and json_v
+namespace vpath {
+  std::string tag (JSONpp::nil, vpath::xpath<JSONpp::json_v>) {
+    return "nil";
+  }
+  std::string tag (bool, vpath::xpath<JSONpp::json_v>) {
+    return "bool";
+  }
+  std::string tag (std::wstring, vpath::xpath<JSONpp::json_v>) {
+    return "string";
+  }
+  std::string tag (std::vector<JSONpp::json_v>, vpath::xpath<JSONpp::json_v>) {
+    return "array";
+  }
+  std::string tag (std::map<std::wstring,JSONpp::json_v>, vpath::xpath<JSONpp::json_v>) {
+    return "object";
+  }
+  std::string tag (JSONpp::json_v, vpath::xpath<JSONpp::json_v>) {
+    return "json";
+  }
 }
 
 int main (int argc, char *argv[]) {
