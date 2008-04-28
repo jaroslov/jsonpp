@@ -52,13 +52,41 @@ struct axis_t {
 };
 typedef std::vector<axis_t> axes_t;
 
-template <typename CharT>
-class abbreviator {
+class abbreviator_base {
   static signed long iword;
-  abbreviator () {
+  static const signed long abbreviate_E = 1;
+  static const signed long long_form_E = 4;
+public:
+  abbreviator_base (bool abbr=true) : abbreviate_(abbr) {}
+  friend bool abbreviated (std::ios_base& ios) {
+    return ios.iword(abbreviator_base::iword) == abbreviate_E;
+  }
+  void format (std::ios_base& ios) const {
+    ios.iword(abbreviator_base::iword)
+      = this->abbreviate_
+          ? abbreviate_E
+          : long_form_E;
+  }
+private:
+  bool abbreviate_;
+};
+long abbreviator_base::iword = -1;
+
+template <typename CharT>
+class abbreviator : abbreviator_base {
+public:
+  typedef std::basic_ostream<CharT> bostream_t;
+  abbreviator (bool abbrev=true)
+    : abbreviator_base(abbrev) {
+    if (-1 == abbreviator_base::iword)
+      abbreviator_base::iword = std::ios_base::xalloc();
+  }
+  friend bostream_t&
+  operator << (bostream_t& bostr, abbreviator<CharT> const& abbr) {
+    abbr.format(bostr);
+    return bostr;
   }
 };
-long abbreviator::iword = -1;
 
 template <typename String=std::string>
 struct path_type {
@@ -75,7 +103,12 @@ struct path_type {
     for (std::size_t a=0; a<P.axes.size(); ++a) {
       switch (P.axes[a].name) {
       case axis_t::ancestor: bostr << "ancestor"; break;
-      case axis_t::ancestor_or_self: bostr << "ancestor-or-self"; break;
+      case axis_t::ancestor_or_self: {
+          if (abbreviator_base::abbreviated(bostr))
+            bostr << "/";
+          else
+            bostr << "ancestor-or-self";
+        } break;
       case axis_t::attribute: bostr << "attribute"; break;
       case axis_t::child: bostr << "child"; break;
       case axis_t::descendent: bostr << "descendent"; break;
