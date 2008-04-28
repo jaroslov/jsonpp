@@ -1,1 +1,0 @@
-{"values": ["x", "y", "z"], "joins": {"Rl": {"inputs": ["z"], "outputs": ["y"]}, "Ll": {"inputs": ["y"], "outputs": ["x"]}, "Lr": {"inputs": ["x"], "outputs": ["y"]}, "Rr": {"inputs": ["y"], "outputs": ["z"]}}, "arcs": {"R": {"joins": ["Rl", "Rr"], "select": 1}, "L": {"joins": ["Ll", "Lr"], "select": 1}}}
