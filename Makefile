@@ -18,6 +18,8 @@ vpath_tests: vtest xpath/*.hpp test_vpath.cpp
 	echo "foo" | ./vtest
 	echo "foo[0]" | ./vtest
 	echo "parent::node()[0]" | ./vtest
+	echo ".[0]" | ./vtest
+	echo "/foo/bar/.././@blah" | ./vtest
 	echo "/foo/bar" | ./vtest
 	echo "/foo/bar[0]" | ./vtest
 	echo "/foo/*[0]" | ./vtest

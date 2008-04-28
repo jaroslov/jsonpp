@@ -52,41 +52,42 @@ struct axis_t {
 };
 typedef std::vector<axis_t> axes_t;
 
-class abbreviator_base {
+class abbreviator {
   static signed long iword;
-  static const signed long abbreviate_E = 1;
-  static const signed long long_form_E = 4;
+  enum kinds {
+    abbreviate_E = 1,
+    long_form_E = 4,
+  };
 public:
-  abbreviator_base (bool abbr=true) : abbreviate_(abbr) {}
-  friend bool abbreviated (std::ios_base& ios) {
-    return ios.iword(abbreviator_base::iword) == abbreviate_E;
+  abbreviator (bool abbr=true) : abbreviate(abbr) {
+    if (-1 == abbreviator::iword)
+      abbreviator::iword = std::ios_base::xalloc();
   }
+  friend bool abbreviated (std::ios_base&);
   void format (std::ios_base& ios) const {
-    ios.iword(abbreviator_base::iword)
-      = this->abbreviate_
+    ios.iword(abbreviator::iword)
+      = this->abbreviate
           ? abbreviate_E
           : long_form_E;
   }
 private:
-  bool abbreviate_;
+  bool abbreviate;
 };
-long abbreviator_base::iword = -1;
+long abbreviator::iword = -1;
+
+static abbreviator abbreviate = abbreviator(true);
+static abbreviator long_form = abbreviator(false);
+
+bool abbreviated (std::ios_base& ios) {
+  return ios.iword(abbreviator::iword) == abbreviator::abbreviate_E;
+}
 
 template <typename CharT>
-class abbreviator : abbreviator_base {
-public:
-  typedef std::basic_ostream<CharT> bostream_t;
-  abbreviator (bool abbrev=true)
-    : abbreviator_base(abbrev) {
-    if (-1 == abbreviator_base::iword)
-      abbreviator_base::iword = std::ios_base::xalloc();
-  }
-  friend bostream_t&
-  operator << (bostream_t& bostr, abbreviator<CharT> const& abbr) {
-    abbr.format(bostr);
-    return bostr;
-  }
-};
+std::basic_ostream<CharT>&
+operator << (std::basic_ostream<CharT>& bostr, abbreviator const& abbr) {
+  abbr.format(bostr);
+  return bostr;
+}
 
 template <typename String=std::string>
 struct path_type {
@@ -101,33 +102,38 @@ struct path_type {
     if (P.rooted)
       bostr << "/";
     for (std::size_t a=0; a<P.axes.size(); ++a) {
+      bool refuse_function = false;
       switch (P.axes[a].name) {
-      case axis_t::ancestor: bostr << "ancestor"; break;
-      case axis_t::ancestor_or_self: {
-          if (abbreviator_base::abbreviated(bostr))
-            bostr << "/";
-          else
-            bostr << "ancestor-or-self";
-        } break;
-      case axis_t::attribute: bostr << "attribute"; break;
-      case axis_t::child: bostr << "child"; break;
-      case axis_t::descendent: bostr << "descendent"; break;
-      case axis_t::descendent_or_self: bostr << "descendent-or-self"; break;
-      case axis_t::following: bostr << "following"; break;
-      case axis_t::following_sibling: bostr << "following-sibling"; break;
-      case axis_t::namespace_: bostr << "namespace"; break;
-      case axis_t::parent: bostr << "parent"; break;
-      case axis_t::preceding: bostr << "preceding"; break;
-      case axis_t::preceding_sibling: bostr << "preceding-sibling"; break;
-      case axis_t::self: bostr << "self"; break;
+      case axis_t::ancestor: bostr << "ancestor::"; break;
+      case axis_t::ancestor_or_self:
+        bostr << (abbreviated(bostr)?"/":"ancestor-or-self::"); break;
+      case axis_t::attribute:
+        bostr << (abbreviated(bostr)?"@":"attribute::"); break;
+      case axis_t::child:
+        bostr << (abbreviated(bostr)?"":"child::"); break;
+      case axis_t::descendent: bostr << "descendent::"; break;
+      case axis_t::descendent_or_self: bostr << "descendent-or-self::"; break;
+      case axis_t::following: bostr << "following::"; break;
+      case axis_t::following_sibling: bostr << "following-sibling::"; break;
+      case axis_t::namespace_: bostr << "namespace::"; break;
+      case axis_t::parent:
+        refuse_function = abbreviated(bostr);
+        bostr << (abbreviated(bostr)?"..":"parent::"); break;
+      case axis_t::preceding: bostr << "preceding::"; break;
+      case axis_t::preceding_sibling: bostr << "preceding-sibling::"; break;
+      case axis_t::self:
+        refuse_function = abbreviated(bostr);
+        bostr << (abbreviated(bostr)?".":"self::"); break;
       default: bostr << "unknown"; break;
       }
-      if (-1 < P.axes[a].test)
-        bostr << "::" << P.string_store[P.axes[a].test];
-      else if (axis_t::WildCard == P.axes[a].test)
-        bostr << "::*";
-      if (P.axes[a].function)
-        bostr << "()";
+      if (not refuse_function) {
+        if (-1 < P.axes[a].test)
+          bostr << P.string_store[P.axes[a].test];
+        else if (axis_t::WildCard == P.axes[a].test)
+          bostr << "*";
+        if (P.axes[a].function)
+          bostr << "()";
+      }
       if (axis_t::None < P.axes[a].predicate)
         bostr << "[" << P.axes[a].predicate << "]";
       else if (axis_t::NilPredicate == P.axes[a].predicate)
