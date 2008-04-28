@@ -50,6 +50,9 @@ int main (int argc, char *argv[]) {
   std::istream_iterator<char> ctr(std::cin), cnd;
   std::copy(ctr, cnd, std::back_inserter(input));
   vpath::path path = vpath::parser(input);
+  std::cout << vpath::abbreviate << path << std::endl;
+  std::cout << vpath::long_form << path << std::endl;
+  std::cout << std::endl;
 
   for (++argv; argc > 0; --argc, ++argv) {
     std::cout << *argv << std::endl;
