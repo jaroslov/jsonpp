@@ -1,0 +1,12 @@
+JSON
+  * finish customization of JSONpp::object for VPath
+
+BEL
+  * none
+
+VPATH
+  * finish formal support for node(), test(), etc.
+    -- right now we just hack it using a "function" flag in the axis, it should
+      actually resolve to some sort of predicate, so that the user can implement
+      them
+  * finish support for "descendent" and "descendent-or-self" and "attribute"
