@@ -16,12 +16,12 @@ namespace vpath {
 
 template <typename String, typename X>
 struct query_generator {
-  typedef path::path_type<String>           path_t;
-  typedef xpath<X>                          xpath_t;
-  typedef vpath::has_children<X,xpath_t>    cu_mf;
-  typedef typename cu_mf::type              c_union_t;
-  typedef std::vector<c_union_t>            result_type;
-  typedef query_generator<String,X>         qg_type;
+  typedef vpath::path<String>             path_t;
+  typedef xpath<X>                        xpath_t;
+  typedef vpath::has_children<X,xpath_t>  cu_mf;
+  typedef typename cu_mf::type            c_union_t;
+  typedef std::vector<c_union_t>          result_type;
+  typedef query_generator<String,X>       qg_type;
 
   struct visitor_base {
     virtual c_union_t const& node () const {
@@ -36,7 +36,6 @@ struct query_generator {
   template <typename Node>
   struct visitor : public visitor_base {
     typedef visitor<Node>                 self_type;
-    typedef path_t                        path_type;
     typedef Node                          node_type;
     typedef typename qg_type::result_type result_type;
 
@@ -44,25 +43,65 @@ struct query_generator {
       return std::string(2*this->axis,' ');
     }
 
-    visitor (node_type const* node=0, path_type const* path=0,
+    visitor (node_type const* node=0, path_t const* path=0,
       std::size_t axis=0, visitor_base const* parent=0)
-      : path(path), axis(axis), parent(parent) {
+      : path(path), axis(axis), parent(parent), use_alternate(false) {
       this->node() = node;
     }
 
     template <typename T>
-    typename boost::disable_if<has_attributes<T,xpath_t>, result_type>::type
+    typename boost::disable_if<has_attributes<T,xpath_t>,result_type>::type
     handle_attribute (T const& t) const {
-      std::cout << this->indent() << "No attributes" << std::endl;
+      throw std::runtime_error("(no attributes) Attributes are not implemented");
     }
     template <typename T>
-    typename boost::enable_if<has_attributes<T,xpath_t>, result_type>::type
+    typename boost::enable_if<has_attributes<T,xpath_t>,result_type>::type
     handle_attribute (T const& t) const {
-      std::cout << this->indent() << "Has attributes" << std::endl;
+      throw std::runtime_error("(has attributes) Attributes are not implemented");
     }
 
     template <typename T>
-    result_type handle_children (T const& t) const {
+    typename boost::enable_if<has_children<T,xpath_t>,result_type>::type
+    handle_children (T const& t) const {
+      const vpath::axis_t Axis = (*this->path)[this->axis];
+      const String axis_test   = this->path->test(this->axis);
+      const String self_tag    = tag(t, xpath_t());
+
+      result_type result_set;
+
+      typedef typename bel::iterator<T,xpath<X> >::type ch_iter;
+      ch_iter first, last;
+      visitor<T> V(&t, this->path, this->axis, this);
+      V.use_alternate = true;
+      V.alternate = vpath::axis_t((*this->path)[this->axis]);
+      V.alternate.name = vpath::axis_t::self;
+      for (boost::tie(first,last)=bel::sequence(t, xpath_t()); first!=last; ++first) {
+        result_type lset = visit(V, *first);
+        result_set.insert(result_set.end(), lset.begin(), lset.end());
+      }
+
+      return result_set;
+    }
+
+    template <typename T>
+    typename boost::disable_if<has_children<T,xpath_t>,result_type>::type
+    handle_children (T const& t) const {
+      // if an element has no children, we return nothing
+      return result_type();
+    }
+
+    template <typename T>
+    result_type handle_self (T const& t) const {
+      const vpath::axis_t Axis = (*this->path)[this->axis];
+      const String axis_test   = this->path->test(this->axis);
+      const String self_tag    = tag(t, xpath_t());
+
+      if (self_tag == axis_test
+        or (Axis.function and "node" == axis_test)) {
+        // if we match, then we try to get the result set remaindered
+        visitor<T> V(&t, this->path, this->axis+1, this);
+        return V(t);
+      }
       return result_type();
     }
 
@@ -73,27 +112,20 @@ struct query_generator {
     }
 
     template <typename T>
-    typename boost::disable_if<has_children<T,xpath_t>,result_type>::type
-    operator () (T const& t) const {
-      return result_type();
-    }
-
-    template <typename T>
-    typename boost::enable_if<has_children<T,xpath_t>,result_type>::type
-    operator () (T const& t) const {
-      // recursive
-      if (this->path->size() <= this->axis)
-        return result_type();
-
+    result_type operator () (T const& t) const {
       result_type result_set;
 
-      const vpath::axis_t Axis = (*this->path)[this->axis];
-      const String axis_test   = this->path->test(this->axis);
-      const String axis_tag    = tag(t, xpath_t());
+      if (this->path->size() <= this->axis) {
+        // we trivially return the input if we have no test
+        result_set.push_back(&t);
+        return result_set;
+      }
+
+      const vpath::axis_t Axis = this->use_alternate?this->alternate:(*this->path)[this->axis];
+      const String axis_test   = this->path->test(Axis);
+      const String self_tag    = tag(t, xpath_t());
 
       visitor<T> V(&t, this->path, axis+1, this);
-
-      std::cout << axis_tag << " " << Axis << " " << axis_test << std::endl;
 
       switch (Axis.name) {
       case axis_t::ancestor : {
@@ -106,7 +138,7 @@ struct query_generator {
           this->handle_attribute(t);
         } break;
       case axis_t::child : {
-          this->handle_children(t);
+          result_set = this->handle_children(t);
         } break;
       case axis_t::descendent : {
           throw std::runtime_error("Unsupported axis-name: descendent");
@@ -133,10 +165,7 @@ struct query_generator {
           throw std::runtime_error("Unsupported axis-name: preceding-sibling");
         } break;
       case axis_t::self: {
-          if (axis_tag == axis_test
-            or (Axis.function and "node" == axis_test)) {
-            std::cout << "Self node!" << std::endl;
-          }
+          result_set = this->handle_self(t);
         } break;
       default: {
           std::cout << "Unsupported axis-name." << std::endl;
@@ -146,8 +175,10 @@ struct query_generator {
     }
 
     visitor_base const* parent;
-    path_type const*    path;
+    path_t const*       path;
     std::size_t         axis;
+    bool                use_alternate;
+    vpath::axis_t       alternate;
   };
 
   result_type operator () (path_t const& path, X const& gds) {
@@ -158,14 +189,40 @@ struct query_generator {
 
 template <typename X, typename String>
 typename query_generator<String,X>::result_type
-query (path::path_type<String> const& path, X const& x) {
+query (vpath::path<String> const& path, X const& x) {
   query_generator<String,X> qg;
   return qg(path, x);
 }
 
 template <typename X, typename String>
-void query (String const& path, X const& gds) {
-  query(path::path_type<String>(path), gds);
+typename query_generator<String,X>::result_type
+query (String const& path, X const& gds) {
+  return query(vpath::path<String>(path), gds);
+}
+
+struct visit_result_type {
+  typedef void result_type;
+  template <typename T>
+  void operator () (T const& t) const {
+    std::cout << std::hex << t;
+  }
+};
+
+template <typename ResultType>
+void print_result_set (ResultType const& rtype) {
+  visit_result_type vrt;
+  visit(vrt, rtype);
+}
+
+template <typename ResultType>
+void print_result_set (std::vector<ResultType> const& result_set) {
+  std::cout << "[";
+  for (std::size_t i=0; i<result_set.size(); ++i) {
+    print_result_set(result_set[i]);
+    if ((i+1) < result_set.size())
+      std::cout << ", ";
+  }
+  std::cout << "]";
 }
 
 } // end vpath

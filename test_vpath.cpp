@@ -48,7 +48,7 @@ int main (int argc, char *argv[]) {
   std::string input;
   std::istream_iterator<char> ctr(std::cin), cnd;
   std::copy(ctr, cnd, std::back_inserter(input));
-  vpath::path path = vpath::parser(input);
+  vpath::path<std::string> path = vpath::path<std::string>(input);
   std::cout << vpath::abbreviate << path << std::endl;
   std::cout << vpath::long_form << path << std::endl;
   std::cout << std::endl;
@@ -62,7 +62,7 @@ int main (int argc, char *argv[]) {
       std::istream_iterator<wchar_t,wchar_t> ctr(wifstr);
       std::istream_iterator<wchar_t,wchar_t> cnd;
       JSONpp::json_v json = JSONpp::parse(ctr, cnd);
-      vpath::query(path, json);
+      vpath::print_result_set(vpath::query(path, json));
       std::cout << std::endl;
     } catch (std::exception& e) {
       std::cout << "error: " << e.what() << std::endl;

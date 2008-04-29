@@ -10,6 +10,8 @@ belT: bel/*.hpp test_bel.cpp
 
 vpathT: xpath/*.hpp test_vpath.cpp
 	g++ -O3 -I. test_vpath.cpp -o vtest
+	echo "self::array" | ./vtest Examples/*.*if
+	echo "self::object" | ./vtest Examples/*.*if
 	echo "self::object/array" | ./vtest Examples/*.*if
 	echo "self::array/object" | ./vtest Examples/*.*if
 

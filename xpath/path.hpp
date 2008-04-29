@@ -102,85 +102,11 @@ static abbreviator abbreviate = abbreviator(true);
 // "ancestor-or-self::one/child::two/attribute::three"
 static abbreviator long_form = abbreviator(false);
 
-// a path is our XPath representation of a path, it is (essentially)
-// a list of axis_t, and a string-store; the string-store is where
-// all the strings for the axes are kept
-template <typename String=std::string>
-struct path_type {
-  typedef std::vector<String>           string_store_t;
-  typedef typename String::value_type   char_type;
-  typedef std::basic_ostream<char_type> bostream_t;
-
-  path_type ()
-    : axes(), string_store(), absolute(false) {}
-
-  friend bostream_t& operator << (bostream_t& bostr, path_type const& P) {
-    if (P.absolute)
-      bostr << "/";
-    for (std::size_t a=0; a<P.axes.size(); ++a) {
-      bool refuse_function = false;
-      switch (P.axes[a].name) {
-      case axis_t::ancestor: bostr << "ancestor::"; break;
-      case axis_t::ancestor_or_self:
-        bostr << (abbreviated(bostr)?"/":"ancestor-or-self::"); break;
-      case axis_t::attribute:
-        bostr << (abbreviated(bostr)?"@":"attribute::"); break;
-      case axis_t::child:
-        bostr << (abbreviated(bostr)?"":"child::"); break;
-      case axis_t::descendent: bostr << "descendent::"; break;
-      case axis_t::descendent_or_self: bostr << "descendent-or-self::"; break;
-      case axis_t::following: bostr << "following::"; break;
-      case axis_t::following_sibling: bostr << "following-sibling::"; break;
-      case axis_t::namespace_: bostr << "namespace::"; break;
-      case axis_t::parent:
-        refuse_function = abbreviated(bostr);
-        bostr << (abbreviated(bostr)?"..":"parent::"); break;
-      case axis_t::preceding: bostr << "preceding::"; break;
-      case axis_t::preceding_sibling: bostr << "preceding-sibling::"; break;
-      case axis_t::self:
-        refuse_function = abbreviated(bostr);
-        bostr << (abbreviated(bostr)?".":"self::"); break;
-      default: bostr << "unknown"; break;
-      }
-      if (not refuse_function) {
-        if (-1 < P.axes[a].test)
-          bostr << P.string_store[P.axes[a].test];
-        else if (axis_t::WildCard == P.axes[a].test)
-          bostr << "*";
-        if (P.axes[a].function)
-          bostr << "()";
-      }
-      if (axis_t::None < P.axes[a].predicate)
-        bostr << "[" << P.axes[a].predicate << "]";
-      else if (axis_t::NilPredicate == P.axes[a].predicate)
-        bostr << "[?]";
-      if ((a+1) < P.axes.size())
-        bostr << "/";
-    }
-    return bostr;
-  }
-
-  axis_t const& operator [] (std::size_t idx) const {
-    return this->axes[idx];
-  }
-  std::size_t size () const { return this->axes.size(); }
-  String const& test (std::size_t idx) const {
-    static const String dummy = String("");
-    const std::size_t sdx = this->axes[idx].test;
-    if (0 <= sdx and sdx < this->string_store.size())
-      return this->string_store[sdx];
-    return dummy;
-  }
-
-  axes_t          axes;
-  string_store_t  string_store;
-  bool            absolute;
-};
-
-template <typename String=std::string>
+template <typename PathType>
 struct path_parser_generator {
-  typedef path_type<String>                   path_t;
-  typedef typename String::value_type         char_type;
+  typedef PathType                            path_t;
+  typedef typename PathType::string_t         string_t;
+  typedef typename string_t::value_type       char_type;
   typedef std::basic_stringstream<char_type>  bsstream_t;
   typedef std::basic_ostream<char_type>       bostream_t;
 private:
@@ -212,7 +138,7 @@ private:
   };
   typedef std::vector<token_t>                    tokens_t;
   typedef typename tokens_t::const_iterator       tok_citer;
-  typedef std::map<String,axis_t::name_e>         str_kind_map_t;
+  typedef std::map<string_t,axis_t::name_e>       str_kind_map_t;
   typedef typename str_kind_map_t::const_iterator skm_citer;
 
   // members (constant)
@@ -233,7 +159,7 @@ public:
     this->str_kind_map[to_str("preceding-sibling")] = axis_t::preceding_sibling;
     this->str_kind_map[to_str("self")] = axis_t::self;
   }
-  path_t operator () (String const& pathstr) const {
+  path_t operator () (string_t const& pathstr) const {
     return (*this)(bel::begin(pathstr), bel::end(pathstr));
   }
   template <typename Iter>
@@ -247,12 +173,12 @@ public:
   }
 private:
   template <typename Str>
-  static String to_str (Str const& str) {
-    return String(str.begin(),str.end());
+  static string_t to_str (Str const& str) {
+    return string_t(str.begin(),str.end());
   }
   template <typename Char>
-  static String to_str (const Char* str) {
-    return String(str,std::strlen(str)+str);
+  static string_t to_str (const Char* str) {
+    return string_t(str,std::strlen(str)+str);
   }
   template <typename Iter>
   bool parse (Iter first, Iter last, axes_t& axes) const {
@@ -369,7 +295,7 @@ private:
             throw std::runtime_error(
               (std::string("(lexer) unable to identify the next token: `")
                 + char(*first) + "`").c_str());
-          String id(first,prog);
+          string_t id(first,prog);
           first = prog;
           skm_citer is_axis_name = this->str_kind_map.find(id);
           if ((this->str_kind_map.end() == is_axis_name)
@@ -397,8 +323,98 @@ private:
   }
 };
 
-static const path_parser_generator<> parser = path_parser_generator<>();
-typedef path_parser_generator<>::path_t path;
+// a path is our XPath representation of a path, it is (essentially)
+// a list of axis_t, and a string-store; the string-store is where
+// all the strings for the axes are kept
+template <typename String=std::string>
+struct path {
+  typedef String                        string_t;
+  typedef path<string_t>                path_t;
+  typedef std::vector<string_t>         string_store_t;
+  typedef typename string_t::value_type char_type;
+  typedef std::basic_ostream<char_type> bostream_t;
+
+  path ()
+    : axes(), string_store(), absolute(false) {}
+
+  path (String const& str) 
+    : axes(), string_store(), absolute(false) {
+    this->parse(str);
+  }
+
+  void parse (String const& str) {
+    path_parser_generator<path_t> ppg;
+    *this = ppg(str);
+  }
+
+  friend bostream_t& operator << (bostream_t& bostr, path const& P) {
+    if (P.absolute)
+      bostr << "/";
+    for (std::size_t a=0; a<P.axes.size(); ++a) {
+      bool refuse_function = false;
+      switch (P.axes[a].name) {
+      case axis_t::ancestor: bostr << "ancestor::"; break;
+      case axis_t::ancestor_or_self:
+        bostr << (abbreviated(bostr)?"/":"ancestor-or-self::"); break;
+      case axis_t::attribute:
+        bostr << (abbreviated(bostr)?"@":"attribute::"); break;
+      case axis_t::child:
+        bostr << (abbreviated(bostr)?"":"child::"); break;
+      case axis_t::descendent: bostr << "descendent::"; break;
+      case axis_t::descendent_or_self: bostr << "descendent-or-self::"; break;
+      case axis_t::following: bostr << "following::"; break;
+      case axis_t::following_sibling: bostr << "following-sibling::"; break;
+      case axis_t::namespace_: bostr << "namespace::"; break;
+      case axis_t::parent:
+        refuse_function = abbreviated(bostr);
+        bostr << (abbreviated(bostr)?"..":"parent::"); break;
+      case axis_t::preceding: bostr << "preceding::"; break;
+      case axis_t::preceding_sibling: bostr << "preceding-sibling::"; break;
+      case axis_t::self:
+        refuse_function = abbreviated(bostr);
+        // BUG: self::node() ==> .
+        // BUT: self::foo ==> self::foo
+        bostr << (abbreviated(bostr)?".":"self::"); break;
+      default: bostr << "unknown"; break;
+      }
+      if (not refuse_function) {
+        if (-1 < P.axes[a].test)
+          bostr << P.string_store[P.axes[a].test];
+        else if (axis_t::WildCard == P.axes[a].test)
+          bostr << "*";
+        if (P.axes[a].function)
+          bostr << "()";
+      }
+      if (axis_t::None < P.axes[a].predicate)
+        bostr << "[" << P.axes[a].predicate << "]";
+      else if (axis_t::NilPredicate == P.axes[a].predicate)
+        bostr << "[?]";
+      if ((a+1) < P.axes.size())
+        bostr << "/";
+    }
+    return bostr;
+  }
+
+  axis_t const& operator [] (std::size_t idx) const {
+    return this->axes[idx];
+  }
+  std::size_t size () const { return this->axes.size(); }
+  string_t const& test (std::size_t idx) const {
+    static const string_t dummy = string_t("");
+    const signed long sdx = this->axes[idx].test;
+    if (0 <= sdx and sdx < this->string_store.size())
+      return this->string_store[sdx];
+    return dummy;
+  }
+  string_t const& test (axis_t const& axis) const {
+    const signed long sdx = axis.test;
+    return this->test(sdx);
+  }
+
+  axes_t          axes;
+  string_store_t  string_store;
+  bool            absolute;
+};
 
 }// end namespace: vpath
 
