@@ -31,8 +31,9 @@ struct query_generator {
     3. we need to implement the path stuff... =)
   */
 
-  template <typename Node>
+  template <typename Node, typename Parent=void>
   struct visitor {
+    typedef visitor<Node,Parent>          self_type;
     typedef path_t                        path_type;
     typedef Node                          node_type;
     typedef typename qg_type::result_type result_type;
@@ -84,11 +85,17 @@ struct query_generator {
         return result_type();
       result_type result_set;
       std::cout << this->indent << "Recursive Tag: " << tag(t, xpath_t()) << std::endl;
-      visitor<T> V(&t, this->path);
+      visitor<T,self_type> V(&t, this->path);
       V.indent = this->indent+"  ";
       iterator first, last;
       boost::tie(first,last) = vpath::children(t, xpath_t());
       switch ((*this->path)[this->axis].name) {
+      case axis_t::ancestor : {
+          throw std::runtime_error("Unsupported axis-name: ancestor");
+        } break;
+      case axis_t::ancestor_or_self : {
+          throw std::runtime_error("Unsupported axis-name: ancestor-or-self");
+        } break;
       case axis_t::attribute : {
           this->handle_attribute(t);
         } break;
@@ -102,6 +109,33 @@ struct query_generator {
                               bel::begin(subrs), bel::end(subrs));
               }
         } break;
+      case axis_t::descendent : {
+          throw std::runtime_error("Unsupported axis-name: descendent");
+        } break;
+      case axis_t::descendent_or_self : {
+          throw std::runtime_error("Unsupported axis-name: descendent-or-self");
+        } break;
+      case axis_t::following: {
+          throw std::runtime_error("Unsupported axis-name: following");
+        } break;
+      case axis_t::following_sibling: {
+          throw std::runtime_error("Unsupported axis-name: following-sibling");
+        } break;
+      case axis_t::namespace_: {
+          throw std::runtime_error("Unsupported axis-name: namespace");
+        } break;
+      case axis_t::parent: {
+          throw std::runtime_error("Unsupported axis-name: parent");
+        } break;
+      case axis_t::preceding: {
+          throw std::runtime_error("Unsupported axis-name: preceding");
+        } break;
+      case axis_t::preceding_sibling: {
+          throw std::runtime_error("Unsupported axis-name: preceding-sibling");
+        } break;
+      case axis_t::self: {
+          throw std::runtime_error("Unsupported axis-name: self");
+        } break;
       default: {
           std::cout << "Unsupported axis-name." << std::endl;
         }
@@ -109,6 +143,7 @@ struct query_generator {
       return result_set;
     }
 
+    Parent const*     predecessor;
     node_type const*  parent;
     path_type const*  path;
     std::size_t       axis;
@@ -116,6 +151,7 @@ struct query_generator {
 
   result_type operator () (path_t const& path, X const& gds) {
     visitor<X> V(&gds,&path);;
+    V.predecessor = 0;
     return visit(V, gds);
   }
 };
