@@ -27,7 +27,6 @@ namespace vpath {
   std::string tag (JSONpp::json_v, vpath::xpath<JSONpp::json_v>) {
     return "json";
   }
-
   template <typename X>
   struct has_children<JSONpp::json_v, xpath<X> > : boost::mpl::true_ {
     typedef boost::variant<

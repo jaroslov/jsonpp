@@ -164,8 +164,12 @@ struct path_type {
     return this->axes[idx];
   }
   std::size_t size () const { return this->axes.size(); }
-  String test (std::size_t idx) const {
-    return this->string_store[this->axes[idx].test];
+  String const& test (std::size_t idx) const {
+    static const String dummy = String("");
+    const std::size_t sdx = this->axes[idx].test;
+    if (0 <= sdx and sdx < this->string_store.size())
+      return this->string_store[sdx];
+    return dummy;
   }
 
   axes_t          axes;
