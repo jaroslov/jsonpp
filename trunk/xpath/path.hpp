@@ -112,10 +112,10 @@ struct path_type {
   typedef std::basic_ostream<char_type> bostream_t;
 
   path_type ()
-    : axes(), string_store(), rooted(false) {}
+    : axes(), string_store(), absolute(false) {}
 
   friend bostream_t& operator << (bostream_t& bostr, path_type const& P) {
-    if (P.rooted)
+    if (P.absolute)
       bostr << "/";
     for (std::size_t a=0; a<P.axes.size(); ++a) {
       bool refuse_function = false;
@@ -170,7 +170,7 @@ struct path_type {
 
   axes_t          axes;
   string_store_t  string_store;
-  bool            rooted;
+  bool            absolute;
 };
 
 template <typename String=std::string>
@@ -237,7 +237,7 @@ public:
     path_t path;
     if (first != last) {
       tokens_t tokens = this->lex(first, last, path.string_store);
-      path.rooted = this->parse(bel::begin(tokens), bel::end(tokens), path.axes);
+      path.absolute = this->parse(bel::begin(tokens), bel::end(tokens), path.axes);
     }
     return path;
   }
@@ -255,9 +255,9 @@ private:
     if (first == last)
       return false;
     axes.clear();
-    bool rooted = false;
+    bool absolute = false;
     if (token_t::axis_root == first->kind) {
-      rooted = true;
+      absolute = true;
       ++first;
     }
     while (first != last) {
@@ -281,7 +281,7 @@ private:
       }
       axes.push_back(axis);
     }
-    return rooted;
+    return absolute;
   }
   template <typename Iter>
   Iter lex_identifier (Iter first, Iter last) const {
@@ -330,9 +330,9 @@ private:
                                     axis_t::NilPredicate));
           ++first;
         } break;
-      case '/': { // an ancestor-or-self axis-name shorthand
+      case '/': { // an descendent-or-self axis-name shorthand
           if ((first !=last) and ('/' == *(first+1))) {
-            tokens.push_back(token_t(axis_t::ancestor_or_self,token_t::axis_name));
+            tokens.push_back(token_t(axis_t::descendent_or_self,token_t::axis_name));
             ++first;
           }
           ++first;
