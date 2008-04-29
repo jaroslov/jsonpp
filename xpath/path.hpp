@@ -371,10 +371,15 @@ struct path {
       case axis_t::preceding: bostr << "preceding::"; break;
       case axis_t::preceding_sibling: bostr << "preceding-sibling::"; break;
       case axis_t::self:
-        refuse_function = abbreviated(bostr);
-        // BUG: self::node() ==> .
-        // BUT: self::foo ==> self::foo
-        bostr << (abbreviated(bostr)?".":"self::"); break;
+        if (P.axes[a].function) {
+          if (P.test(a) == "node") {
+            refuse_function = abbreviated(bostr);
+            bostr << (abbreviated(bostr)?".":"self::"); break;
+          } else
+            bostr << "self::";
+        } else {
+          bostr << "self::";
+        } break;
       default: bostr << "unknown"; break;
       }
       if (not refuse_function) {
