@@ -52,7 +52,7 @@ struct query_generator {
     template <typename T>
     typename boost::disable_if<has_attributes<T,xpath_t>,result_type>::type
     handle_attribute (T const& t) const {
-      throw std::runtime_error("(no attributes) Attributes are not implemented");
+      return result_type(); // do nothing
     }
     template <typename T>
     typename boost::enable_if<has_attributes<T,xpath_t>,result_type>::type
@@ -62,7 +62,10 @@ struct query_generator {
 
     template <typename T>
     typename boost::enable_if<has_children<T,xpath_t>,result_type>::type
-    handle_children (T const& t) const {
+    handle_children (T const& t, bool mask=true) const {
+      // mask: whether to mask the child as self
+      //  we don't do this when handle_children is being used
+      //  for "descendent" or "descendent-or-self"
       const vpath::axis_t Axis = (*this->path)[this->axis];
       const String axis_test   = this->path->test(this->axis);
       const String self_tag    = tag(t, xpath_t());
@@ -74,7 +77,8 @@ struct query_generator {
       visitor<T> V(&t, this->path, this->axis, this);
       V.use_alternate = true;
       V.alternate = vpath::axis_t((*this->path)[this->axis]);
-      V.alternate.name = vpath::axis_t::self;
+      if (mask)
+        V.alternate.name = vpath::axis_t::self;
       for (boost::tie(first,last)=bel::sequence(t, xpath_t()); first!=last; ++first) {
         result_type lset = visit(V, *first);
         result_set.insert(result_set.end(), lset.begin(), lset.end());
@@ -82,7 +86,6 @@ struct query_generator {
 
       return result_set;
     }
-
     template <typename T>
     typename boost::disable_if<has_children<T,xpath_t>,result_type>::type
     handle_children (T const& t) const {
@@ -101,7 +104,21 @@ struct query_generator {
         // if we match, then we try to get the result set remaindered
         visitor<T> V(&t, this->path, this->axis+1, this);
         return V(t);
+        // BUG! we should actually keep recursing...
       }
+      return result_type();
+    }
+
+    template <typename T>
+    result_type handle_descendent_or_self (T const& t) const {
+      const vpath::axis_t Axis = (*this->path)[this->axis];
+      const String axis_test   = this->path->test(this->axis);
+      const String self_tag    = tag(t, xpath_t());
+
+      result_type lresult = this->handle_self(t);
+      if (not lresult.empty())
+        return lresult;
+
       return result_type();
     }
 
@@ -122,8 +139,6 @@ struct query_generator {
       }
 
       const vpath::axis_t Axis = this->use_alternate?this->alternate:(*this->path)[this->axis];
-      const String axis_test   = this->path->test(Axis);
-      const String self_tag    = tag(t, xpath_t());
 
       visitor<T> V(&t, this->path, axis+1, this);
 
@@ -144,7 +159,7 @@ struct query_generator {
           throw std::runtime_error("Unsupported axis-name: descendent");
         } break;
       case axis_t::descendent_or_self : {
-          throw std::runtime_error("Unsupported axis-name: descendent-or-self");
+          result_set = this->handle_descendent_or_self(t);
         } break;
       case axis_t::following: {
           throw std::runtime_error("Unsupported axis-name: following");
