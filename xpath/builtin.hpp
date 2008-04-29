@@ -49,14 +49,14 @@ std::string tag (std::vector<T,A> const& v, xpath<X> x) {
 }
 
 // standard (or builtin) recursive types
-template <typename T, typename A>
-struct recursive<std::list<T,A> > : boost::mpl::true_ {};
-template <typename K, typename V, typename C, typename A>
-struct recursive<std::map<K,V,C,A> > : boost::mpl::true_ {};
-template <typename K, typename C, typename A>
-struct recursive<std::set<K,C,A> > : boost::mpl::true_ {};
-template <typename T, typename A>
-struct recursive<std::vector<T,A> > : boost::mpl::true_ {};
+template <typename T, typename A, typename Tag>
+struct has_children<std::list<T,A>,Tag> : boost::mpl::true_ {};
+template <typename K, typename V, typename C, typename A, typename Tag>
+struct has_children<std::map<K,V,C,A>,Tag> : boost::mpl::true_ {};
+template <typename K, typename C, typename A, typename Tag>
+struct has_children<std::set<K,C,A>,Tag> : boost::mpl::true_ {};
+template <typename T, typename A, typename Tag>
+struct has_children<std::vector<T,A>,Tag> : boost::mpl::true_ {};
 
 } // end vpath namespace
 
