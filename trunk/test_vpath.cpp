@@ -29,7 +29,7 @@ namespace vpath {
   }
 
   template <typename X>
-  struct children_union<JSONpp::json_v, xpath<X> > {
+  struct has_children<JSONpp::json_v, xpath<X> > : boost::mpl::true_ {
     typedef boost::variant<
       typename JSONpp::json_gen::value_t const*,
       typename JSONpp::json_gen::string_t const*,

@@ -18,55 +18,54 @@ template <typename String, typename X>
 struct query_generator {
   typedef path::path_type<String>           path_t;
   typedef xpath<X>                          xpath_t;
-  typedef vpath::children_union<X,xpath_t>  cu_mf;
+  typedef vpath::has_children<X,xpath_t>    cu_mf;
   typedef typename cu_mf::type              c_union_t;
   typedef std::vector<c_union_t>            result_type;
   typedef query_generator<String,X>         qg_type;
 
-  /*
-    1. we need to pass the path & current position in the path along
-    2. we need to store the "parent" (both visitor & node) in the
-        visitor, so we can find the parent, i.e., building a runtime
-        dynamic tree
-    3. we need to implement the path stuff... =)
-  */
+  struct visitor_base {
+    virtual c_union_t const& node () const {
+      return this->node_;
+    }
+    virtual c_union_t& node () {
+      return this->node_;
+    }
+    c_union_t node_;
+  };
 
-  template <typename Node, typename Parent=void>
-  struct visitor {
-    typedef visitor<Node,Parent>          self_type;
+  template <typename Node>
+  struct visitor : public visitor_base {
+    typedef visitor<Node>                 self_type;
     typedef path_t                        path_type;
     typedef Node                          node_type;
     typedef typename qg_type::result_type result_type;
 
-    std::string indent;
+    std::string indent () const {
+      return std::string(2*this->axis,' ');
+    }
 
-    visitor (node_type const* parent=0,
-      path_type const* path=0, std::size_t axis=0)
-      : parent(parent), path(path), axis(axis) {}
-
-    template <typename T>
-    typename boost::enable_if<
-        boost::is_same<vpath::attribute_inner_quit,
-          typename vpath::attribute_union<T,xpath_t>::type>
-      >::type
-    handle_attribute (T const& t) const {
-      std::cout << this->indent << "No attributes" << std::endl;
+    visitor (node_type const* node=0, path_type const* path=0,
+      std::size_t axis=0, visitor_base const* parent=0)
+      : path(path), axis(axis), parent(parent) {
+      this->node() = node;
     }
 
     template <typename T>
-    typename boost::disable_if<
-        boost::is_same<vpath::attribute_inner_quit,
-          typename vpath::attribute_union<T,xpath_t>::type>
-      >::type
+    typename boost::disable_if<has_attributes<T,xpath_t>, result_type>::type
     handle_attribute (T const& t) const {
-      std::cout << this->indent << "Has attributes" << std::endl;
+      std::cout << this->indent() << "No attributes" << std::endl;
+    }
+    template <typename T>
+    typename boost::enable_if<has_attributes<T,xpath_t>, result_type>::type
+    handle_attribute (T const& t) const {
+      std::cout << this->indent() << "Has attributes" << std::endl;
     }
 
     template <typename T>
-    typename boost::disable_if<recursive<T>,result_type>::type
+    typename boost::disable_if<has_children<T,xpath_t>,result_type>::type
     operator () (T const& t) const {
       // non-recursive
-      std::cout << this->indent << "Terminal Tag: " << tag(t, xpath_t()) << std::endl;
+      std::cout << this->indent() << "Terminal Tag: " << tag(t, xpath_t()) << std::endl;
       return result_type();
     }
 
@@ -77,18 +76,18 @@ struct query_generator {
     }
 
     template <typename T>
-    typename boost::enable_if<recursive<T>,result_type>::type
+    typename boost::enable_if<has_children<T,xpath_t>,result_type>::type
     operator () (T const& t) const {
       // recursive
       typedef typename bel::iterator<T,xpath_t>::type iterator;
       if (this->path->size() <= this->axis)
         return result_type();
       result_type result_set;
-      std::cout << this->indent << "Recursive Tag: " << tag(t, xpath_t()) << std::endl;
-      visitor<T,self_type> V(&t, this->path);
-      V.indent = this->indent+"  ";
-      iterator first, last;
-      boost::tie(first,last) = vpath::children(t, xpath_t());
+
+      std::cout << this->indent() << "Recursive Tag: " << tag(t, xpath_t()) << std::endl;
+
+      visitor<T> V(&t, this->path, axis+1, this);
+
       switch ((*this->path)[this->axis].name) {
       case axis_t::ancestor : {
           throw std::runtime_error("Unsupported axis-name: ancestor");
@@ -100,7 +99,8 @@ struct query_generator {
           this->handle_attribute(t);
         } break;
       case axis_t::child : {
-          V.axis = this->axis+1;
+          iterator first, last;
+          boost::tie(first,last) = vpath::children(t, xpath_t());
           if (tag(t, xpath_t()) == this->path->test(this->axis))
             for ( ; first != last; ++first)
               if (this->apply_predicate(t)) {
@@ -143,23 +143,22 @@ struct query_generator {
       return result_set;
     }
 
-    Parent const*     predecessor;
-    node_type const*  parent;
-    path_type const*  path;
-    std::size_t       axis;
+    visitor_base const* parent;
+    path_type const*    path;
+    std::size_t         axis;
   };
 
   result_type operator () (path_t const& path, X const& gds) {
-    visitor<X> V(&gds,&path);;
-    V.predecessor = 0;
+    visitor<X> V(&gds,&path);
     return visit(V, gds);
   }
 };
 
 template <typename X, typename String>
-void query (path::path_type<String> const& path, X const& gds) {
+typename query_generator<String,X>::result_type
+query (path::path_type<String> const& path, X const& x) {
   query_generator<String,X> qg;
-  qg(path, gds);
+  return qg(path, x);
 }
 
 template <typename X, typename String>
