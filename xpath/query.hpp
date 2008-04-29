@@ -62,10 +62,7 @@ struct query_generator {
     }
 
     template <typename T>
-    typename boost::disable_if<has_children<T,xpath_t>,result_type>::type
-    operator () (T const& t) const {
-      // non-recursive
-      std::cout << this->indent() << "Terminal Tag: " << tag(t, xpath_t()) << std::endl;
+    result_type handle_children (T const& t) const {
       return result_type();
     }
 
@@ -76,19 +73,29 @@ struct query_generator {
     }
 
     template <typename T>
+    typename boost::disable_if<has_children<T,xpath_t>,result_type>::type
+    operator () (T const& t) const {
+      return result_type();
+    }
+
+    template <typename T>
     typename boost::enable_if<has_children<T,xpath_t>,result_type>::type
     operator () (T const& t) const {
       // recursive
-      typedef typename bel::iterator<T,xpath_t>::type iterator;
       if (this->path->size() <= this->axis)
         return result_type();
+
       result_type result_set;
 
-      std::cout << this->indent() << "Recursive Tag: " << tag(t, xpath_t()) << std::endl;
+      const vpath::axis_t Axis = (*this->path)[this->axis];
+      const String axis_test   = this->path->test(this->axis);
+      const String axis_tag    = tag(t, xpath_t());
 
       visitor<T> V(&t, this->path, axis+1, this);
 
-      switch ((*this->path)[this->axis].name) {
+      std::cout << axis_tag << " " << Axis << " " << axis_test << std::endl;
+
+      switch (Axis.name) {
       case axis_t::ancestor : {
           throw std::runtime_error("Unsupported axis-name: ancestor");
         } break;
@@ -99,15 +106,7 @@ struct query_generator {
           this->handle_attribute(t);
         } break;
       case axis_t::child : {
-          iterator first, last;
-          boost::tie(first,last) = vpath::children(t, xpath_t());
-          if (tag(t, xpath_t()) == this->path->test(this->axis))
-            for ( ; first != last; ++first)
-              if (this->apply_predicate(t)) {
-                result_type subrs = visit(V, *first);
-                result_set.insert(bel::end(result_set),
-                              bel::begin(subrs), bel::end(subrs));
-              }
+          this->handle_children(t);
         } break;
       case axis_t::descendent : {
           throw std::runtime_error("Unsupported axis-name: descendent");
@@ -134,7 +133,10 @@ struct query_generator {
           throw std::runtime_error("Unsupported axis-name: preceding-sibling");
         } break;
       case axis_t::self: {
-          throw std::runtime_error("Unsupported axis-name: self");
+          if (axis_tag == axis_test
+            or (Axis.function and "node" == axis_test)) {
+            std::cout << "Self node!" << std::endl;
+          }
         } break;
       default: {
           std::cout << "Unsupported axis-name." << std::endl;
