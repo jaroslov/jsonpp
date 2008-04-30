@@ -1,3 +1,4 @@
+#define VPATH_DEBUG
 #include <xpath/xpath.hpp>
 #include <json/jsonpp.hpp>
 #include <xpath/builtin.hpp>
@@ -64,6 +65,20 @@ int main (int argc, char *argv[]) {
       JSONpp::json_v json = JSONpp::parse(ctr, cnd);
       vpath::print_result_set(vpath::query(path, json));
       std::cout << std::endl;
+
+      std::set<const std::wstring*> qset = vpath::query(path, json, (std::wstring*)0);
+      std::set<const std::wstring*>::iterator first, last;
+      boost::tie(first,last)=bel::sequence(qset);
+      std::wcout << "Typeful query..." << std::endl << "[";
+      if (first != last) {
+        std::wcout << **first; // holds pointers!
+        ++first;
+      }
+      for ( ; first != last; ++first) {
+        std::wcout << ", ";
+        std::wcout << **first;
+      }
+      std::wcout << "]" << std::endl;
     } catch (std::exception& e) {
       std::cout << "error: " << e.what() << std::endl;
     }

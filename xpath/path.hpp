@@ -244,7 +244,8 @@ private:
     tokens_t tokens;
     if (first == last)
       return tokens;
-    if ('/' == *first) {
+    if (('/' == *first) // grab the root, but not `//`
+      and ((last != (first+1) and ('/' != *(first+1))))) {
       tokens.push_back(token_t(axis_t::unknown,token_t::axis_root));
       ++first;
     }
@@ -354,14 +355,14 @@ struct path {
       bool refuse_function = false;
       switch (P.axes[a].name) {
       case axis_t::ancestor: bostr << "ancestor::"; break;
-      case axis_t::ancestor_or_self:
-        bostr << (abbreviated(bostr)?"/":"ancestor-or-self::"); break;
+      case axis_t::ancestor_or_self: bostr << "ancestor-or-self::"; break;
       case axis_t::attribute:
         bostr << (abbreviated(bostr)?"@":"attribute::"); break;
       case axis_t::child:
         bostr << (abbreviated(bostr)?"":"child::"); break;
       case axis_t::descendent: bostr << "descendent::"; break;
-      case axis_t::descendent_or_self: bostr << "descendent-or-self::"; break;
+      case axis_t::descendent_or_self:
+        bostr << (abbreviated(bostr)?"//":"descendent-or-self::"); break;
       case axis_t::following: bostr << "following::"; break;
       case axis_t::following_sibling: bostr << "following-sibling::"; break;
       case axis_t::namespace_: bostr << "namespace::"; break;
