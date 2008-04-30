@@ -1,14 +1,15 @@
+// BEL
 #include <bel/begin-end.hpp>
-#include <stdexcept>
+// STL
 #include <cctype>
-#include <vector>
-#include <string>
-#include <map>
-#include <sstream>
 #include <cstring>
-
 #include <iostream>
 #include <iomanip>
+#include <map>
+#include <vector>
+#include <sstream>
+#include <stdexcept>
+#include <string>
 
 #ifndef VPATH_LIB_PATH
 #define VPATH_LIB_PATH

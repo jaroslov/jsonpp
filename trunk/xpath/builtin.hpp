@@ -1,12 +1,13 @@
+// vpath
 #include "vpath.hpp"
-#include "assoc_ctr.hpp"
+// BEL
 #include <bel/begin-end.hpp>
+// STL
 #include <list>
+#include <map>
 #include <set>
 #include <string>
 #include <vector>
-#include <boost/variant.hpp>
-#include <boost/utility/enable_if.hpp>
 
 #ifndef VPATH_LIB_BASICS
 #define VPATH_LIB_BASICS
@@ -58,6 +59,71 @@ struct has_children<std::set<K,C,A>,Tag> : boost::mpl::true_ {};
 template <typename T, typename A, typename Tag>
 struct has_children<std::vector<T,A>,Tag> : boost::mpl::true_ {};
 
+/*
+
+There are two ways to deal with associative containers:
+  1. create an iterator facade and just return the "value" from the
+      key/value pair
+  2. something ... more complicated
+
+*/
+
+namespace assoc_ctr {
+
+template <typename AssociativeContainer>
+struct value_iterator_facade {
+  typedef value_iterator_facade<
+              AssociativeContainer>         self_type;
+
+  typedef AssociativeContainer              ac_type;
+  typedef typename ac_type::const_iterator  const_iterator;
+  typedef const_iterator                    iterator;
+
+  typedef typename ac_type::key_type        ac_key_type;
+  typedef typename ac_type::mapped_type     ac_mapped_type;
+  typedef typename ac_type::value_type      ac_value_type;
+
+  typedef ac_mapped_type                    value_type;
+  typedef value_type const&                 reference;
+  typedef value_type const*                 pointer;
+
+  value_iterator_facade () {}
+  value_iterator_facade (iterator const& itr)
+    : iterator_(itr) {}
+  value_iterator_facade (self_type const& st)
+    : iterator_(st.iterator_) {}
+  self_type& operator = (self_type const& st) {
+    this->iterator_ = st.iterator_;
+    return *this;
+  }
+
+  self_type& operator ++ () {
+    ++this->iterator_;
+    return *this;
+  }
+  self_type operator ++ (int) {
+    self_type cp(*this);
+    ++(*this);
+    return cp;
+  }
+  value_type const& operator * () const {
+    return this->iterator_->second;
+  }
+  value_type const* operator -> () const {
+    return &this->iterator_->second;
+  }
+
+  friend bool operator == (self_type const& L, self_type const& R) {
+    return L.iterator_ == R.iterator_;
+  }
+  friend bool operator != (self_type const& L, self_type const& R) {
+    return L.iterator_ != R.iterator_;
+  }
+
+  iterator iterator_;
+};
+
+  } // end assoc_ctr namespace
 } // end vpath namespace
 
 namespace bel {

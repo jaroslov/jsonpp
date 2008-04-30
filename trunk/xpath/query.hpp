@@ -1,15 +1,13 @@
 // local stuff
-#include "builtin.hpp"
-#include "path.hpp"
 #include "vpath.hpp"
+#include "path.hpp"
 // boost stuff
 #include <boost/tuple/tuple.hpp>
-#include <boost/utility/enable_if.hpp>
 #include <boost/type_traits/is_same.hpp>
+#include <boost/utility/enable_if.hpp>
 // STL stuff
-#include <stdexcept>
-//#include <vector>
 #include <set>
+#include <stdexcept>
 
 #ifndef VPATH_LIB_QUERY
 #define VPATH_LIB_QUERY
