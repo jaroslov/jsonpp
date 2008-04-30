@@ -12,13 +12,13 @@
 #ifndef XPGTL_LIB_QUERY
 #define XPGTL_LIB_QUERY
 
-namespace vpath {
+namespace xpgtl {
 
 template <typename String, typename X>
 struct query_generator {
-  typedef vpath::path<String>             path_t;
+  typedef xpgtl::path<String>             path_t;
   typedef xpath<X>                        xpath_t;
-  typedef vpath::has_children<X,xpath_t>  cu_mf;
+  typedef xpgtl::has_children<X,xpath_t>  cu_mf;
   typedef typename cu_mf::type            c_union_t;
   typedef std::set<c_union_t>             result_set_t;
   typedef query_generator<String,X>       qg_type;
@@ -99,7 +99,7 @@ struct query_generator {
 
     template <typename T>
     void handle_self (T const& t) const {
-      const vpath::axis_t Axis = (*this->path)[this->axis];
+      const xpgtl::axis_t Axis = (*this->path)[this->axis];
       const String axis_test   = this->path->test(this->axis);
       const String self_tag    = tag(t, xpath_t());
 
@@ -119,7 +119,7 @@ struct query_generator {
       this->handle_children(t); // handle the children
       // now, recurse on the children and tell them to
       // do the same!
-      const vpath::axis_t Axis = (*this->path)[this->axis];
+      const xpgtl::axis_t Axis = (*this->path)[this->axis];
       const String axis_test   = this->path->test(this->axis);
       const String self_tag    = tag(t, xpath_t());
 
@@ -181,7 +181,7 @@ struct query_generator {
         return;
       }
 
-      const vpath::axis_t Axis = (*this->path)[this->axis];
+      const xpgtl::axis_t Axis = (*this->path)[this->axis];
 
 #ifdef XPGTL_DEBUG
       std::cout << this->indent() << Axis << std::endl;
@@ -241,8 +241,8 @@ struct query_generator {
 
 template <typename X, typename String>
 typename query_generator<String,X>::result_set_t
-query (vpath::path<String> const& path, X const& x) {
-  vpath::path<String> lpath(path);
+query (xpgtl::path<String> const& path, X const& x) {
+  xpgtl::path<String> lpath(path);
   query_generator<String,X> qg;
   return qg(lpath, x);
 }
@@ -250,7 +250,7 @@ query (vpath::path<String> const& path, X const& x) {
 template <typename X, typename String>
 typename query_generator<String,X>::result_set_t
 query (String const& path, X const& gds) {
-  return query(vpath::path<String>(path), gds);
+  return query(xpgtl::path<String>(path), gds);
 }
 
 template <typename TypeFilter>
@@ -317,6 +317,6 @@ void print_result_set (std::set<ResultType> const& result_set) {
   std::cout << "]";
 }
 
-} // end vpath
+} // end xpgtl
 
 #endif//XPGTL_LIB_QUERY

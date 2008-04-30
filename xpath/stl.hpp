@@ -1,4 +1,4 @@
-// vpath
+// xpgtl
 #include "concepts.hpp"
 // BEL
 #include <bel/begin-end.hpp>
@@ -9,10 +9,10 @@
 #include <string>
 #include <vector>
 
-#ifndef VPATH_LIB_BASICS
-#define VPATH_LIB_BASICS
+#ifndef XPGTL_LIB_BASICS
+#define XPGTL_LIB_BASICS
 
-namespace vpath {
+namespace xpgtl {
 
 template <typename T, typename A, typename X>
 std::string tag (std::list<T,A> const& v, xpath<X> x) {
@@ -110,74 +110,74 @@ struct value_iterator_facade {
 };
 
   } // end assoc_ctr namespace
-} // end vpath namespace
+} // end xpgtl namespace
 
 namespace bel {
 
 // list specialization
 template <typename T, typename A, typename X>
-struct iterator<std::list<T,A>, vpath::xpath<X> > {
+struct iterator<std::list<T,A>, xpgtl::xpath<X> > {
   typedef typename std::list<T,A>::const_iterator type;
 };
 template <typename T, typename A, typename X>
-typename iterator<std::list<T,A>, vpath::xpath<X> >::type
-begin (std::list<T,A> const& t, vpath::xpath<X>) {
+typename iterator<std::list<T,A>, xpgtl::xpath<X> >::type
+begin (std::list<T,A> const& t, xpgtl::xpath<X>) {
   return t.begin();
 }
 template <typename T, typename A, typename X>
-typename iterator<std::list<T,A>, vpath::xpath<X> >::type
-end (std::list<T,A> const& t, vpath::xpath<X>) {
+typename iterator<std::list<T,A>, xpgtl::xpath<X> >::type
+end (std::list<T,A> const& t, xpgtl::xpath<X>) {
   return t.end();
 }
 // set specialization
 template <typename K, typename V, typename C, typename A, typename X>
-struct iterator<std::map<K,V,C,A>, vpath::xpath<X> > {
-  typedef vpath::assoc_ctr::value_iterator_facade<std::map<K,V,C,A> > type;
+struct iterator<std::map<K,V,C,A>, xpgtl::xpath<X> > {
+  typedef xpgtl::assoc_ctr::value_iterator_facade<std::map<K,V,C,A> > type;
 };
 template <typename K, typename V, typename C, typename A, typename X>
-typename iterator<std::map<K,V,C,A>, vpath::xpath<X> >::type
-begin (std::map<K,V,C,A> const& t, vpath::xpath<X>) {
-  typedef typename iterator<std::map<K,V,C,A>, vpath::xpath<X> >::type iter;
+typename iterator<std::map<K,V,C,A>, xpgtl::xpath<X> >::type
+begin (std::map<K,V,C,A> const& t, xpgtl::xpath<X>) {
+  typedef typename iterator<std::map<K,V,C,A>, xpgtl::xpath<X> >::type iter;
   return iter(t.begin());
 }
 template <typename K, typename V, typename C, typename A, typename X>
-typename iterator<std::map<K,V,C,A>, vpath::xpath<X> >::type
-end (std::map<K,V,C,A> const& t, vpath::xpath<X>) {
-  typedef typename iterator<std::map<K,V,C,A>, vpath::xpath<X> >::type iter;
+typename iterator<std::map<K,V,C,A>, xpgtl::xpath<X> >::type
+end (std::map<K,V,C,A> const& t, xpgtl::xpath<X>) {
+  typedef typename iterator<std::map<K,V,C,A>, xpgtl::xpath<X> >::type iter;
   return iter(t.end());
 }
 // set specialization
 template <typename V, typename C, typename A, typename X>
-struct iterator<std::set<V,C,A>, vpath::xpath<X> > {
+struct iterator<std::set<V,C,A>, xpgtl::xpath<X> > {
   typedef typename std::set<V,C,A>::const_iterator type;
 };
 template <typename V, typename C, typename A, typename X>
-typename iterator<std::set<V,C,A>, vpath::xpath<X> >::type
-begin (std::set<V,C,A> const& t, vpath::xpath<X>) {
+typename iterator<std::set<V,C,A>, xpgtl::xpath<X> >::type
+begin (std::set<V,C,A> const& t, xpgtl::xpath<X>) {
   return t.begin();
 }
 template <typename V, typename C, typename A, typename X>
-typename iterator<std::set<V,C,A>, vpath::xpath<X> >::type
-end (std::set<V,C,A> const& t, vpath::xpath<X>) {
+typename iterator<std::set<V,C,A>, xpgtl::xpath<X> >::type
+end (std::set<V,C,A> const& t, xpgtl::xpath<X>) {
   return t.end();
 }
 // vector specialization
 template <typename T, typename A, typename X>
-struct iterator<std::vector<T,A>, vpath::xpath<X> > {
+struct iterator<std::vector<T,A>, xpgtl::xpath<X> > {
   typedef typename std::vector<T,A>::const_iterator type;
 };
 template <typename T, typename A, typename X>
-typename iterator<std::vector<T,A>, vpath::xpath<X> >::type
-begin (std::vector<T,A> const& t, vpath::xpath<X>) {
+typename iterator<std::vector<T,A>, xpgtl::xpath<X> >::type
+begin (std::vector<T,A> const& t, xpgtl::xpath<X>) {
   return t.begin();
 }
 template <typename T, typename A, typename X>
-typename iterator<std::vector<T,A>, vpath::xpath<X> >::type
-end (std::vector<T,A> const& t, vpath::xpath<X>) {
+typename iterator<std::vector<T,A>, xpgtl::xpath<X> >::type
+end (std::vector<T,A> const& t, xpgtl::xpath<X>) {
   return t.end();
 }
 
 
 } // end bel namespace
 
-#endif//VPATH_LIB_BASICS
+#endif//XPGTL_LIB_BASICS

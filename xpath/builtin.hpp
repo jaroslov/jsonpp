@@ -1,10 +1,10 @@
-// vpath
+// xpgtl
 #include "concepts.hpp"
 
 #ifndef XPGTL_LIB_BASICS
 #define XPGTL_LIB_BASICS
 
-namespace vpath {
+namespace xpgtl {
 
 // standard (built-in) tags
 template <typename X> std::string tag (bool, xpath<X>) { return "bool"; }
@@ -20,6 +20,6 @@ template <typename X> std::string tag (unsigned long, xpath<X>) { return "ulong"
 template <typename X> std::string tag (float, xpath<X>) { return "float"; }
 template <typename X> std::string tag (double, xpath<X>) { return "double"; }
 
-} // end vpath namespace
+} // end xpgtl namespace
 
 #endif//XPGTL_LIB_BASICS
