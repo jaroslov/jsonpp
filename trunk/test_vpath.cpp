@@ -1,4 +1,4 @@
-#define VPATH_DEBUG
+//#define VPATH_DEBUG
 #include <xpath/xpath.hpp>
 #include <json/jsonpp.hpp>
 #include <xpath/builtin.hpp>
@@ -71,12 +71,12 @@ int main (int argc, char *argv[]) {
       boost::tie(first,last)=bel::sequence(qset);
       std::wcout << "Typeful query..." << std::endl << "[";
       if (first != last) {
-        std::wcout << **first; // holds pointers!
+        std::wcout << L"\"" << **first << L"\""; // holds pointers!
         ++first;
       }
       for ( ; first != last; ++first) {
         std::wcout << ", ";
-        std::wcout << **first;
+        std::wcout << L"\"" << **first << L"\"";
       }
       std::wcout << "]" << std::endl;
     } catch (std::exception& e) {
