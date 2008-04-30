@@ -8,10 +8,10 @@ belT: bel/*.hpp test_bel.cpp
 	g++ -O3 -I. test_bel.cpp -o btest
 	./btest
 
-vpath: xpath/*.hpp test_vpath.cpp
+vpath: xpgtl/*.hpp test_vpath.cpp
 	g++ -O3 -I. test_vpath.cpp -o vtest
 
-vpathT: xpath/*.hpp test_vpath.cpp
+vpathT: xpgtl/*.hpp test_vpath.cpp
 	g++ -O3 -I. test_vpath.cpp -o vtest
 	echo "self::array" | ./vtest Examples/*.*if
 	echo "self::object" | ./vtest Examples/*.*if
@@ -19,7 +19,7 @@ vpathT: xpath/*.hpp test_vpath.cpp
 	echo "self::array/object" | ./vtest Examples/*.*if
 	echo "//string" | ./vtest Examples/*.*if
 
-vpath_tests: vtest xpath/*.hpp test_vpath.cpp
+vpath_tests: vtest xpgtl/*.hpp test_vpath.cpp
 	echo "/" | ./vtest
 	echo "foo" | ./vtest
 	echo "foo[0]" | ./vtest
