@@ -9,8 +9,8 @@
 #include <string>
 #include <vector>
 
-#ifndef XPGTL_LIB_BASICS
-#define XPGTL_LIB_BASICS
+#ifndef VPATH_LIB_BASICS
+#define VPATH_LIB_BASICS
 
 namespace xpgtl {
 
@@ -180,4 +180,4 @@ end (std::vector<T,A> const& t, xpgtl::xpath<X>) {
 
 } // end bel namespace
 
-#endif//XPGTL_LIB_BASICS
+#endif//VPATH_LIB_BASICS
