@@ -24,9 +24,6 @@ namespace xpgtl {
   std::string tag (std::map<std::wstring,JSONpp::json_v>, xpath<JSONpp::json_v>) {
     return "object";
   }
-  std::string tag (JSONpp::json_v, xpath<JSONpp::json_v>) {
-    return "json";
-  }
   template <typename X>
   struct has_children<JSONpp::json_v, xpath<X> > : boost::mpl::true_ {
     typedef boost::variant<

@@ -1,5 +1,7 @@
 JSON
   * finish customization of JSONpp::object for VPath
+  * make boost::variant play nice with json_traits so that we can have
+    parameterized support for JSON
 
 BEL
   * none
@@ -12,3 +14,4 @@ VPATH
   * clean up the various query functions so that they do the right thing without
     all of the full for "(T*)0" for filtering on type; possibly an "as"
     metafunction?
+  * finish and revamp description of concepts
