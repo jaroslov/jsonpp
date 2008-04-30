@@ -69,16 +69,16 @@ int main (int argc, char *argv[]) {
       std::set<const std::wstring*> qset = vpath::query(path, json, (std::wstring*)0);
       std::set<const std::wstring*>::iterator first, last;
       boost::tie(first,last)=bel::sequence(qset);
-      std::wcout << "Typeful query..." << std::endl << "[";
+      std::wcout << L"Typeful query..." << std::endl << L"[";
       if (first != last) {
         std::wcout << L"\"" << **first << L"\""; // holds pointers!
         ++first;
       }
       for ( ; first != last; ++first) {
-        std::wcout << ", ";
+        std::wcout << L", ";
         std::wcout << L"\"" << **first << L"\"";
       }
-      std::wcout << "]" << std::endl;
+      std::wcout << L"]" << std::endl;
     } catch (std::exception& e) {
       std::cout << "error: " << e.what() << std::endl;
     }
