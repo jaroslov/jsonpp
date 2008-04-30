@@ -1,4 +1,4 @@
-//#define VPATH_DEBUG
+#define XPGTL_DEBUG
 #include <xpgtl/xpath.hpp>
 #include <json/jsonpp.hpp>
 #include <iostream>
@@ -9,22 +9,22 @@
 //
 // augment the "tag" overload set for nil and json_v
 namespace xpgtl {
-  std::string tag (JSONpp::nil, xpgtl::xpath<JSONpp::json_v>) {
+  std::string tag (JSONpp::nil, xpath<JSONpp::json_v>) {
     return "nil";
   }
-  std::string tag (bool, xpgtl::xpath<JSONpp::json_v>) {
+  std::string tag (bool, xpath<JSONpp::json_v>) {
     return "bool";
   }
-  std::string tag (std::wstring, xpgtl::xpath<JSONpp::json_v>) {
+  std::string tag (std::wstring, xpath<JSONpp::json_v>) {
     return "string";
   }
-  std::string tag (std::vector<JSONpp::json_v>, xpgtl::xpath<JSONpp::json_v>) {
+  std::string tag (std::vector<JSONpp::json_v>, xpath<JSONpp::json_v>) {
     return "array";
   }
-  std::string tag (std::map<std::wstring,JSONpp::json_v>, xpgtl::xpath<JSONpp::json_v>) {
+  std::string tag (std::map<std::wstring,JSONpp::json_v>, xpath<JSONpp::json_v>) {
     return "object";
   }
-  std::string tag (JSONpp::json_v, xpgtl::xpath<JSONpp::json_v>) {
+  std::string tag (JSONpp::json_v, xpath<JSONpp::json_v>) {
     return "json";
   }
   template <typename X>
