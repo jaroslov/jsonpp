@@ -14,7 +14,7 @@
 #ifndef XPGTL_LIB_PATH
 #define XPGTL_LIB_PATH
 
-namespace vpath {
+namespace xpgtl {
 
 // the axis structure represents an axis from the xpath specification
 // it contains three parts:
@@ -423,6 +423,6 @@ struct path {
   bool            absolute;
 };
 
-}// end namespace: vpath
+}// end namespace: xpgtl
 
 #endif//XPGTL_LIB_PATH

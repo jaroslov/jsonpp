@@ -5,7 +5,7 @@
 #ifndef XPGTL_LIB_XPGTL
 #define XPGTL_LIB_XPGTL
 
-namespace vpath {
+namespace xpgtl {
 
 // xpath-tag; the "X" is the global data-structure
 // type which we are recursing over
@@ -62,6 +62,6 @@ visit (Visitor const& visitor, Variant const& variant) {
   return boost::apply_visitor(visitor, variant);
 }
 
-}  // end vpath namespace
+}  // end xpgtl namespace
 
 #endif//XPGTL_LIB_XPGTL
