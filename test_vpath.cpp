@@ -1,6 +1,7 @@
 //#define VPATH_DEBUG
 #include <xpgtl/xpath.hpp>
 #include <json/jsonpp.hpp>
+#include <xpath/builtin.hpp>
 #include <iostream>
 #include <fstream>
 #include <sstream>

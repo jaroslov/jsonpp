@@ -1,4 +1,3 @@
-// xpgtl
 #include "concepts.hpp"
 
 #ifndef XPGTL_LIB_BASICS
