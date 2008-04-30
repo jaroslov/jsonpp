@@ -9,4 +9,6 @@ VPATH
     -- right now we just hack it using a "function" flag in the axis, it should
       actually resolve to some sort of predicate, so that the user can implement
       them
-  * finish support for "descendent" and "descendent-or-self" and "attribute"
+  * clean up the various query functions so that they do the right thing without
+    all of the full for "(T*)0" for filtering on type; possibly an "as"
+    metafunction?
