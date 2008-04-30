@@ -2,8 +2,8 @@
 #include <boost/variant.hpp>
 #include <boost/mpl/bool.hpp>
 
-#ifndef VPATH_LIB_VPATH
-#define VPATH_LIB_VPATH
+#ifndef XPGTL_LIB_XPGTL
+#define XPGTL_LIB_XPGTL
 
 namespace vpath {
 
@@ -64,4 +64,4 @@ visit (Visitor const& visitor, Variant const& variant) {
 
 }  // end vpath namespace
 
-#endif//VPATH_LIB_VPATH
+#endif//XPGTL_LIB_XPGTL

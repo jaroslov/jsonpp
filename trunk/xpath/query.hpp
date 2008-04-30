@@ -9,8 +9,8 @@
 #include <set>
 #include <stdexcept>
 
-#ifndef VPATH_LIB_QUERY
-#define VPATH_LIB_QUERY
+#ifndef XPGTL_LIB_QUERY
+#define XPGTL_LIB_QUERY
 
 namespace vpath {
 
@@ -39,14 +39,14 @@ struct query_generator {
     typedef Node          node_type;
     typedef void          result_type;
 
-#ifdef VPATH_DEBUG
+#ifdef XPGTL_DEBUG
     std::string indent (char rep=' ', char head=' ') const {
       std::size_t depth = 2*this->recursion_depth;
       if (depth > 0)
         depth -= 1;
       return std::string(depth,rep) + (depth>0?std::string(1,head):"");
     }
-#endif//VPATH_DEBUG
+#endif//XPGTL_DEBUG
 
     visitor (node_type const* node=0, path_t* path=0,
       std::size_t axis=0, visitor_base const* parent=0,
@@ -54,9 +54,9 @@ struct query_generator {
       : path(path), axis(axis)
       , parent(parent), result_set(rset) {
       this->node() = node;
-#ifdef VPATH_DEBUG
+#ifdef XPGTL_DEBUG
       this->recursion_depth = 0;
-#endif//VPATH_DEBUG
+#endif//XPGTL_DEBUG
     }
 
     template <typename T>
@@ -79,9 +79,9 @@ struct query_generator {
       typedef typename bel::iterator<T,xpath<X> >::type ch_iter;
       ch_iter first, last;
       visitor<T> V(&t, this->path, this->axis, this, this->result_set);
-#ifdef VPATH_DEBUG
+#ifdef XPGTL_DEBUG
       V.recursion_depth = this->recursion_depth+1;
-#endif//VPATH_DEBUG
+#endif//XPGTL_DEBUG
 
       // set the current axis name to "self"
       const axis_t::name_e old_name = (*this->path)[this->axis].name;
@@ -106,9 +106,9 @@ struct query_generator {
       if (self_tag == axis_test
         or (Axis.function and "node" == axis_test)) {
         visitor<T> V(&t, this->path, this->axis+1, this, this->result_set);
-#ifdef VPATH_DEBUG
+#ifdef XPGTL_DEBUG
         V.recursion_depth = this->recursion_depth+1;
-#endif//VPATH_DEBUG
+#endif//XPGTL_DEBUG
         V(t);
       }
     }
@@ -130,9 +130,9 @@ struct query_generator {
       typedef typename bel::iterator<T,xpath<X> >::type ch_iter;
       ch_iter first, last;
       visitor<T> V(&t, this->path, this->axis, this, this->result_set);
-#ifdef VPATH_DEBUG
+#ifdef XPGTL_DEBUG
       V.recursion_depth = this->recursion_depth+1;
-#endif//VPATH_DEBUG
+#endif//XPGTL_DEBUG
       for (boost::tie(first,last)=bel::sequence(t, xpath_t()); first!=last; ++first)
         visit(V, *first);
       // put original name on the path-stack
@@ -157,7 +157,7 @@ struct query_generator {
       return true;
     }
 
-#ifdef VPATH_DEBUG
+#ifdef XPGTL_DEBUG
     template <typename T>
     void print (T const& t) const {
       std::cout << this->indent('-','>') << "Not a string" << std::endl;
@@ -167,7 +167,7 @@ struct query_generator {
       std::string Str(str.begin(), str.end());
       std::cout << this->indent('-','>') << "String: " << Str << std::endl;
     }
-#endif//VPATH_DEBUG
+#endif//XPGTL_DEBUG
 
     template <typename T>
     void operator () (T const& t) const {
@@ -175,17 +175,17 @@ struct query_generator {
       if (this->path->size() <= this->axis) {
         // we trivially return the input if we have no test
         this->result_set->insert(&t);
-#ifdef VPATH_DEBUG
+#ifdef XPGTL_DEBUG
         this->print(t);
-#endif//VPATH_DEBUG
+#endif//XPGTL_DEBUG
         return;
       }
 
       const vpath::axis_t Axis = (*this->path)[this->axis];
 
-#ifdef VPATH_DEBUG
+#ifdef XPGTL_DEBUG
       std::cout << this->indent() << Axis << std::endl;
-#endif//VPATH_DEBUG
+#endif//XPGTL_DEBUG
   
       switch (Axis.name) {
       case axis_t::ancestor: {
@@ -221,9 +221,9 @@ struct query_generator {
       }
     }
 
-#ifdef VPATH_DEBUG
+#ifdef XPGTL_DEBUG
     std::size_t recursion_depth;
-#endif//VPATH_DEBUG
+#endif//XPGTL_DEBUG
     // Members
     visitor_base const* parent;
     path_t*             path;
@@ -319,4 +319,4 @@ void print_result_set (std::set<ResultType> const& result_set) {
 
 } // end vpath
 
-#endif//VPATH_LIB_QUERY
+#endif//XPGTL_LIB_QUERY

@@ -1,8 +1,8 @@
 // vpath
 #include "concepts.hpp"
 
-#ifndef VPATH_LIB_BASICS
-#define VPATH_LIB_BASICS
+#ifndef XPGTL_LIB_BASICS
+#define XPGTL_LIB_BASICS
 
 namespace vpath {
 
@@ -22,4 +22,4 @@ template <typename X> std::string tag (double, xpath<X>) { return "double"; }
 
 } // end vpath namespace
 
-#endif//VPATH_LIB_BASICS
+#endif//XPGTL_LIB_BASICS
