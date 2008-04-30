@@ -11,8 +11,8 @@
 #include <stdexcept>
 #include <string>
 
-#ifndef VPATH_LIB_PATH
-#define VPATH_LIB_PATH
+#ifndef XPGTL_LIB_PATH
+#define XPGTL_LIB_PATH
 
 namespace vpath {
 
@@ -425,4 +425,4 @@ struct path {
 
 }// end namespace: vpath
 
-#endif//VPATH_LIB_PATH
+#endif//XPGTL_LIB_PATH
