@@ -4,7 +4,6 @@
 #include <cctype>
 #include <cstring>
 #include <iostream>
-#include <iomanip>
 #include <map>
 #include <vector>
 #include <sstream>
@@ -75,7 +74,9 @@ public:
     if (-1 == abbreviator::iword)
       abbreviator::iword = std::ios_base::xalloc();
   }
-  friend bool abbreviated (std::ios_base&);
+  friend bool abbreviated (std::ios_base& ios) {
+    return ios.iword(abbreviator::iword) == abbreviator::abbreviate_E;
+  }
   void format (std::ios_base& ios) const {
     ios.iword(abbreviator::iword)
       = this->abbreviate
@@ -85,10 +86,7 @@ public:
 private:
   bool abbreviate;
 };
-long abbreviator::iword = -1;
-bool abbreviated (std::ios_base& ios) {
-  return ios.iword(abbreviator::iword) == abbreviator::abbreviate_E;
-}
+signed long abbreviator::iword = -1;
 template <typename CharT>
 std::basic_ostream<CharT>&
 operator << (std::basic_ostream<CharT>& bostr, abbreviator const& abbr) {
