@@ -1,6 +1,8 @@
 // local stuff
 #include "concepts.hpp"
 #include "path.hpp"
+// rdstl
+#include <rdstl/rdstl.hpp>
 // boost stuff
 #include <boost/tuple/tuple.hpp>
 #include <boost/type_traits/is_same.hpp>
@@ -18,7 +20,7 @@ template <typename String, typename X>
 struct query_generator {
   typedef xpgtl::path<String>             path_t;
   typedef xpath<X>                        xpath_t;
-  typedef xpgtl::has_children<X,xpath_t>  cu_mf;
+  typedef rdstl::has_children<X,xpath_t>  cu_mf;
   typedef typename cu_mf::type            c_union_t;
   typedef std::set<c_union_t>             result_set_t;
   typedef query_generator<String,X>       qg_type;
@@ -71,7 +73,7 @@ struct query_generator {
     }
 
     template <typename T>
-    typename boost::enable_if<has_children<T,xpath_t> >::type
+    typename boost::enable_if<rdstl::has_children<T,xpath_t> >::type
     handle_children (T const& t, bool mask=true) const {
       // mask: whether to mask the child as self
       //  we don't do this when handle_children is being used
@@ -86,13 +88,13 @@ struct query_generator {
       // set the current axis name to "self"
       const axis_t::name_e old_name = (*this->path)[this->axis].name;
       this->path->axes[this->axis].name = axis_t::self;
-      for (boost::tie(first,last)=bel::sequence(t, xpath_t()); first!=last; ++first)
-        visit(V, *first);
+      for (boost::tie(first,last)=rdstl::children(t, xpath_t()); first!=last; ++first)
+        rdstl::visit(V, *first);
       // unset the axis name
       this->path->axes[this->axis].name = old_name;
     }
     template <typename T>
-    typename boost::disable_if<has_children<T,xpath_t> >::type
+    typename boost::disable_if<rdstl::has_children<T,xpath_t> >::type
     handle_children (T const& t) const {
       // if an element has no children, we return nothing
     }
@@ -114,7 +116,7 @@ struct query_generator {
     }
 
     template <typename T>
-    typename boost::enable_if<has_children<T,xpath_t> >::type
+    typename boost::enable_if<rdstl::has_children<T,xpath_t> >::type
     handle_descendent (T const& t) const {
       this->handle_children(t); // handle the children
       // now, recurse on the children and tell them to
@@ -133,13 +135,13 @@ struct query_generator {
 #ifdef XPGTL_DEBUG
       V.recursion_depth = this->recursion_depth+1;
 #endif//XPGTL_DEBUG
-      for (boost::tie(first,last)=bel::sequence(t, xpath_t()); first!=last; ++first)
-        visit(V, *first);
+      for (boost::tie(first,last)=rdstl::children(t, xpath_t()); first!=last; ++first)
+        rdstl::visit(V, *first);
       // put original name on the path-stack
       this->path->axes[this->axis].name = old_name;
     }
     template <typename T>
-    typename boost::disable_if<has_children<T,xpath_t> >::type
+    typename boost::disable_if<rdstl::has_children<T,xpath_t> >::type
     handle_descendent (T const& t) const {
       // if an element has no children, we return nothing
     }
@@ -234,7 +236,7 @@ struct query_generator {
   result_set_t operator () (path_t& path, X const& gds) {
     result_set_t result_set;
     visitor<X> V(&gds,&path,0,0,&result_set);
-    visit(V, gds);
+    rdstl::visit(V, gds);
     return result_set;
   }
 };
@@ -286,7 +288,7 @@ query (String const& path, X const& x, ResultType const* rt=0) {
   q_iter first, last;
   filter_on_type<const ResultType*> fot;
   for (boost::tie(first,last) = bel::sequence(qset); first!=last; ++first) {
-    ResultType const* possible = visit(fot,*first);
+    ResultType const* possible = rdstl::visit(fot,*first);
     if (0 != possible)
       rset.insert(possible);
   }
@@ -305,7 +307,7 @@ struct visit_result_set {
 template <typename ResultType>
 void print_result_set (ResultType const& rtype) {
   visit_result_set vrt;
-  visit(vrt, rtype);
+  rdstl::visit(vrt, rtype);
 }
 
 template <typename ResultType>

@@ -1,5 +1,7 @@
 // xpgtl
 #include "concepts.hpp"
+// rdstl
+#include <rdstl/rdstl.hpp>
 // BEL
 #include <bel/begin-end.hpp>
 // STL
@@ -34,16 +36,6 @@ template <typename T, typename A, typename X>
 std::string tag (std::vector<T,A> const& v, xpath<X> x) {
   return "vector";
 }
-
-// standard (or builtin) recursive types
-template <typename T, typename A, typename Tag>
-struct has_children<std::list<T,A>,Tag> : boost::mpl::true_ {};
-template <typename K, typename V, typename C, typename A, typename Tag>
-struct has_children<std::map<K,V,C,A>,Tag> : boost::mpl::true_ {};
-template <typename K, typename C, typename A, typename Tag>
-struct has_children<std::set<K,C,A>,Tag> : boost::mpl::true_ {};
-template <typename T, typename A, typename Tag>
-struct has_children<std::vector<T,A>,Tag> : boost::mpl::true_ {};
 
 /*
 
@@ -129,7 +121,7 @@ typename iterator<std::list<T,A>, xpgtl::xpath<X> >::type
 end (std::list<T,A> const& t, xpgtl::xpath<X>) {
   return t.end();
 }
-// set specialization
+// map specialization
 template <typename K, typename V, typename C, typename A, typename X>
 struct iterator<std::map<K,V,C,A>, xpgtl::xpath<X> > {
   typedef xpgtl::assoc_ctr::value_iterator_facade<std::map<K,V,C,A> > type;
@@ -177,7 +169,28 @@ end (std::vector<T,A> const& t, xpgtl::xpath<X>) {
   return t.end();
 }
 
-
 } // end bel namespace
+
+namespace rdstl {
+
+// STL recursive types
+template <typename T, typename A, typename X>
+struct has_children<std::list<T,A>,X> : boost::mpl::true_ {
+  typedef typename bel::iterator<std::list<T,A>, xpgtl::xpath<X> >::type type;
+};
+template <typename K, typename V, typename C, typename A, typename X>
+struct has_children<std::map<K,V,C,A>,X> : boost::mpl::true_ {
+  typedef typename bel::iterator<std::map<K,V,C,A>, xpgtl::xpath<X> >::type type;
+};
+template <typename K, typename C, typename A, typename X>
+struct has_children<std::set<K,C,A>,X> : boost::mpl::true_ {
+  typedef typename bel::iterator<std::set<K,C,A>, xpgtl::xpath<X> >::type type;
+};
+template <typename T, typename A, typename X>
+struct has_children<std::vector<T,A>,X> : boost::mpl::true_ {
+  typedef typename bel::iterator<std::vector<T,A>, xpgtl::xpath<X> >::type type;
+};
+
+}// end rdstl namespace
 
 #endif//VPATH_LIB_BASICS
