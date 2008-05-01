@@ -1,0 +1,14 @@
+#summary Old JSONpp top-level
+
+JSONpp is a small, liberally accepting JSON parser for C++. The parser is written generically, so it operates with any algebraic data type which satisfies all the sub-types required by the JSON specification. As a default a `boost::variant` is supplied that meets these qualifications. The default sub-types are:
+||*JSON type*||*JSONpp default type*||
+||string||`std::wstring`||
+||number||`double`||
+||object||`std::map<std::wstring,VAL>`||
+||array||`std::vector<VAL>`||
+||true,false||`bool`||
+||null||`struct nil {};`||
+
+Where `VAL` is the recursive type of the `boost::variant`.
+
+Entry points: [JSONOverview JSON Library], [BeginEndLibrary BEL], [XPGTLib XGTL].
