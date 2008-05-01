@@ -1,9 +1,8 @@
-#labels
 = Begin-End Library =
 
 The Begin-End library adds support for non-member access to the `begin` and `end` functions, and also adds support for the `sequence` function. Default support exists for containers which satisfy the _de facto_ container concept used by the STL.
 
-All of the functionality of the Begin-End library is within the namespace `bel` in the file "begin-end.hpp".
+All of the functionality of the Begin-End library is within the namespace `bel` in the file "begin-end.hpp". An example program is [http://code.google.com/p/jsonpp/source/browse/trunk/test_bel.cpp here].
 
 The following identifiers will be used:
   * `K` : `container` _some container type_
