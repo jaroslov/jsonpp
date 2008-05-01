@@ -7,7 +7,7 @@ The JSONpp library depends upon the [BeginEndLibrary Begin-End Library]. It is a
 
 = Tutorial =
 
-Using the JSON library is relatively straightforward. The following example opens a set of JSON files specified as input arguments on the command line, and prints out their contents:
+Using the JSON library is relatively straightforward. The following example opens a set of JSON files specified as input arguments on the command line, and prints out their contents (see [http://code.google.com/p/jsonpp/source/browse/trunk/test_json.cpp?r=176 JSON Test]):
 
 {{{
 #include <json/jsonpp.hpp>
