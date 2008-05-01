@@ -5,18 +5,22 @@
 #ifndef RDST_LIBRARY
 #define RDST_LIBRARY
 
-namespace rdst {
+namespace rdstl {
 
 // tag metafunction; if "true" then the type T
 // has a tag-name, which is some Regular type which
 // is located at: has_tag<T,Tag>::type
 template <typename T, typename Tag>
-struct has_tag : boost::mpl::false_ {}
+struct has_tag : boost::mpl::false_ {};
 // the related "tag" function returns the tag for
 // a given type T given the parent data-structure P,
 // for some tag-type Tag
 template <typename P, typename T, typename Tag>
 typename has_tag<T,Tag>::type tag (P, T, Tag) {
+  return typename has_tag<T,Tag>::type();
+}
+template <typename T, typename Tag>
+typename has_tag<T,Tag>::type tag (T, Tag) {
   return typename has_tag<T,Tag>::type();
 }
 
