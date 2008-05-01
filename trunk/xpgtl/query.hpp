@@ -266,8 +266,16 @@ struct filter_on_type {
   }
 };
 
+//
+// this is a convenience function to give us BASIC-like syntax:
+//   query(path, datastructure, as<foo>());
+// returns a result-set of "foo const*"
+template <typename ResultType>
+ResultType const* as () { return 0; }
+
 template <typename ResultType, typename X, typename String>
-std::set<const ResultType*> query (String const& path, X const& x, ResultType const* rt=0) {
+std::set<const ResultType*>
+query (String const& path, X const& x, ResultType const* rt=0) {
   typedef std::set<const ResultType*> rset_t;
   typedef typename query_generator<String,X>::result_set_t qset_t;
   typedef typename qset_t::const_iterator q_iter;
