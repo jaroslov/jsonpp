@@ -5,6 +5,9 @@
 #ifndef XPGTL_LIB_XPGTL
 #define XPGTL_LIB_XPGTL
 
+// TODO:
+//  * port to use RDSTL
+
 namespace xpgtl {
 
 // xpath-tag; the "X" is the global data-structure
