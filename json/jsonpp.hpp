@@ -427,10 +427,8 @@ private:
             }
             if (first != last)
               ++first;
-          } else if ('#' == *first)
-            goto cppcomment; // blech
-          else // /? is not legal
-            throw unknown_token(string_t(first,first+1));
+          } else
+            goto cppcomment; // blech, a python `#` comment
         } break;
       default: // don't know ... but also don't care (for now)
         tok.kind_ = token::unk;
