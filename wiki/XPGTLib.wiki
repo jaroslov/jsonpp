@@ -1,0 +1,5 @@
+#summary XPath Generic Template Library
+
+= XPGTL =
+
+Import from VPath Lib.
