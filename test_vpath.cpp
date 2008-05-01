@@ -1,4 +1,4 @@
-#define XPGTL_DEBUG
+//#define XPGTL_DEBUG
 #include <xpgtl/xpath.hpp>
 #include <json/jsonpp.hpp>
 #include <json/xpath.hpp>
@@ -32,7 +32,8 @@ int main (int argc, char *argv[]) {
       xpgtl::print_result_set(xpgtl::query(path, json));
       std::cout << std::endl;
 
-      std::set<const std::wstring*> qset = xpgtl::query(path, json, (std::wstring*)0);
+      std::set<const std::wstring*> qset
+        = xpgtl::query(path, json, xpgtl::as<std::wstring>());
       std::set<const std::wstring*>::iterator first, last;
       boost::tie(first,last)=bel::sequence(qset);
       std::wcout << L"Typeful query..." << std::endl << L"[";
