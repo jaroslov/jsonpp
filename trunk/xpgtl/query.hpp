@@ -55,7 +55,7 @@ struct query_generator {
       result_set_t* rset=0)
       : path(path), axis(axis)
       , parent(parent), result_set(rset) {
-      this->node() = node;
+      //this->node() = node;
 #ifdef XPGTL_DEBUG
       this->recursion_depth = 0;
 #endif//XPGTL_DEBUG
@@ -176,7 +176,7 @@ struct query_generator {
 
       if (this->path->size() <= this->axis) {
         // we trivially return the input if we have no test
-        this->result_set->insert(&t);
+        //this->result_set->insert(&t);
 #ifdef XPGTL_DEBUG
         this->print(t);
 #endif//XPGTL_DEBUG
