@@ -71,6 +71,13 @@ namespace JSONpp {
       return (L.at_end != R.at_end) or (L.iterator_ != R.iterator_);
     }
 
+    template <typename CharT>
+    friend std::basic_ostream<CharT>&
+    operator << (std::basic_ostream<CharT>& bostr, self_type const& st) {
+      bostr << "Some Entry";
+      return bostr;
+    }
+
     bool      at_end;
     ac_iter_t iterator_;
   };
@@ -81,10 +88,10 @@ namespace JSONpp {
     typedef AssociativeContainer            ac_t;
     typedef typename ac_t::const_iterator   ac_iter_t;
     typedef object_entry_iterator<ac_t>     self_type;
-    typedef entry<ac_t>                     value_type;
+    typedef boost::variant<entry<ac_t> >    value_type;
 
     object_entry_iterator (ac_iter_t const& iter=ac_iter_t())
-      : iterator(iter), proxy(iter, false) {}
+      : iterator(iter), proxy() {}
 
     // forward iterator interface
     value_type const& operator * () const {
@@ -95,7 +102,8 @@ namespace JSONpp {
     }
     self_type& operator ++ () {
       ++this->iterator;
-      this->proxy.set_iterator(this->iterator);
+      entry<ac_t> entry(this->iterator, false);
+      this->proxy = entry;
       return *this;
     }
     self_type operator ++ (int) {
@@ -125,16 +133,17 @@ namespace rdstl {
       typename JSONpp::json_gen::object_t const*,
       typename JSONpp::json_gen::array_t const*,
       typename JSONpp::json_gen::bool_t const*,
-      typename JSONpp::json_gen::null_t const*> type;
+      typename JSONpp::json_gen::null_t const*,
+      JSONpp::entry<typename JSONpp::json_gen::object_t> > type;
   };
 
-  /*template <typename X>
+  template <typename X>
   struct has_children<std::map<std::wstring,JSONpp::json_v>, xpgtl::xpath<X> >
     : boost::mpl::true_ {
     typedef JSONpp::object_entry_iterator<std::map<std::wstring,JSONpp::json_v> > type;
   };
 
-  template <typename X>
+  /*template <typename X>
   struct has_children<JSONpp::entry<std::map<std::wstring,JSONpp::json_v> >,
     xpgtl::xpath<X> > : boost::mpl::true_ {
     typedef typename
@@ -145,7 +154,7 @@ namespace rdstl {
 namespace bel {
 
 // map specialization
-/*template <typename X>
+template <typename X>
 struct iterator<std::map<std::wstring,JSONpp::json_v>, xpgtl::xpath<X> > {
   typedef JSONpp::object_entry_iterator<std::map<std::wstring,JSONpp::json_v> > type;
 };
@@ -164,7 +173,7 @@ end (std::map<std::wstring,JSONpp::json_v> const& t, xpgtl::xpath<X>) {
     iterator<std::map<std::wstring,JSONpp::json_v>,
       xpgtl::xpath<X> >::type iter;
   return iter(t.end());
-}*/
+}
 
 }// end bel namespace
 
