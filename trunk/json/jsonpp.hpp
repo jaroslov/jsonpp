@@ -398,6 +398,7 @@ private:
           //   2. C continue (immediately) with "*" and go to "*/"
           // consume first slash
           skip = true;
+          const Iter orig = first;
           ++first;
           if (first == last) // / is not a legal anything
             throw unknown_token(
@@ -427,8 +428,10 @@ private:
             }
             if (first != last)
               ++first;
-          } else
-            goto cppcomment; // blech, a python `#` comment
+          } else if ('#' == *orig)
+            goto cppcomment; // blech
+          else // /? is not legal
+            throw unknown_token(string_t(first,first+1));
         } break;
       default: // don't know ... but also don't care (for now)
         tok.kind_ = token::unk;
