@@ -1,16 +1,19 @@
-#ifndef JSON_PARSER
-#define JSON_PARSER
-
-#include <exception>
-#include <stdexcept>
-#include <vector>
-#include <map>
-#include <string>
-#include <iostream>
-#include <sstream>
+// BEL library
+#include <bel/begin-end.hpp>
+// boost
 #include <boost/variant.hpp>
 #include <boost/variant/recursive_variant.hpp>
-#include <bel/begin-end.hpp>
+// STL
+#include <exception>
+#include <iostream>
+#include <map>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+#ifndef JSON_PARSER
+#define JSON_PARSER
 
 namespace JSONpp {
 
@@ -685,15 +688,27 @@ struct json_to_string {
       typedef typename array_t::const_iterator citer;
       citer F = bel::begin(A), L = bel::end(A);
       string_t result = to_string_t("[");
+      *this->index += 2;
       if (F != L) {
+        if (this->pretty) {
+          //result += string_t(1, '\n');
+          result += string_t(1, ' ');
+        }
         result += boost::apply_visitor(*this, *F);
         ++F;
       }
       while (F != L) {
-        result += to_string_t(", ");
+        result += to_string_t(",");
+        if (this->pretty) {
+          result += string_t(1, '\n');
+          result += string_t(*this->index, ' ');
+        }
         result += boost::apply_visitor(*this, *F);
         ++F;
       }
+      *this->index -= 2;
+      if (this->pretty)
+        result += string_t(1, ' ');
       result += to_string_t("]");
       return result;
     }
@@ -701,27 +716,57 @@ struct json_to_string {
       typedef typename object_t::const_iterator citer;
       citer F = bel::begin(O), L = bel::end(O);
       string_t result = to_string_t("{");
+      *this->index += 2;
       if (F != L) {
+        if (this->pretty)
+          result += string_t(1, ' ');
         result += to_string_t("\"")
           + F->first
-          + to_string_t("\" : ");
+          + to_string_t("\"");
+        result += string_t(1, ':');
+        if (this->pretty) {
+          result += string_t(1, '\n');
+          result += string_t(*this->index+2, ' ');
+        }
+        *this->index += 2;
         result += boost::apply_visitor(*this, F->second);
+        *this->index -= 2;
         ++F;
       }
       while (F != L) {
-        result += to_string_t(", \"")
-          + F->first
-          + to_string_t("\" : ");
+        result += to_string_t(",");
+        if (this->pretty) {
+          result += string_t(1, '\n');
+          result += string_t(*this->index, ' ');
+        }
+        result += to_string_t("\"") + F->first
+               + to_string_t("\"");
+        result += string_t(1, ':');
+        if (this->pretty) {
+          result += string_t(1, '\n');
+          result += string_t(*this->index+2, ' ');
+        }
+        *this->index += 2;
         result += boost::apply_visitor(*this, F->second);
+        *this->index -= 2;
         ++F;
       }
+      *this->index -= 2;
+      if (this->pretty)
+        result += string_t(1, ' ');
       result += to_string_t("}");
       return result;
     }
+
+    std::size_t*  index;
+    bool          pretty;
   };
 
-  string_t translate (value_t const& v) const {
+  string_t translate (value_t const& v, bool pp=false) const {
+    std::size_t idx;
     __detail D;
+    D.pretty = pp;
+    D.index = &idx;
     return boost::apply_visitor(D, v);
   }
 };
@@ -761,9 +806,9 @@ json_v parse (Iter first, Iter last) {
 }
 
 json_gen::string_t
-to_string (json_v const& value) {
+to_string (json_v const& value, bool pretty_print=false) {
   json_to_string<json_gen> printer;
-  return printer.translate(value);
+  return printer.translate(value, pretty_print);
 }
 
 }
