@@ -3,44 +3,41 @@
 
 The JSONpp library is parameterized over the JSON data type. Most of the constraints that JSON data types must meet are described in the [JSONConcepts JSON Concepts] page, note that these are focussed to the requirements of the parser.
 
-The JSONpp library depends upon the [BeginEndLibrary Begin-End Library]. It is also compatible with the [VpathLibrary V-Path Library].
+The JSONpp library depends upon the [BeginEndLibrary Begin-End Library]. It is also compatible with the [XPGTLib XPath Generic Template Library].
 
 = Tutorial =
 
 Using the JSON library is relatively straightforward. The following example opens a set of JSON files specified as input arguments on the command line, and prints out their contents:
 
 {{{
-#include "jsonpp.hpp"
+#include <json/jsonpp.hpp>
 
 #include <iostream>
 #include <fstream>
-#include <cstdlib>
-#include <cstring>
+#include <locale>
 
 int main (int argc, char *argv[]) {
 
-  typedef JSONpp::make_json_value<> mjv_t;
+  std::locale loc("");
+  std::wcout.imbue(loc);
 
   if (argc < 1)
     return 1;
 
   for (++argv; argc > 0; --argc, ++argv) {
     std::cout << *argv << std::endl;
-    std::ifstream ifstr(*argv);
-    std::wstring file = L"";
-    char buffer[1025];
-    std::memset(buffer, 1025, 0);
-    while (ifstr.good()) {
-      ifstr.read(buffer, 1024);
-      file += std::wstring(buffer,buffer+ifstr.gcount());
+    try {
+      std::wifstream wifstr(*argv);
+      wifstr.imbue(loc);
+      wifstr >> std::noskipws;
+      std::istream_iterator<wchar_t,wchar_t> ctr(wifstr);
+      std::istream_iterator<wchar_t,wchar_t> cnd;
+      JSONpp::json_v json = JSONpp::parse(ctr, cnd);
+      JSONpp::json_gen::string_t str = JSONpp::to_string(json, true);
+      std::wcout << str << std::endl;
+    } catch (std::exception& e) {
+      std::cout << "error: " << e.what() << std::endl;
     }
-    JSONpp::push_parser<mjv_t> parser;
-    mjv_t::type value = parser(file);
-    JSONpp::variant_json_printer<mjv_t> Pr;
-    boost::apply_visitor(Pr, value);
-    std::cout << std::endl;
-    file = L"";
-    ifstr.close();
   }
 
   return 0;
