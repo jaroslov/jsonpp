@@ -14,7 +14,3 @@ Within the header is a default JSON type generator which is found at make_json_v
 A simple front-end to the push-parser is available for the default type under the name "parse" which takes two iterators. Likewise, a default json_v printer is available under the name "print".
 
 The file "vpath.hpp" will (eventually) contain a library for performing XPath-like queries on the resultant JSON. vpath should, hopefully, be generic for any boost::variant which describes the appropriate recursion-metafunction and child-accessors.
-
-TODO
-  1. finish the xpath implementation, most important is supporting the child::function-name() syntax in abbreviated form
-  2. unicode support is dodgy, especially on Linux
