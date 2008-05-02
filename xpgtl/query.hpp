@@ -182,7 +182,9 @@ struct query_generator {
     template <typename T>
     typename boost::enable_if<rdstl::is_proxy<T,xpath_t> >::type
     add_to_result_set (T const& t) const {
+#ifdef XPGTL_DEBUG
       std::cout << "NORESULT" << std::endl;
+#endif//XPGTL_DEBUG
     }    
 
     template <typename T>
