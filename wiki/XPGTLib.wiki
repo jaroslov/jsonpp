@@ -5,3 +5,5 @@
 Import from VPath Lib.
 
 A code example is available [http://code.google.com/p/jsonpp/source/browse/trunk/test_vpath.cpp here].
+
+The XPGTL relies on the [BeginEndLibrary BEL] and the
