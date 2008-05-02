@@ -25,6 +25,15 @@ A _root_ recursive data-structure (in the code above, the instance `r`) must sat
 
 The XPGTL defines one additional concept, in addition to a class of "tags" for compatibility with the C++ compatibility layer of the RDSTL.
 
+For compatibility with the [BEL BEL] and the C++ layer, the parameterized tag `xpath` is provided within the `xpgtl` namespace. The default is to use the "root" recursive data-structure type as the instantiation of the parameter of the `xpath` tag. Thus, within this code:
+
+{{{
+R r;
+... = query("//string", r);
+}}}
+
+The tag is instantiated (internally) as `xpath<R>`. This means that specializations of template metafunctions should either be parameterized on `X` (the recursive data-structure), or only the appropriate rooted data-structure be used. Eventually, a mechanism will be used to specify the instantiation, but this is currently not supported.
+
 === Attributes Concept ===
 
 The `Attributes` concept has two carrier types, `R` and `Tag`. (See the [RDSTL RDSTL] for more information about `R` and `Tag`.) The following expressions must hold:
@@ -32,3 +41,14 @@ The `Attributes` concept has two carrier types, `R` and `Tag`. (See the [RDSTL R
 || *Expression* || *Meaning* || *Note* ||
 || `attribute_union` || a discriminated union of attributes || could be trivial ||
 || `attribute(R, string, Tag)` || acquires the attribute associated with the string `string` || could be a `wstring` or a `string`, etc.; returns `attribute_union` ||
+
+The concept is defined like this:
+
+{{{
+concept Attributes<typename R, typename Tag> {
+  Regular attribute_union;
+  attribute_union attribute (R, std::string, Tag);
+}
+}}}
+
+Unicode support is provided by injection literal-forms of unicode points, i.e., "\uXXXX" or "\UXXXXXXXX", for hexadecimal characters "X". For C++ compatibility the metafunction `has_attributes<R,Tag>` specifies whether the type `T` has attributes. 
