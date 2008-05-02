@@ -29,8 +29,56 @@ struct query_generator {
     virtual void visit_parent () const = 0;
   };
 
-  template <typename Node>
-  struct visitor : public visitor_base {
+  // We don't actually care about "Node" but explicit instantiations
+  // are illegal, whereas partial specialization is fine; another
+  // WTFism from C++
+  template <typename Node, typename Iterator>
+  struct sibling_base {
+
+    template <typename Visitor>
+    void handle_preceding_sibling (Visitor const& V) const {
+      // set the current axis name to "self"
+      const axis_t::name_e old_name = (*V.path)[this->axis].name;
+      V.path->axes[this->axis].name = axis_t::self;
+      for (Iterator iter=this->first; iter!=this->self; ++iter)
+        rdstl::visit(V, *iter);
+      // unset the axis name
+      V.path->axes[this->axis].name = old_name;
+    }
+
+    template <typename Visitor>
+    void handle_following_sibling (Visitor const& V) const {
+      if (this->self == this->last)
+        return;
+      // set the current axis name to "self"
+      const axis_t::name_e old_name = (*V.path)[this->axis].name;
+      V.path->axes[this->axis].name = axis_t::self;
+      Iterator iter = self; ++iter;
+      for ( ; iter!=this->last; ++iter)
+        rdstl::visit(V, *iter);
+      // unset the axis name
+      V.path->axes[this->axis].name = old_name;
+    }
+
+    void set_siblings (Iterator first, Iterator self, Iterator last) {
+      this->first = first;
+      this->self  = self;
+      this->last  = last;
+    }
+    Iterator first, self, last;
+  };
+  template <typename Node> struct sibling_base<Node,void> {
+    template <typename Visitor>
+    void handle_preceding_sibling (Visitor const& V) const {}
+    template <typename Visitor>
+    void handle_following_sibling (Visitor const& V) const {}
+    template <typename Iter>
+    void set_siblings (Iter, Iter, Iter);
+  };
+
+  template <typename Node, typename Iterator=void>
+  struct visitor : public visitor_base, sibling_base<Node,Iterator> {
+    typedef Iterator      sibling_iterator;
     typedef visitor<Node> self_type;
     typedef Node          node_type;
     typedef void          result_type;
@@ -165,6 +213,12 @@ struct query_generator {
     handle_descendent (T const& t) const {
       // if an element has no children, we return nothing
     }
+    template <typename T>
+    void handle_descendent_or_self (T const& t) const {
+      // a union of self & descendent handlers
+      this->handle_self(t);
+      this->handle_descendent(t);
+    }
 
     template <typename T>
     void handle_ancestor (T const& t) const {
@@ -189,14 +243,6 @@ struct query_generator {
       // and ancestor replaces axis-name with the "ancestor" axis
       this->handle_self(t);
       this->handle_ancestor(t);
-    }
-
-
-    template <typename T>
-    void handle_descendent_or_self (T const& t) const {
-      // a union of self & descendent handlers
-      this->handle_self(t);
-      this->handle_descendent(t);
     }
 
     template <typename T>
@@ -258,9 +304,7 @@ struct query_generator {
       case axis_t::following: {
           throw std::runtime_error("Unsupported axis-name: following");
         } break;
-      case axis_t::following_sibling: {
-          throw std::runtime_error("Unsupported axis-name: following-sibling");
-        } break;
+      case axis_t::following_sibling: this->handle_following_sibling(*this); break;
       case axis_t::namespace_: {
           throw std::runtime_error("Unsupported axis-name: namespace");
         } break;
@@ -268,9 +312,7 @@ struct query_generator {
       case axis_t::preceding: {
           throw std::runtime_error("Unsupported axis-name: preceding");
         } break;
-      case axis_t::preceding_sibling: {
-          throw std::runtime_error("Unsupported axis-name: preceding-sibling");
-        } break;
+      case axis_t::preceding_sibling: this->handle_preceding_sibling(*this); break;
       case axis_t::self: this->handle_self(t); break;
       default: std::runtime_error("Unrecognized axis-name.");
       }
