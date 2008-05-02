@@ -6,7 +6,7 @@ Import from VPath Lib.
 
 A code example is available [http://code.google.com/p/jsonpp/source/browse/trunk/test_vpath.cpp here].
 
-The XPGTL relies on the [BeginEndLibrary BEL] and the [RDSTL RDSTL] for functionality. Specifically, it adds a few XPath-related concepts to the RDSTL. It also defines a parameterized [http://code.google.com/p/jsonpp/source/browse/trunk/xpgtl/path.hpp _path_] object to store an XPath, and a parser for a subset of the XPath standard. The XPGTL also defines a set of _query_ functions for performing queries of data-structures that satisfy at least the `Children` and `Tag` concepts of the RDSTL.
+The XPGTL relies on the [BeginEndLibrary BEL] and the [RDSTL RDSTL] for functionality. Specifically, it adds a few XPath-related concepts to the RDSTL. It also defines a parameterized [http://code.google.com/p/jsonpp/source/browse/trunk/xpgtl/path.hpp path] object to store an XPath, and a parser for a subset of the XPath standard. The XPGTL also defines a set of _query_ functions for performing queries of data-structures that satisfy at least the `Children` and `Tag` concepts of the RDSTL.
 
 A brief example of usage follows:
 
