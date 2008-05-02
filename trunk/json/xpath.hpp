@@ -70,6 +70,9 @@ namespace JSONpp {
     friend bool operator != (self_type const& L, self_type const& R) {
       return (L.at_end != R.at_end) or (L.iterator_ != R.iterator_);
     }
+    friend bool operator < (self_type const& L, self_type const& R) {
+      return L.iterator_->first < R.iterator_->first;
+    }
 
     template <typename CharT>
     friend std::basic_ostream<CharT>&
@@ -91,7 +94,18 @@ namespace JSONpp {
     typedef boost::variant<entry<ac_t> >    value_type;
 
     object_entry_iterator (ac_iter_t const& iter=ac_iter_t())
-      : iterator(iter), proxy() {}
+      : iterator(iter), proxy() {
+      this->proxy = entry<ac_t>(this->iterator, false);
+    }
+    object_entry_iterator (self_type const& st) {
+      this->iterator = st.iterator;
+      this->proxy = st.proxy;
+    }
+    self_type& operator = (self_type const& st) {
+      this->iterator = st.iterator;
+      this->proxy = st.proxy;
+      return *this;
+    }
 
     // forward iterator interface
     value_type const& operator * () const {
@@ -134,7 +148,8 @@ namespace rdstl {
       typename JSONpp::json_gen::array_t const*,
       typename JSONpp::json_gen::bool_t const*,
       typename JSONpp::json_gen::null_t const*,
-      JSONpp::entry<typename JSONpp::json_gen::object_t> > type;
+      JSONpp::entry<typename JSONpp::json_gen::object_t> const*
+      > type;
   };
 
   template <typename X>
@@ -143,12 +158,16 @@ namespace rdstl {
     typedef JSONpp::object_entry_iterator<std::map<std::wstring,JSONpp::json_v> > type;
   };
 
-  /*template <typename X>
+  template <typename X>
+  struct is_proxy<JSONpp::entry<std::map<std::wstring,JSONpp::json_v> >, xpgtl::xpath<X> >
+    : boost::mpl::true_ {};
+
+  template <typename X>
   struct has_children<JSONpp::entry<std::map<std::wstring,JSONpp::json_v> >,
     xpgtl::xpath<X> > : boost::mpl::true_ {
     typedef typename
       JSONpp::entry<std::map<std::wstring,JSONpp::json_v> >::iterator type;
-  };*/
+  };
 } // end rdstl namespace
 
 namespace bel {
@@ -173,6 +192,21 @@ end (std::map<std::wstring,JSONpp::json_v> const& t, xpgtl::xpath<X>) {
     iterator<std::map<std::wstring,JSONpp::json_v>,
       xpgtl::xpath<X> >::type iter;
   return iter(t.end());
+}
+// entry specialization
+template <typename X>
+struct iterator<JSONpp::entry<std::map<std::wstring,JSONpp::json_v> >, xpgtl::xpath<X> > {
+  typedef typename JSONpp::entry<std::map<std::wstring,JSONpp::json_v> >::iterator type;
+};
+template <typename X>
+typename iterator<std::map<std::wstring,JSONpp::json_v>, xpgtl::xpath<X> >::type
+begin (JSONpp::entry<std::map<std::wstring,JSONpp::json_v> > const& t, xpgtl::xpath<X>) {
+  return t.begin();
+}
+template <typename X>
+typename iterator<std::map<std::wstring,JSONpp::json_v>, xpgtl::xpath<X> >::type
+end (JSONpp::entry<std::map<std::wstring,JSONpp::json_v> > const& t, xpgtl::xpath<X>) {
+  return t.end();
 }
 
 }// end bel namespace
