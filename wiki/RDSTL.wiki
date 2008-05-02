@@ -1,0 +1,26 @@
+#summary Concepts for the RDSTL
+
+= Recursive Data-Structure Template Library =
+
+The Recursive Data-Structure Template Library (RDSTL) defines a hierarchy of concepts for types which are _recursive_. By recursive, it is meant types that form trees over types. A simple example the usual tree-type over nodes and leaves.
+
+First, let there exist a _discriminated union_ concept.
+
+  * `U` : the type of a discriminated union
+  * `u` : an instance of type `U`
+  * `T`,,0,,, `T`,,1,,, ..., `T`,,k,, : the closed set of associated types of the discriminated union
+  * `t`,,0,,, `t`,,1,,, ..., `t`,,k,, : instances of the above types
+  * `V` : the type of a visitor for the type `U`
+  * `v` : an instance of type `V`
+
+The following expressions must hold:
+
+|| *Expression* || *Meaning* || *Note* ||
+|| `u = t`,,i,, || assignment || for all 0<=i<=k ||
+|| `visit(v, u)` || visitation || see below ||
+
+Internally, the visitor must satisfy the `Boost.StaticVisitor` concept. A `StaticVisitor` must have the following expressions:
+
+|| *Expression* || *Meaning* || *Note* ||
+|| `V::result_type` || the associated resultant type || _see below_ ||
+|| `v.operator () (const T`,,i,,`&) const` || visitor _call_ operation || the return type is `result_type` ||
