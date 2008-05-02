@@ -154,6 +154,18 @@ struct query_generator {
     }
 
     template <typename T>
+    typename boost::enable_if<rsdtl::knows_parent<T> >::type
+    handle_parent (T const& t) const {
+      // real parent support
+      
+    }
+    template <typename T>
+    typename boost::disable_if<rsdtl::knows_parent<T> >::type
+    handle_parent (T const& t) const {
+      // emulated parent support
+    }
+
+    template <typename T>
     bool apply_predicate (T const& t) const {
       // ignore the predicate for now
       return true;
@@ -222,9 +234,7 @@ struct query_generator {
       case axis_t::namespace_: {
           throw std::runtime_error("Unsupported axis-name: namespace");
         } break;
-      case axis_t::parent: {
-          throw std::runtime_error("Unsupported axis-name: parent");
-        } break;
+      case axis_t::parent: this->handle_parent(t); break;
       case axis_t::preceding: {
           throw std::runtime_error("Unsupported axis-name: preceding");
         } break;

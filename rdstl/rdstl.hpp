@@ -1,3 +1,4 @@
+
 #include <bel/begin-end.hpp>
 #include <boost/mpl/bool.hpp>
 #include <boost/variant.hpp>
@@ -44,6 +45,17 @@ parent (P, T const& t, Tag) {
 // see "children"
 template <typename T, typename Tag>
 struct has_children : boost::mpl::false_ {};
+// the references traits; a discriminated union type for
+// T and Tag that can hold a reference to any element
+// in the RDS; i.e., if U is the reference, then
+// for all x in X, for X the types in the RDS, then
+// U = &x;
+// The reference-union exists if the has_children function
+// is "true"
+template <typename T, typename Tag>
+struct reference_union {
+  typedef typename T::reference_union type;
+};
 // the "children" retrieves an iterator to the first
 // and last elements of a sequence over the children of
 // the type T; it defaults to calling the begin-end library's
@@ -71,6 +83,15 @@ visit (Visitor const& visitor, Variant const& variant) {
   //  2. someone else `includes' variant
   return boost::apply_visitor(visitor, variant);
 }
+
+// the value metafunction and traits class; whether or
+// not an RDS has a value-union, and the type thereof
+template <typename T, typename Tag>
+struct has_value_union : boost::mpl::false_ {}
+template <typename T, typename Tag>
+struct value_union {
+  typedef typename T::reference_union type;
+};
 
 }
 
