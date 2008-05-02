@@ -18,3 +18,17 @@ std::set<std::string const*> result
 }}}
 
 A query is performed by calling the XPGTL function `query` with a string representing an XPath statement, and an instance of a data-structure satisfying the proper concepts. In this case, an `as` statement is used to filter the result-set to be only `std::string` and to return that set.
+
+A _root_ recursive data-structure (in the code above, the instance `r`) must satisfy at least one `DiscriminatedUnion` carrier. For non-trivial functionality the children of the recursive data-structure should satisfy the RDSTL `Children` concept, where appropriate. The XPGTL emulates "parent" support when the recursive data-structure does not support it, however, since it cannot guarantee to find the root element, XPath statements using the "parent", "ancestor", or "ancestor-or-self" axes may not return correct results according to the standard. (This is because the standard assumes that the root is always available from any node.)
+
+== XPath Concepts ==
+
+The XPGTL defines one additional concept, in addition to a class of "tags" for compatibility with the C++ compatibility layer of the RDSTL.
+
+=== Attributes Concept ===
+
+The `Attributes` concept has two carrier types, `R` and `Tag`. (See the [RDSTL RDSTL] for more information about `R` and `Tag`.) The following expressions must hold:
+
+|| *Expression* || *Meaning* || *Note* ||
+|| `attribute_union` || a discriminated union of attributes || could be trivial ||
+|| `attribute(R, string, Tag)` || acquires the attribute associated with the string `string` || could be a `wstring` or a `string`, etc.; returns `attribute_union` ||
