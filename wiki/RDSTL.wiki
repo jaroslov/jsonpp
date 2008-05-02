@@ -26,7 +26,7 @@ Internally, the visitor must satisfy the `Boost.StaticVisitor` concept. A `Stati
 === Visitor Concept ===
 
 || *Expression* || *Meaning* || *Note* ||
-|| `V::result_type` || the associated resultant type || _see below_ ||
+|| `result_type` || the associated resultant type || _see below_ ||
 || `v.operator () (const T`,,i,,`&) const` || visitor _call_ operation || the return type is `result_type` ||
 
 The discriminated union concept captures both the union and the visitor for the union.
@@ -55,4 +55,14 @@ There are a number of concepts defined in the RDSTL. These concepts are mostly o
 The `HasTag` concept has two carrier types, `R` and `Tag`.
 
 || *Expression* || *Meaning* || *Note* ||
-|| `tag(R, tag)` || 
+|| `type` || the associated label (tag) type || available by: `template <typename T, typename Tag> struct has_tag;` sp. `has_tag<R,Tag>::type` ||
+|| `tag(R, tag)` || acquires the tag for type/instance `R` || returns `type` ||
+
+The concept is this:
+
+{{{
+concept HasTag<typename R, typename Tag> {
+  Regular type;
+  type tag (R, Tag);
+}
+}}}
