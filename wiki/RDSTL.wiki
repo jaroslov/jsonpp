@@ -50,9 +50,9 @@ There are a number of concepts defined in the RDSTL. These concepts are mostly o
   * `Tag` : some tag associated with a modeling of `R` as a recursive data-structure
   * `tag` : some instance of `Tag`
 
-== HasTag Concept ==
+== Tag Concept ==
 
-The `HasTag` concept has two carrier types, `R` and `Tag`.
+The `Tag` concept has two carrier types, `R` and `Tag`.
 
 || *Expression* || *Meaning* || *Note* ||
 || `type` || the associated label (tag) type || available by: `template <typename T, typename Tag> struct has_tag;` sp. `has_tag<R,Tag>::type` ||
@@ -61,8 +61,64 @@ The `HasTag` concept has two carrier types, `R` and `Tag`.
 The concept is this:
 
 {{{
-concept HasTag<typename R, typename Tag> {
+concept Tag<typename R, typename Tag> {
   Regular type;
   type tag (R, Tag);
 }
 }}}
+
+For C++ compatibility, membership is specified by specialization of the `has_tag<R, Tag>` metafunction.
+
+== Children Concept ==
+
+The `Children` concept has two carrier types, `R` and `Tag`.
+
+|| *Expression* || *Meaning* || *Note* ||
+|| `value_union` || a discriminated union of the closed set oftypes for `R` under `Tag` || see discriminated union above; implicitly available; also `value_union<R,Tag>` ||
+|| `bel::iterator<R,Tag>::type` || the type of the iterators || `std::pair<iterator,iterator>` of them; available from `bel::iterator<R,Tag>::type ||
+|| `children(R, tag)` || returns a sequence of children || see `bel::sequence` ||
+
+The `Children` concept provides a method of accessing the children of a recursive data-structure.
+
+{{{
+concept Children<typename R, typename Tag> {
+  Regular value_union; // no way to specify variadic concepts
+    // in ConceptC++; the requirement is place
+    // elsewhere for DiscriminatedUion
+  ForwardIterator iterator;
+  std::pair<iterator,iterator> children (R, Tag);
+}
+}}}
+
+For C++ compatibility, membership is specified by specialization of the `has_children<R, Tag>` metafunction. The metafunction `has_value_union<R,Tag>` is specialized if the struct `value_union<R,Tag>` is specialized. The expression `value_union<R,Tag>::type` returns the value-union. The `value_union` is not required, because not all recursive data-structures are defined in terms of discriminated unions.
+
+== Parent Concept ==
+
+The `Parent` concept has two carrier types, `R` and `Tag`. It refines the `Children` concept.
+
+|| *Expression* || *Meaning* || *Note* ||
+|| `parent_type` || the type of the parent || usually a reference or proxy ||
+|| `parent(R, tag)` || returns `parent_type` || usually a reference or proxy  ||
+
+The concept is this:
+
+{{{
+concept Parent<typename R, typename Tag> : Children<R,Tag> {
+  Regular parent_type;
+  parent_type const& parent (R, Tag);
+}
+}}}
+
+For C++ compatibility, membership is specified by specialization of the `knows_parent<R, Tag>` metafunction.
+
+== Proxy Concept ==
+
+The `Proxy` concept is an orthogonal concept with two carrier types, `R` and `Tag`. Some recursive hierarchies require the construction of ephemeral types and proxy types. These types should be marked so that references are not formed to them.
+
+The concept is this:
+
+{{{
+concept Proxy<typename R, typename Tag> {}
+}}}
+
+For C++ compatibility, membership is specified by specialization of the `is_proxy<R, Tag>` metafunction.
