@@ -55,6 +55,11 @@ children (T const& t, Tag x) {
   return bel::sequence(t, x);
 }
 
+// proxy metafunction; if "true" then the type T is
+// a proxy, and should not be stored
+template <typename T, typename Tag>
+struct is_proxy : boost::mpl::false_ {};
+
 // the default "visit" function, this should be overloaded if
 // you use a different discriminated union kind
 template <typename Visitor, typename Variant>

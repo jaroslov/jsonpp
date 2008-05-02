@@ -55,7 +55,7 @@ struct query_generator {
       result_set_t* rset=0)
       : path(path), axis(axis)
       , parent(parent), result_set(rset) {
-      //this->node() = node;
+      this->node() = node;
 #ifdef XPGTL_DEBUG
       this->recursion_depth = 0;
 #endif//XPGTL_DEBUG
@@ -172,14 +172,25 @@ struct query_generator {
 #endif//XPGTL_DEBUG
 
     template <typename T>
+    typename boost::disable_if<rdstl::is_proxy<T,xpath_t> >::type
+    add_to_result_set (T const& t) const {
+      this->result_set->insert(&t);
+#ifdef XPGTL_DEBUG
+      this->print(t);
+#endif//XPGTL_DEBUG
+    }
+    template <typename T>
+    typename boost::enable_if<rdstl::is_proxy<T,xpath_t> >::type
+    add_to_result_set (T const& t) const {
+      std::cout << "NORESULT" << std::endl;
+    }    
+
+    template <typename T>
     void operator () (T const& t) const {
 
       if (this->path->size() <= this->axis) {
         // we trivially return the input if we have no test
-        //this->result_set->insert(&t);
-#ifdef XPGTL_DEBUG
-        this->print(t);
-#endif//XPGTL_DEBUG
+        this->add_to_result_set(t);
         return;
       }
 
