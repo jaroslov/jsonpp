@@ -138,7 +138,6 @@ namespace JSONpp {
 } // end json namespace
 
 namespace rdstl {
-  //template <typename X> struct has_children<JSONpp::json_v, xpgtl::xpath<X> > : boost::mpl::true_ {};
   template <typename X> struct reference_union<JSONpp::json_v, xpgtl::xpath<X> > {
     typedef boost::variant<
       typename JSONpp::json_gen::value_t const*,

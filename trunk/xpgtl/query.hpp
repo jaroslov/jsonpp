@@ -97,16 +97,29 @@ struct query_generator {
     }
     template <typename T>
     typename boost::enable_if<rdstl::knows_parent<T,xpath_t> >::type
-    handle_parent (T const& t) const {
-      // real parent support
-      
+    handle_parent_internal_ (T const& t) const {
+      // real parent support; the parent must be a pointer,
+      // and it will be visitable with children
+      (*this)(*rdstl::parent(t, xpath_t()));
     }
     template <typename T>
     typename boost::disable_if<rdstl::knows_parent<T,xpath_t> >::type
-    handle_parent (T const& t) const {
+    handle_parent_internal_ (T const& t) const {
+      // real parent support; the parent must be a pointer,
+      // and it will be visitable with children
+      this->parent->visit_parent();
+    }
+    template <typename T>
+    void handle_parent (T const& t) const {
       // emulated parent support
-      if (0 != this->parent)
-        this->parent->visit_parent();
+      if (0 == this->parent)
+        return;
+      // set the current axis name to "self"
+      const axis_t::name_e old_name = (*this->path)[this->axis].name;
+      this->path->axes[this->axis].name = axis_t::self;
+      this->handle_parent_internal_(t);
+      // unset the axis name
+      this->path->axes[this->axis].name = old_name;
     }
 
     template <typename T>
