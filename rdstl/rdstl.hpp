@@ -87,7 +87,7 @@ visit (Visitor const& visitor, Variant const& variant) {
 // the value metafunction and traits class; whether or
 // not an RDS has a value-union, and the type thereof
 template <typename T, typename Tag>
-struct has_value_union : boost::mpl::false_ {}
+struct has_value_union : boost::mpl::false_ {};
 template <typename T, typename Tag>
 struct value_union {
   typedef typename T::reference_union type;
