@@ -144,9 +144,6 @@ struct query_generator {
       this->handle_children(t); // handle the children
       // now, recurse on the children and tell them to
       // do the same!
-      const xpgtl::axis_t Axis = (*this->path)[this->axis];
-      const String axis_test   = this->path->test(this->axis);
-      const String self_tag    = tag(t, xpath_t());
 
       // we only look at descendents, never self
       const axis_t::name_e old_name = (*this->path)[this->axis].name;
@@ -167,6 +164,22 @@ struct query_generator {
     typename boost::disable_if<rdstl::has_children<T,xpath_t> >::type
     handle_descendent (T const& t) const {
       // if an element has no children, we return nothing
+    }
+
+    template <typename T>
+    void handle_ancestor (T const& t) const {
+      // we call the "handle-parent" function which essentially goes
+      // to the parent while translating into a "self" call
+      this->handle_parent(t);
+      // Now, we call the parent directly, while setting the current
+      // stack to "ancestor"; this will recurse up the tree calling
+      // "handle-parent", resolving to "self" each time, and calling
+      // all of the parents
+      const axis_t::name_e old_name = (*this->path)[this->axis].name;
+      this->path->axes[this->axis].name = axis_t::ancestor;
+      this->handle_parent_internal_(t);
+      // put original name on the path-stack
+      this->path->axes[this->axis].name = old_name;
     }
 
     template <typename T>
