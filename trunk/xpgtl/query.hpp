@@ -246,6 +246,16 @@ struct query_generator {
     }
 
     template <typename T>
+    void handle_preceding (T const& t) const {
+      throw std::runtime_error("Must move a stack-based system.");
+    }
+
+    template <typename T>
+    void handle_following (T const& t) const {
+      throw std::runtime_error("Must move a stack-based system.");
+    }
+
+    template <typename T>
     bool apply_predicate (T const& t) const {
       // ignore the predicate for now
       return true;
@@ -301,17 +311,14 @@ struct query_generator {
       case axis_t::child: this->handle_children(t); break;
       case axis_t::descendent: this->handle_descendent(t); break;
       case axis_t::descendent_or_self: this->handle_descendent_or_self(t); break;
-      case axis_t::following: {
-          throw std::runtime_error("Unsupported axis-name: following");
-        } break;
+      case axis_t::following: this->handle_following(t); break;
       case axis_t::following_sibling: this->handle_following_sibling(*this); break;
       case axis_t::namespace_: {
+          // honestly, this shit makes no sense
           throw std::runtime_error("Unsupported axis-name: namespace");
         } break;
       case axis_t::parent: this->handle_parent(t); break;
-      case axis_t::preceding: {
-          throw std::runtime_error("Unsupported axis-name: preceding");
-        } break;
+      case axis_t::preceding: this->handle_preceding(t); break;
       case axis_t::preceding_sibling: this->handle_preceding_sibling(*this); break;
       case axis_t::self: this->handle_self(t); break;
       default: std::runtime_error("Unrecognized axis-name.");
