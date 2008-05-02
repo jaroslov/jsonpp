@@ -11,13 +11,13 @@ belT: bel/*.hpp test_bel.cpp
 vpath: xpgtl/*.hpp test_vpath.cpp
 	g++ -O3 -I. test_vpath.cpp -o vtest
 
-vpathT: xpgtl/*.hpp test_vpath.cpp
-	g++ -O3 -I. test_vpath.cpp -o vtest
-	echo "self::array" | ./vtest Examples/*.*if
-	echo "self::object" | ./vtest Examples/*.*if
-	echo "self::object/array" | ./vtest Examples/*.*if
-	echo "self::array/object" | ./vtest Examples/*.*if
-	echo "//string" | ./vtest Examples/*.*if
+vpathT: vtest
+	echo "self::array" | ./vtest examples/*.*if
+	echo "self::object" | ./vtest examples/*.*if
+	echo "self::object/array" | ./vtest examples/*.*if
+	echo "self::array/object" | ./vtest examples/*.*if
+	echo "//string" | ./vtest examples/*.*if
+	echo "joins/object/a1/object/inputs/array/string" | ./vtest examples/*.*if
 
 vpath_tests: vtest xpgtl/*.hpp test_vpath.cpp
 	echo "/" | ./vtest
