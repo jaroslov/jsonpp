@@ -13,7 +13,9 @@ First, let there exist a _discriminated union_ concept.
   * `V` : the type of a visitor for the type `U`
   * `v` : an instance of type `V`
 
-The following expressions must hold:
+== Discriminated Union Concept ==
+
+A discriminated union must satisfy at least one modeling relationship to the discriminated union concept. The discriminated union concept has two carrier types, `U`, and `V`. The following expressions must hold:
 
 || *Expression* || *Meaning* || *Note* ||
 || `u = t`,,i,, || assignment || for all 0<=i<=k ||
@@ -21,6 +23,36 @@ The following expressions must hold:
 
 Internally, the visitor must satisfy the `Boost.StaticVisitor` concept. A `StaticVisitor` must have the following expressions:
 
+=== Visitor Concept ===
+
 || *Expression* || *Meaning* || *Note* ||
 || `V::result_type` || the associated resultant type || _see below_ ||
 || `v.operator () (const T`,,i,,`&) const` || visitor _call_ operation || the return type is `result_type` ||
+
+The discriminated union concept captures both the union and the visitor for the union.
+
+{{{
+concept DiscriminatedUnion<typename U, typename V> {
+  requires Visitor<V>; // see below
+  Regular result_type = V::result_type;
+  U& operator = (U&, V v);
+  result_type visit (V, U);
+  result_type V::operator () (U) const;
+}
+}}}
+
+== Recursive Data-Structure Concepts ==
+
+There are a number of concepts defined in the RDSTL. These concepts are mostly orthogonal. Some of the concepts have meta-template functions defined for them so that they work without support of a concepts-system.
+
+  * `R` : some recursive data-structure type
+  * `r` : an instance of `R`
+  * `Tag` : some tag associated with a modeling of `R` as a recursive data-structure
+  * `tag` : some instance of `Tag`
+
+== HasTag Concept ==
+
+The `HasTag` concept has two carrier types, `R` and `Tag`.
+
+|| *Expression* || *Meaning* || *Note* ||
+|| `tag(R, tag)` || 
