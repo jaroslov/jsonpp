@@ -181,6 +181,16 @@ struct query_generator {
       // put original name on the path-stack
       this->path->axes[this->axis].name = old_name;
     }
+    template <typename T>
+    void handle_ancestor_or_self (T const& t) const {
+      // union of self & ancestor handlers
+      // we don't have to modify the stack, because handle-self
+      // operates without any recursion (as the context-node)
+      // and ancestor replaces axis-name with the "ancestor" axis
+      this->handle_self(t);
+      this->handle_ancestor(t);
+    }
+
 
     template <typename T>
     void handle_descendent_or_self (T const& t) const {
@@ -239,12 +249,8 @@ struct query_generator {
 #endif//XPGTL_DEBUG
   
       switch (Axis.name) {
-      case axis_t::ancestor: {
-          throw std::runtime_error("Unsupported axis-name: ancestor");
-        } break;
-      case axis_t::ancestor_or_self: {
-          throw std::runtime_error("Unsupported axis-name: ancestor-or-self");
-        } break;
+      case axis_t::ancestor: this->handle_ancestor(t); break;
+      case axis_t::ancestor_or_self: this->handle_ancestor_or_self(t); break;
       case axis_t::attribute: this->handle_attribute(t); break;
       case axis_t::child: this->handle_children(t); break;
       case axis_t::descendent: this->handle_descendent(t); break;
