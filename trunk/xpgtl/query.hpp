@@ -18,21 +18,15 @@ namespace xpgtl {
 
 template <typename String, typename X>
 struct query_generator {
-  typedef xpgtl::path<String>             path_t;
-  typedef xpath<X>                        xpath_t;
-  typedef rdstl::has_children<X,xpath_t>  cu_mf;
-  typedef typename cu_mf::type            c_union_t;
-  typedef std::set<c_union_t>             result_set_t;
-  typedef query_generator<String,X>       qg_type;
+  typedef xpgtl::path<String>               path_t;
+  typedef xpath<X>                          xpath_t;
+  typedef rdstl::reference_union<X,xpath_t> ru_mf;
+  typedef typename ru_mf::type              r_union_t;
+  typedef std::set<r_union_t>               result_set_t;
+  typedef query_generator<String,X>         qg_type;
 
   struct visitor_base {
-    virtual c_union_t const& node () const {
-      return this->node_;
-    }
-    virtual c_union_t& node () {
-      return this->node_;
-    }
-    c_union_t node_;
+    virtual void visit_parent () const = 0;
   };
 
   template <typename Node>
@@ -40,6 +34,10 @@ struct query_generator {
     typedef visitor<Node> self_type;
     typedef Node          node_type;
     typedef void          result_type;
+
+    virtual void visit_parent () const {
+      (*this)(*this->node);
+    }
 
 #ifdef XPGTL_DEBUG
     std::string indent (char rep=' ', char head=' ') const {
@@ -53,9 +51,8 @@ struct query_generator {
     visitor (node_type const* node=0, path_t* path=0,
       std::size_t axis=0, visitor_base const* parent=0,
       result_set_t* rset=0)
-      : path(path), axis(axis)
+      : path(path), axis(axis), node(node)
       , parent(parent), result_set(rset) {
-      this->node() = node;
 #ifdef XPGTL_DEBUG
       this->recursion_depth = 0;
 #endif//XPGTL_DEBUG
@@ -97,6 +94,19 @@ struct query_generator {
     typename boost::disable_if<rdstl::has_children<T,xpath_t> >::type
     handle_children (T const& t) const {
       // if an element has no children, we return nothing
+    }
+    template <typename T>
+    typename boost::enable_if<rdstl::knows_parent<T,xpath_t> >::type
+    handle_parent (T const& t) const {
+      // real parent support
+      
+    }
+    template <typename T>
+    typename boost::disable_if<rdstl::knows_parent<T,xpath_t> >::type
+    handle_parent (T const& t) const {
+      // emulated parent support
+      if (0 != this->parent)
+        this->parent->visit_parent();
     }
 
     template <typename T>
@@ -151,18 +161,6 @@ struct query_generator {
       // a union of self & descendent handlers
       this->handle_self(t);
       this->handle_descendent(t);
-    }
-
-    template <typename T>
-    typename boost::enable_if<rsdtl::knows_parent<T> >::type
-    handle_parent (T const& t) const {
-      // real parent support
-      
-    }
-    template <typename T>
-    typename boost::disable_if<rsdtl::knows_parent<T> >::type
-    handle_parent (T const& t) const {
-      // emulated parent support
     }
 
     template <typename T>
@@ -250,6 +248,7 @@ struct query_generator {
     std::size_t recursion_depth;
 #endif//XPGTL_DEBUG
     // Members
+    node_type const*    node;
     visitor_base const* parent;
     path_t*             path;
     std::size_t         axis;

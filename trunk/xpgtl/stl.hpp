@@ -175,19 +175,27 @@ namespace rdstl {
 
 // STL recursive types
 template <typename T, typename A, typename X>
-struct has_children<std::list<T,A>,X> : boost::mpl::true_ {
+struct has_children<std::list<T,A>,X> : boost::mpl::true_ {};
+template <typename T, typename A, typename X>
+struct reference_union<std::list<T,A>,X> {
   typedef typename bel::iterator<std::list<T,A>, xpgtl::xpath<X> >::type type;
 };
 template <typename K, typename V, typename C, typename A, typename X>
-struct has_children<std::map<K,V,C,A>,X> : boost::mpl::true_ {
+struct has_children<std::map<K,V,C,A>,X> : boost::mpl::true_ {};
+template <typename K, typename V, typename C, typename A, typename X>
+struct reference_union<std::map<K,V,C,A>,X> {
   typedef typename bel::iterator<std::map<K,V,C,A>, xpgtl::xpath<X> >::type type;
 };
 template <typename K, typename C, typename A, typename X>
-struct has_children<std::set<K,C,A>,X> : boost::mpl::true_ {
+struct has_children<std::set<K,C,A>,X> : boost::mpl::true_ {};
+template <typename K, typename C, typename A, typename X>
+struct reference_union<std::set<K,C,A>,X> {
   typedef typename bel::iterator<std::set<K,C,A>, xpgtl::xpath<X> >::type type;
 };
 template <typename T, typename A, typename X>
-struct has_children<std::vector<T,A>,X> : boost::mpl::true_ {
+struct has_children<std::vector<T,A>,X> : boost::mpl::true_ {};
+template <typename T, typename A, typename X>
+struct reference_union<std::vector<T,A>,X> {
   typedef typename bel::iterator<std::vector<T,A>, xpgtl::xpath<X> >::type type;
 };
 
