@@ -18,8 +18,49 @@ Iter eat_literal (Iter first, Iter last, std::string const& lit) {
 }
 
 template <typename Iter>
-Iter multiplicative_expression (Iter first, Iter last) {
+Iter union_expression (Iter first, Iter last) {
   return first;
+}
+
+template <typename Iter>
+Iter unary_expression (Iter first, Iter last) {
+  if (first == last) return first;
+  Iter prog = union_expression(first, last);
+  if (prog == first) {
+    prog = eat_literal(first, last, "-");
+    if (prog == first)
+      throw std::runtime_error("Expected literal `-`.");
+    first = prog;
+    Iter prog = unary_expression(first, last);
+    if (prog == first)
+      throw std::runtime_error("Nonterminating unary-expression");
+  }
+  return first;
+}
+
+template <typename Iter>
+Iter multiplicative_expression (Iter first, Iter last) {
+  if (first == last) return first;
+  Iter prog = unary_expression(first, last);
+  if (prog == first) {
+    Iter prog = multiplicative_expression(first, last);
+    if (prog == first)
+      throw std::runtime_error("Nonterminating multiplicative-expression");
+    first = prog;
+    prog = eat_literal(first, last, "*");
+    if (prog == first) {
+      prog = eat_literal(first, last, "div");
+      if (prog == first) {
+        prog = eat_literal(first, last, "mod");
+        if (prog == first)
+          throw std::runtime_error("Expected literal `*`|`div`|`mod`.");
+      }
+    }
+    first = prog;
+    prog = unary_expression(first, last);
+    if (prog == first)
+      throw std::runtime_error("Expected an multiplicative-(or lower)-expression");
+  }
 }
 
 template <typename Iter>
@@ -29,7 +70,7 @@ Iter additive_expression (Iter first, Iter last) {
   if (prog == first) {
     Iter prog = additive_expression(first, last);
     if (prog == first)
-      throw std::runtime_error("Nonterminating and-expression");
+      throw std::runtime_error("Nonterminating additive-expression");
     first = prog;
     prog = eat_literal(first, last, "+");
     if (prog == first) {
@@ -40,7 +81,7 @@ Iter additive_expression (Iter first, Iter last) {
     first = prog;
     prog = multiplicative_expression(first, last);
     if (prog == first)
-      throw std::runtime_error("Expected an equality-(or lower)-expression");
+      throw std::runtime_error("Expected an additive-(or lower)-expression");
   }
 }
 
