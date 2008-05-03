@@ -18,7 +18,62 @@ Iter eat_literal (Iter first, Iter last, std::string const& lit) {
 }
 
 template <typename Iter>
+Iter relative_location_path (Iter first, Iter last) {
+  return first;
+}
+
+template <typename Iter>
+Iter location_path (Iter first, Iter last) {
+  return first;
+}
+
+template <typename Iter>
+Iter filter_expression (Iter first, Iter last) {
+  return first;
+}
+
+template <typename Iter>
+Iter path_expression (Iter first, Iter last) {
+  if (first == last) return first;
+  Iter prog = location_path(first, last);
+  if (prog == first) {
+    prog = filter_expression(first, last);
+    if (prog == first)
+      throw std::runtime_error("Nonterminating path-expression");
+    first = prog;
+    prog = eat_literal(first, last, "//");
+    if (prog == first) {
+      prog = eat_literal(first, last, "/");
+      if (prog != first) {
+        first = prog;
+        prog = relative_location_path(first, last);
+        if (prog == first)
+          throw std::runtime_error("Expected relative location path.");
+        first = prog;
+      }
+    }
+  }
+  return first;
+}
+
+template <typename Iter>
 Iter union_expression (Iter first, Iter last) {
+  if (first == last) return first;
+  Iter prog = path_expression(first, last);
+  if (prog == first) {
+    Iter prog = union_expression(first, last);
+    if (prog == first)
+      throw std::runtime_error("Nonterminating union-expression");
+    first = prog;
+    prog = eat_literal(first, last, "|");
+    if (prog == first)
+      throw std::runtime_error("Expected literal `|`.");
+    first = prog;
+    prog = path_expression(first, last);
+    if (prog == first)
+      throw std::runtime_error("Expected an union-(or lower)-expression");
+    first = prog;
+  }
   return first;
 }
 
@@ -34,6 +89,7 @@ Iter unary_expression (Iter first, Iter last) {
     Iter prog = unary_expression(first, last);
     if (prog == first)
       throw std::runtime_error("Nonterminating unary-expression");
+    first = prog;
   }
   return first;
 }
@@ -60,7 +116,9 @@ Iter multiplicative_expression (Iter first, Iter last) {
     prog = unary_expression(first, last);
     if (prog == first)
       throw std::runtime_error("Expected an multiplicative-(or lower)-expression");
+    first = prog;
   }
+  return first;
 }
 
 template <typename Iter>
@@ -82,7 +140,9 @@ Iter additive_expression (Iter first, Iter last) {
     prog = multiplicative_expression(first, last);
     if (prog == first)
       throw std::runtime_error("Expected an additive-(or lower)-expression");
+    first = prog;
   }
+  return first;
 }
 
 template <typename Iter>
@@ -110,7 +170,9 @@ Iter relational_expression (Iter first, Iter last) {
     prog = additive_expression(first, last);
     if (prog == first)
       throw std::runtime_error("Expected an additive-(or lower)-expression");
+    first = prog;
   }
+  return first;
 }
 
 template <typename Iter>
@@ -132,7 +194,9 @@ Iter equality_expression (Iter first, Iter last) {
     prog = relational_expression(first, last);
     if (prog == first)
       throw std::runtime_error("Expected an equality-(or lower)-expression");
+    first = prog;
   }
+  return first;
 }
 
 template <typename Iter>
@@ -151,7 +215,9 @@ Iter and_expression (Iter first, Iter last) {
     prog = equality_expression(first, last);
     if (prog == first)
       throw std::runtime_error("Expected an equality-(or lower)-expression");
+    first = prog;
   }
+  return first;
 }
 
 template <typename Iter>
@@ -170,7 +236,9 @@ Iter or_expression (Iter first, Iter last) {
     prog = and_expression(first, last);
     if (prog == first)
       throw std::runtime_error("Expected an and-(or lower)-expression");
+    first = prog;
   }
+  return first;
 }
 
 void parse_predicate (std::string const& str) {
