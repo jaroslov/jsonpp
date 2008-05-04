@@ -50,6 +50,26 @@ There are a number of concepts defined in the RDSTL. These concepts are mostly o
   * `Tag` : some tag associated with a modeling of `R` as a recursive data-structure
   * `tag` : some instance of `Tag`
 
+== Reference Union ==
+
+Any data type that supports _any_ of the following concepts must also satisfy the concept `ReferenceUnion`. The `ReferenceUnion` concept has two carrier types, `R` and `Tag`. It has the following valid expressions.
+
+  * `Q` : some type that is a `ReferenceUnion`
+  * `q` : some instance of `Q`
+  * `T` : some type within `R`
+  * `t` : an instance of `T`
+
+|| *Expression* || *Meaning* || *Note* ||
+|| `q = &t;` || assignment from reference to type in `R` || must support at least all the types in `R` ||
+
+The concept follows; it is modified to carry a third type, because `ReferenceUnion` refines the `DiscriminatedUnion` type.
+
+{{{
+concept ReferenceUnion<typename Q, typename T, typename Tag> {
+  Q& operator = (Q&, T const*);
+}
+}}}
+
 == Tag Concept ==
 
 The `Tag` concept has two carrier types, `R` and `Tag`.
