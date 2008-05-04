@@ -109,11 +109,25 @@ struct valued {
     if (0 != t) this->value = *t;
     return *this;
   }
-  operator T () const {
+  const T* operator -> () const {
+    return &this->value;
+  }
+  T const& operator * () const {
     return this->value;
   }
-  operator T& () {
-    return this->value;
+  const T* get () const {
+    return &this->value;
+  }
+
+  friend bool operator < (valued<T> const& L, valued<T> const& R) {
+    return L.get() < R.get();
+  }
+
+  template <typename Char>
+  friend std::basic_ostream<Char>&
+  operator << (std::basic_ostream<Char>& bostr, valued<T> const& V) {
+    bostr << V.get();
+    return bostr;
   }
 
   T value;
