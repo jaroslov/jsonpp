@@ -16,6 +16,15 @@
 
 namespace xpgtl {
 
+template <typename String>
+struct self_valued_string : String {
+  self_valued_string (String const& str=String()) : String(str) {}
+
+  std::string as_string () const {
+    return std::string(this->begin(), this->end());
+  }
+};
+
 template <typename T, typename A, typename X>
 std::string tag (std::list<T,A> const& v, xpath<X> x) {
   return "list";
@@ -31,6 +40,10 @@ std::string tag (std::set<V,C,A> const& v, xpath<X> x) {
 template <typename T, typename X>
 std::string tag (std::basic_string<T> const& str, xpath<X> x) {
   return "string";
+}
+template <typename S, typename X>
+std::string tag (self_valued_string<S> const& str, xpath<X> x) {
+  return str.as_string();
 }
 template <typename T, typename A, typename X>
 std::string tag (std::vector<T,A> const& v, xpath<X> x) {

@@ -93,6 +93,32 @@ struct value_union {
   typedef typename T::reference_union type;
 };
 
+// takes a reference (T const*) to T, and stores the value
+// of T
+template <typename T>
+struct valued {
+  valued () : value() {}
+  valued (valued<T> const& V) : value(V.value_) {}
+  valued<T>& operator = (valued<T> const& V) {
+    this->value = V.value; return *this;
+  }
+  valued<T>& operator = (T const& t) {
+    this->value = t; return *this;
+  }
+  valued<T>& operator = (T const* t) {
+    if (0 != t) this->value = *t;
+    return *this;
+  }
+  operator T () const {
+    return this->value;
+  }
+  operator T& () {
+    return this->value;
+  }
+
+  T value;
+};
+
 }
 
 #endif//RDST_LIBRARY
