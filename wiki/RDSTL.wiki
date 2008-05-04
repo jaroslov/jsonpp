@@ -73,6 +73,17 @@ concept ReferenceUnion<typename Q, typename T, typename Tag> {
 
 For C++ compatibility, membership is specified by specialization of the `reference_union<R, Tag>` metafunction.
 
+=== Valued ===
+
+Sometimes you will want to store an object that looks like a pointer-like object, but stores its reference by value as a proxy. The parametrized type `valued` is defined within the `rdstl` namespace. It satisfies the requirement for the value-type of the `ReferenceUnion` while storing the object referred to internally. See the `valued` definition for internal details. The way to use it is this:
+
+{{{
+valued<std::size_t> vsz;
+std::size_t sz = 10;
+vsz = &sz; // puts sz's value into vsz
+std::cout << *vsz << std::endl; // prints "10"
+}}}
+
 == Tag Concept ==
 
 The `Tag` concept has two carrier types, `R` and `Tag`.
