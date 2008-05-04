@@ -36,28 +36,18 @@ struct query_generator {
   struct sibling_base {
 
     template <typename Visitor>
-    void handle_preceding_sibling (Visitor const& V) const {
-      // set the current axis name to "self"
-      const axis_t::name_e old_name = (*V.path)[this->axis].name;
-      V.path->axes[this->axis].name = axis_t::self;
+    void handle_preceding_sibling_ (Visitor const& V) const {
       for (Iterator iter=this->first; iter!=this->self; ++iter)
         rdstl::visit(V, *iter);
-      // unset the axis name
-      V.path->axes[this->axis].name = old_name;
     }
 
     template <typename Visitor>
-    void handle_following_sibling (Visitor const& V) const {
+    void handle_following_sibling_ (Visitor const& V) const {
       if (this->self == this->last)
         return;
-      // set the current axis name to "self"
-      const axis_t::name_e old_name = (*V.path)[this->axis].name;
-      V.path->axes[this->axis].name = axis_t::self;
       Iterator iter = self; ++iter;
       for ( ; iter!=this->last; ++iter)
         rdstl::visit(V, *iter);
-      // unset the axis name
-      V.path->axes[this->axis].name = old_name;
     }
 
     void set_siblings (Iterator first, Iterator self, Iterator last) {
@@ -69,9 +59,9 @@ struct query_generator {
   };
   template <typename Node> struct sibling_base<Node,void> {
     template <typename Visitor>
-    void handle_preceding_sibling (Visitor const& V) const {}
+    void handle_preceding_sibling_ (Visitor const& V) const {}
     template <typename Visitor>
-    void handle_following_sibling (Visitor const& V) const {}
+    void handle_following_sibling_ (Visitor const& V) const {}
     template <typename Iter>
     void set_siblings (Iter, Iter, Iter);
   };
@@ -245,14 +235,51 @@ struct query_generator {
       this->handle_ancestor(t);
     }
 
+    void handle_preceding_sibling () const {
+      // set the current axis name to "self"
+      const axis_t::name_e old_name = (*this->path)[this->axis].name;
+      this->path->axes[this->axis].name = axis_t::self;
+      this->handle_preceding_sibling_(*this);
+      // unset the axis name
+      this->path->axes[this->axis].name = old_name;
+    }
+    void handle_following_sibling () const {
+      // set the current axis name to "self"
+      const axis_t::name_e old_name = (*this->path)[this->axis].name;
+      this->path->axes[this->axis].name = axis_t::self;
+      this->handle_preceding_sibling_(*this);
+      // unset the axis name
+      this->path->axes[this->axis].name = old_name;
+    }
+
+    template <typename T>
+    void handle_preceding_ancestor_ (T const& t) const {
+      this->handle_parent_internal_(t);
+    }
+
+    template <typename T>
+    void handle_following_ancestor_ (T const& t) const {
+      this->handle_parent_internal_(t);
+    }
+
     template <typename T>
     void handle_preceding (T const& t) const {
-      throw std::runtime_error("Must move a stack-based system.");
+      this->handle_preceding_ancestor_(t);
+      const axis_t::name_e old_name = (*this->path)[this->axis].name;
+      this->path->axes[this->axis].name = axis_t::descendent;
+      this->handle_preceding_sibling_(*this);
+      // put original name on the path-stack
+      this->path->axes[this->axis].name = old_name;
     }
 
     template <typename T>
     void handle_following (T const& t) const {
-      throw std::runtime_error("Must move a stack-based system.");
+      this->handle_following_ancestor_(t);
+      const axis_t::name_e old_name = (*this->path)[this->axis].name;
+      this->path->axes[this->axis].name = axis_t::descendent;
+      this->handle_following_sibling_(*this);
+      // put original name on the path-stack
+      this->path->axes[this->axis].name = old_name;
     }
 
     template <typename T>
@@ -312,14 +339,14 @@ struct query_generator {
       case axis_t::descendent: this->handle_descendent(t); break;
       case axis_t::descendent_or_self: this->handle_descendent_or_self(t); break;
       case axis_t::following: this->handle_following(t); break;
-      case axis_t::following_sibling: this->handle_following_sibling(*this); break;
+      case axis_t::following_sibling: this->handle_following_sibling(); break;
       case axis_t::namespace_: {
           // honestly, this shit makes no sense
           throw std::runtime_error("Unsupported axis-name: namespace");
         } break;
       case axis_t::parent: this->handle_parent(t); break;
       case axis_t::preceding: this->handle_preceding(t); break;
-      case axis_t::preceding_sibling: this->handle_preceding_sibling(*this); break;
+      case axis_t::preceding_sibling: this->handle_preceding_sibling(); break;
       case axis_t::self: this->handle_self(t); break;
       default: std::runtime_error("Unrecognized axis-name.");
       }
