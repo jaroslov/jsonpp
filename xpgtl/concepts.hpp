@@ -22,11 +22,18 @@ template <typename POD, typename X>
 struct builtin_tag_base : boost::mpl::true_ { typedef std::string type; };
 
 // attributes metafunction; if "true" then the type T
-// has attributes, the discriminated union type that
-// stores references (pointer-like objects) to the attributes
-// are located at: has_attributes<T,Tag>::type
+// has attributes; the value of the attributes must fit
+// within the reference_union of T
 template <typename T, typename Tag>
 struct has_attributes : boost::mpl::false_ {};
+
+// this is here just to demonstrate *what* the attribute-acquisition
+// function looks like
+struct no_attr {};
+template <typename T, typename Tag>
+no_attr attribute (T, std::string, Tag) {
+  return no_attr();
+}
 
 }  // end xpgtl namespace
 
