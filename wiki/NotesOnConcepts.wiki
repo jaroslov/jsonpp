@@ -1,0 +1,63 @@
+#summary Some notes on concepts.
+
+= Why do we use tagged concepts? =
+
+Most concepts that you are familiar with operate on a single carrier type. For instance, consider a concept describing a reference type with pointer-like syntax:
+
+{{{
+concept PointerLike<typename X> {
+  typename value_type = X::value_type; // default acquisition
+  value_type& operator * (X&);
+  value_type const& operator * (X);
+  value_type* operator -> (X&);
+  value_type const* operator -> (X);
+}
+}}}
+
+Now, let us assume we have some concept `Foo` which needs an associated type of `PointerLike`:
+
+{{{
+concept Foo<typename X> {
+  PointerLike ref_type = X::ref_type;
+  // rest of concept...
+}
+}}}
+
+And let us say that some type `B` satisfies the requirements of `Foo` as long as `int` is the associated type named `ref_type`. So, we quickly begin writing the modeling relationship for `int` to `PointerLike`.
+
+The problem is that almost assuredly `int` does not satisfy the `PointerLike` concept _in general_ , only in the specific context of `Foo`. While there are sophisticated methods of solving this problem, the easiest way to is to add a "tag" to a concept which refines `PointerLike`:
+
+{{{
+concept PointerLikeT<typename X, typename Tag> : PointerLike<X> {}
+}}}
+
+And now we write the satisfaction problem as `int` and some tag satisfies `PointerLikeT`, which in the correct context, satisfies `Foo`.
+
+= Why do you say that `DiscriminatedUnion` is not a legal concept? =
+
+This works just fine. However, consider a concept for a type which you can assign multiple types to:
+
+{{{
+concept TypeSafeMultiassignable<typename X> {
+  typename value_type = X::value_type;
+  X& operator = (X&, value_type);
+}
+}}}
+
+Our intention was to have a _family_ of types which can be assigned to `X`. However, due to the design of concepts within ConceptC++, this is not (currently) possible. Note that we cannot "parametrize" the assignment operator, because the type of assignment must be an associated type of the concept. We could imagine some sort of extension to ConceptC++ using the variadic-template mechanism from C++0x. However, there are some nontrivial problems that occur when these are added. (For more information, please feel free to contact me.)
+
+{{{
+concept TypeSafeMultiassignable<typename X, typename... Y> {
+  X& operator = (X&, Y);
+}
+}}}
+
+Another solution would be to create a concept that has two carrier types, one representing the type to be assigned to, and one representing the assigning type.
+
+{{{
+concept TypeSafeMultiassignable<typename X, typename Y> {
+  X& operator = (X&, Y);
+}
+}}}
+
+It turns out that while verbose, this does work to a certain extent... except when actually writing functions that require this. The problem is that the function must know to place a variable number of `requires`-clauses as constraints to the function. But, we already know that the concept-system does not allow this. In all actuality, there is no good solution, beyond a language extension.
