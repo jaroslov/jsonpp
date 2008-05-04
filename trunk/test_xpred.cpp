@@ -1,249 +1,137 @@
-#include <xpgtl/predicate.hpp>
+//#include <xpgtl/predicate.hpp>
 #include <string>
 #include <stdexcept>
 
-template <typename Iter1, typename Iter2>
-Iter1 eat_literal (Iter1 first, Iter1 last, Iter2 lfirst, Iter2 llast) {
-  const Iter1 orig = first;
-  while (first != last and lfirst != llast and *lfirst == *first)
-    ++lfirst, ++first;
-  if (lfirst != llast)
-    return orig;
-  return first;
-}
+template <typename String>
+struct token_t 
+  typedef String string_t;
+  typedef token_t<string_t> self_type;
 
-template <typename Iter>
-Iter eat_literal (Iter first, Iter last, std::string const& lit) {
-  return eat_literal(first, last, lit.begin(), lit.end());
-}
+  token_t () : value() {}
 
-template <typename Iter>
-Iter relative_location_path (Iter first, Iter last) {
-  return first;
-}
+  friend bool operator == (self_type const& L, self_type const& R)
+    { return L.value == R.value; }
+  friend bool operator == (string_t const& L, self_type const& R)
+    { return L == R.value; }
+  friend bool operator == (self_type const& L, string_t const& R)
+    { return L.value == R; }
+  friend bool operator != (self_type const& L, self_type const& R)
+    { return L.value != R.value; }
+  friend bool operator != (string_t const& L, self_type const& R)
+    { return L != R.value; }
+  friend bool operator != (self_type const& L, string_t const& R)
+    { return L.value != R; }
 
-template <typename Iter>
-Iter location_path (Iter first, Iter last) {
-  return first;
-}
+  template <typename Iter>
+  Iter possibly_two (Iter first, Iter last, char Next) {
+    if (first != last and Next == *(first+1)) {
+      this->value = string_t(first, first+2);
+      ++first;
+    } else
+      this->value = string_t(1, *first);
+    ++first;
+    return first;
+  }
 
-template <typename Iter>
-Iter filter_expression (Iter first, Iter last) {
-  return first;
-}
+  template <typename Iter, typename SIter>
+  Iter terminal (Iter first, Iter last, SIter begin, SIter end) {
+    if (first == last or begin == end) return first;
+    Iter init = first;
+    while (first != last and begin != end and *first == *begin)
+      ++first, ++begin;
+    if (begin != end)
+      return init;
+    this->value = string_t(init, first);
+    return first;
+  }
 
-template <typename Iter>
-Iter path_expression (Iter first, Iter last) {
-  if (first == last) return first;
-  Iter prog = location_path(first, last);
-  if (prog == first) {
-    prog = filter_expression(first, last);
-    if (prog == first)
-      throw std::runtime_error("Nonterminating path-expression");
-    first = prog;
-    prog = eat_literal(first, last, "//");
-    if (prog == first) {
-      prog = eat_literal(first, last, "/");
-      if (prog != first) {
-        first = prog;
-        prog = relative_location_path(first, last);
-        if (prog == first)
-          throw std::runtime_error("Expected relative location path.");
-        first = prog;
+  template <typename Iter>
+  Iter terminal (Iter first, Iter last, std::string const& term) {
+    return this->terminal(first, last, term.begin(), term.end();
+  }
+
+  template <typename Iter>
+  Iter number (Iter first, Iter last) {
+    if (first == last) return first;
+    Iter init = first;
+    throw std::runtime_error("Digits not implemented.");
+    return first;
+  }
+
+  template <typename Iter>
+  Iter eat (Iter first, Iter last) {
+    if (first == last) return first;
+    Iter prog;
+    switch (*first) {
+    case '(': case ')': case '[': case ']': case '@': case ',':
+    case '|': case '+': case '-': case '*': case '=': // single-char tokens
+      this->value = string_t(1, *first); ++first; break;
+    case '.': {
+        first = this->possibly_two(first, last, '.');
+      } break;
+    case '/': {
+        first = this->possibly_two(first, last, '/');
+      } break;
+    case '!': {
+        first = this->possibly_two(first, last, '=');
+      } break;
+    case '<': {
+        first = this->possibly_two(first, last, '=');
+      } break;
+    case '>': {
+        first = this->possibly_two(first, last, '=');
+      } break;
+    case ':': {
+        if (first != last and ':' == *(first+1)) {
+          this->value = string_t(first, first+2);
+          ++first;
+        } else
+          throw std::runtime_error("Expected another `:`.");
+        ++first;
+      } break;
+    case '\"': {
+        while (first != last and '\"' != *first)
+          ++first;
+        if ('\"' == *first) ++first;
+        else throw std::runtime_error("Expected another `\"`.");
+      } break;
+    case '\'': {
+        while (first != last and '\'' != *first)
+          ++first;
+        if ('\'' == *first) ++first;
+        else throw std::runtime_error("Expected another `\'`.");
+      } break;
+    default: { // test the various terminals
+        prog = this->terminal(first, last, "and");
+        if (prog != first) return prog;
+        prog = this->terminal(first, last, "or");
+        if (prog != first) return prog;
+        prog = this->terminal(first, last, "div");
+        if (prog != first) return prog;
+        prog = this->terminal(first, last, "mod");
+        if (prog != first) return prog;
+        prog = this->terminal(first, last, "comment");
+        if (prog != first) return prog;
+        prog = this->terminal(first, last, "text");
+        if (prog != first) return prog;
+        prog = this->terminal(first, last, "processing-instruction");
+        if (prog != first) return prog;
+        prog = this->terminal(first, last, "node");
+        if (prog != first) return prog;
+        prog = this->number(first, last);
+        if (prog != first) return prog;
+        prog = this->qname(first, last);
+        if (prog != first) return prog;
       }
     }
+    return first;
   }
-  return first;
-}
 
-template <typename Iter>
-Iter union_expression (Iter first, Iter last) {
-  if (first == last) return first;
-  Iter prog = path_expression(first, last);
-  if (prog == first) {
-    Iter prog = union_expression(first, last);
-    if (prog == first)
-      throw std::runtime_error("Nonterminating union-expression");
-    first = prog;
-    prog = eat_literal(first, last, "|");
-    if (prog == first)
-      throw std::runtime_error("Expected literal `|`.");
-    first = prog;
-    prog = path_expression(first, last);
-    if (prog == first)
-      throw std::runtime_error("Expected an union-(or lower)-expression");
-    first = prog;
-  }
-  return first;
-}
+  string value;
+};
 
-template <typename Iter>
-Iter unary_expression (Iter first, Iter last) {
-  if (first == last) return first;
-  Iter prog = union_expression(first, last);
-  if (prog == first) {
-    prog = eat_literal(first, last, "-");
-    if (prog == first)
-      throw std::runtime_error("Expected literal `-`.");
-    first = prog;
-    Iter prog = unary_expression(first, last);
-    if (prog == first)
-      throw std::runtime_error("Nonterminating unary-expression");
-    first = prog;
-  }
-  return first;
-}
-
-template <typename Iter>
-Iter multiplicative_expression (Iter first, Iter last) {
-  if (first == last) return first;
-  Iter prog = unary_expression(first, last);
-  if (prog == first) {
-    Iter prog = multiplicative_expression(first, last);
-    if (prog == first)
-      throw std::runtime_error("Nonterminating multiplicative-expression");
-    first = prog;
-    prog = eat_literal(first, last, "*");
-    if (prog == first) {
-      prog = eat_literal(first, last, "div");
-      if (prog == first) {
-        prog = eat_literal(first, last, "mod");
-        if (prog == first)
-          throw std::runtime_error("Expected literal `*`|`div`|`mod`.");
-      }
-    }
-    first = prog;
-    prog = unary_expression(first, last);
-    if (prog == first)
-      throw std::runtime_error("Expected an multiplicative-(or lower)-expression");
-    first = prog;
-  }
-  return first;
-}
-
-template <typename Iter>
-Iter additive_expression (Iter first, Iter last) {
-  if (first == last) return first;
-  Iter prog = multiplicative_expression(first, last);
-  if (prog == first) {
-    Iter prog = additive_expression(first, last);
-    if (prog == first)
-      throw std::runtime_error("Nonterminating additive-expression");
-    first = prog;
-    prog = eat_literal(first, last, "+");
-    if (prog == first) {
-      prog = eat_literal(first, last, "-");
-      if (prog == first)
-        throw std::runtime_error("Expected literal `and`.");
-    }
-    first = prog;
-    prog = multiplicative_expression(first, last);
-    if (prog == first)
-      throw std::runtime_error("Expected an additive-(or lower)-expression");
-    first = prog;
-  }
-  return first;
-}
-
-template <typename Iter>
-Iter relational_expression (Iter first, Iter last) {
-  if (first == last) return first;
-  Iter prog = additive_expression(first, last);
-  if (prog == first) {
-    Iter prog = relational_expression(first, last);
-    if (prog == first)
-      throw std::runtime_error("Nonterminating relational-expression");
-    first = prog;
-    prog = eat_literal(first, last, "<");
-    if (prog == first) {
-      prog = eat_literal(first, last, ">");
-      if (prog == first) {
-        prog = eat_literal(first, last, "<=");
-        if (prog == first) {
-          prog = eat_literal(first, last, ">=");
-          if (prog == first)
-            throw std::runtime_error("Expected literal `<`|`>`|`<=`|`>=`.");
-        }
-      }
-    }
-    first = prog;
-    prog = additive_expression(first, last);
-    if (prog == first)
-      throw std::runtime_error("Expected an additive-(or lower)-expression");
-    first = prog;
-  }
-  return first;
-}
-
-template <typename Iter>
-Iter equality_expression (Iter first, Iter last) {
-  if (first == last) return first;
-  Iter prog = relational_expression(first, last);
-  if (prog == first) {
-    Iter prog = equality_expression(first, last);
-    if (prog == first)
-      throw std::runtime_error("Nonterminating equality-expression");
-    first = prog;
-    prog = eat_literal(first, last, "=");
-    if (prog == first) {
-      prog = eat_literal(first, last, "!=");
-      if (prog == first)
-        throw std::runtime_error("Expected literal `and`.");
-    }
-    first = prog;
-    prog = relational_expression(first, last);
-    if (prog == first)
-      throw std::runtime_error("Expected an equality-(or lower)-expression");
-    first = prog;
-  }
-  return first;
-}
-
-template <typename Iter>
-Iter and_expression (Iter first, Iter last) {
-  if (first == last) return first;
-  Iter prog = equality_expression(first, last);
-  if (prog == first) {
-    Iter prog = and_expression(first, last);
-    if (prog == first)
-      throw std::runtime_error("Nonterminating and-expression");
-    first = prog;
-    prog = eat_literal(first, last, "and");
-    if (prog == first)
-      throw std::runtime_error("Expected literal `and`.");
-    first = prog;
-    prog = equality_expression(first, last);
-    if (prog == first)
-      throw std::runtime_error("Expected an equality-(or lower)-expression");
-    first = prog;
-  }
-  return first;
-}
-
-template <typename Iter>
-Iter or_expression (Iter first, Iter last) {
-  if (first == last) return first;
-  Iter prog = and_expression(first, last);
-  if (prog == first) {
-    Iter prog = or_expression(first, last);
-    if (prog == first)
-      throw std::runtime_error("Nonterminating or-expression");
-    first = prog;
-    prog = eat_literal(first, last, "or");
-    if (prog == first)
-      throw std::runtime_error("Expected literal `or`.");
-    first = prog;
-    prog = and_expression(first, last);
-    if (prog == first)
-      throw std::runtime_error("Expected an and-(or lower)-expression");
-    first = prog;
-  }
-  return first;
-}
-
-void parse_predicate (std::string const& str) {
-  or_expression(str.begin(), str.end());
-}
+struct parser {
+};
 
 int main (int argc, char *argv[]) {
 
