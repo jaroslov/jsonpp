@@ -27,7 +27,7 @@ A _root_ recursive data-structure (in the code above, the instance `r`) must sat
 
 The XPGTL defines one additional concept, in addition to a class of "tags" for compatibility with the C++ compatibility layer of the RDSTL.
 
-For compatibility with the [BEL BEL] and the C++ layer, the parameterized tag `xpath` is provided within the `xpgtl` namespace. The default is to use the "root" recursive data-structure type as the instantiation of the parameter of the `xpath` tag. Thus, within this code:
+For compatibility with the [BeginEndLibrary BEL] and the C++ layer, the parameterized tag `xpath` is provided within the `xpgtl` namespace. The default is to use the "root" recursive data-structure type as the instantiation of the parameter of the `xpath` tag. Thus, within this code:
 
 {{{
 R r;
