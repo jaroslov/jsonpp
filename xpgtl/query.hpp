@@ -342,6 +342,8 @@ struct query_generator {
       case axis_t::following_sibling: this->handle_following_sibling(); break;
       case axis_t::namespace_: {
           // honestly, this shit makes no sense
+          // basically, we'd be recursing on the instantiated type
+          // of the "xpath<*>" tag
           throw std::runtime_error("Unsupported axis-name: namespace");
         } break;
       case axis_t::parent: this->handle_parent(t); break;
