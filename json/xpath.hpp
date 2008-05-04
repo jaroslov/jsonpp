@@ -147,7 +147,8 @@ namespace rdstl {
       typename JSONpp::json_gen::array_t const*,
       typename JSONpp::json_gen::bool_t const*,
       typename JSONpp::json_gen::null_t const*,
-      JSONpp::entry<typename JSONpp::json_gen::object_t> const*
+      JSONpp::entry<typename JSONpp::json_gen::object_t> const*,
+      rdstl::valued<std::size_t>
       > type;
   };
 
