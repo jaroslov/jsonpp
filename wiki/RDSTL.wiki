@@ -29,7 +29,7 @@ Internally, the visitor must satisfy the `Boost.StaticVisitor` concept. A `Stati
 || `result_type` || the associated resultant type || _see below_ ||
 || `v.operator () (const T`,,i,,`&) const` || visitor _call_ operation || the return type is `result_type` ||
 
-The discriminated union concept captures both the union and the visitor for the union.
+The discriminated union concept captures both the union and the visitor for the union. (See [NotesOnConcepts the notes on concepts].)
 
 {{{
 concept DiscriminatedUnion<typename U, typename V> {
