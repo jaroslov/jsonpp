@@ -19,7 +19,7 @@ std::set<std::string const*> result
 
 A query is performed by calling the XPGTL function `query` with a string representing an XPath statement, and an instance of a data-structure satisfying the proper concepts. In this case, an `as` statement is used to filter the result-set to be only `std::string` and to return that set.
 
-_ *Note* because the type of `result_set` uses the `std::set`, all types within the type `reference_union` *must* have the strict-less-than operator defined on them (`operator <`)_
+_ *Note* because the type of `result_set` uses the `std::set`, all types within the type `reference_union` *must* have the strict-less-than operator defined on them (`operator <`)._
 
 A _root_ recursive data-structure (in the code above, the instance `r`) must satisfy at least one `DiscriminatedUnion` carrier. For non-trivial functionality the children of the recursive data-structure should satisfy the RDSTL `Children` concept, where appropriate. The XPGTL emulates "parent" support when the recursive data-structure does not support it, however, since it cannot guarantee to find the root element, XPath statements using the "parent", "ancestor", or "ancestor-or-self" axes may not return correct results according to the standard. (This is because the standard assumes that the root is always available from any node.)
 
