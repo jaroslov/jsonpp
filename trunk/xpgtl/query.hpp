@@ -185,11 +185,10 @@ struct query_generator {
     template <typename T>
     void handle_self (T const& t) const {
       const xpgtl::axis_t Axis = (*this->path)[this->axis];
-      const String axis_test   = this->path->test(this->axis);
       const String self_tag    = tag(t, xpath_t());
 
-      if (self_tag == axis_test
-        or (Axis.function and "node" == axis_test)) {
+      if ((Axis.function and axis_t::Node == Axis.test)
+        or (self_tag == this->path->test(this->axis))) {
         visitor<T> V(&t, this->path, this->axis+1, this, this->result_set);
 #ifdef XPGTL_DEBUG
         V.recursion_depth = this->recursion_depth+1;
