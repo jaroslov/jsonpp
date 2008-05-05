@@ -97,7 +97,11 @@ struct value_union {
 // of T
 template <typename T>
 struct valued {
-  valued (T const& t=T()) : value(t) {}
+  valued () : value() {}
+  explicit valued (T const& t) : value(t) {}
+  valued (const T* t) : value() {
+    if (0 != t) this->value = *t;
+  }
   valued (valued<T> const& V) : value(V.value) {}
   valued<T>& operator = (valued<T> const& V) {
     this->value = V.value; return *this;
@@ -105,7 +109,7 @@ struct valued {
   valued<T>& operator = (T const& t) {
     this->value = t; return *this;
   }
-  valued<T>& operator = (T const* t) {
+  valued<T>& operator = (const T* t) {
     if (0 != t) this->value = *t;
     return *this;
   }

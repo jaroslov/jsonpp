@@ -104,7 +104,8 @@ struct query_generator {
     template <typename T>
     typename boost::enable_if<has_attributes<T,xpath_t> >::type
     handle_attribute (T const& t) const {
-      std::string attr = this->path->test(this->axis);
+      const std::string attr = this->path->test(this->axis);
+      attribute(t, attr, xpath_t());
       std::cout << "HANDLE ATTRIBUTE: " << attr << std::endl;
     }
 
