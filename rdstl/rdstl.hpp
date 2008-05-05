@@ -97,6 +97,8 @@ struct value_union {
 // of T
 template <typename T>
 struct valued {
+  typedef T value_type;
+
   valued () : value() {}
   explicit valued (T const& t) : value(t) {}
   valued (const T* t) : value() {
