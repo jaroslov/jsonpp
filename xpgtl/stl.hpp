@@ -4,6 +4,8 @@
 #include <rdstl/rdstl.hpp>
 // BEL
 #include <bel/begin-end.hpp>
+// boost
+#include <boost/variant.hpp>
 // STL
 #include <list>
 #include <map>
@@ -25,18 +27,62 @@ struct self_valued_string : String {
   }
 };
 
+typedef boost::variant<
+  rdstl::valued<std::size_t>,
+  rdstl::valued<bool>
+  > stl_reference_union;
+
+template <typename C, typename X>
+stl_reference_union
+common_stl_attribute_selector (C const& c, std::string const& attr, X) {
+  stl_reference_union sru;
+  if ("size" == attr) {
+    std::size_t size = c.size();
+    sru = &size;
+  } else if ("empty" == attr) {
+    bool empty = c.empty();
+    sru = &empty;
+  }
+  return sru;
+}
+
+// list
 template <typename T, typename A, typename X>
 std::string tag (std::list<T,A> const& v, xpath<X> x) {
   return "list";
 }
+template <typename T, typename A, typename X>
+struct has_attributes<std::list<T,A>,X> : boost::mpl::true_ {};
+template <typename T, typename A, typename X>
+stl_reference_union
+attribute (std::list<T,A> const& v, std::string const& attr, X x) {
+  return common_stl_attribute_selector(v,attr,x);
+}
+// map
 template <typename K, typename V, typename C, typename A, typename X>
 std::string tag (std::map<K,V,C,A> const& v, xpath<X> x) {
   return "map";
 }
+template <typename K, typename V, typename C, typename A, typename X>
+struct has_attributes<std::map<K,V,C,A>,X> : boost::mpl::true_ {};
+template <typename K, typename V, typename C, typename A, typename X>
+stl_reference_union
+attribute (std::map<K,V,C,A> const& v, std::string const& attr, X x) {
+  return common_stl_attribute_selector(v,attr,x);
+}
+// set
 template <typename V, typename C, typename A, typename X>
 std::string tag (std::set<V,C,A> const& v, xpath<X> x) {
   return "set";
 }
+template <typename V, typename C, typename A, typename X>
+struct has_attributes<std::set<V,C,A>,X> : boost::mpl::true_ {};
+template <typename V, typename C, typename A, typename X>
+stl_reference_union
+attribute (std::set<V,C,A> const& v, std::string const& attr, X x) {
+  return common_stl_attribute_selector(v,attr,x);
+}
+// string
 template <typename T, typename X>
 std::string tag (std::basic_string<T> const& str, xpath<X> x) {
   return "string";
@@ -45,9 +91,17 @@ template <typename S, typename X>
 std::string tag (self_valued_string<S> const& str, xpath<X> x) {
   return str.as_string();
 }
+// vector
 template <typename T, typename A, typename X>
 std::string tag (std::vector<T,A> const& v, xpath<X> x) {
   return "vector";
+}
+template <typename T, typename A, typename X>
+struct has_attributes<std::vector<T,A>,X> : boost::mpl::true_ {};
+template <typename T, typename A, typename X>
+stl_reference_union
+attribute (std::vector<T,A> const& v, std::string const& attr, X x) {
+  return common_stl_attribute_selector(v,attr,x);
 }
 
 /*
