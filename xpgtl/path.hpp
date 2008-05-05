@@ -26,6 +26,11 @@ struct axis_t {
   static const index_t None = -1;
   static const index_t WildCard = -2;
   static const index_t NilPredicate = -2;
+  // special NodeType
+  static const index_t Comment = -4;
+  static const index_t Text = -5;
+  static const index_t ProcessingInstruction = -6;
+  static const index_t Node = -7;
   enum name_e {
     unknown = 'U',
     ancestor = 'a',
@@ -280,8 +285,7 @@ private:
           }
           // emulates a function-name: node ()
           tokens.push_back(token_t(axis_t::unknown,token_t::axis_test,
-                                    strstore.size(),true));
-          strstore.push_back("node");
+                                    axis_t::Node,true));
           ++first;
         } break;
       case '*': { // wild card
@@ -300,16 +304,26 @@ private:
           skm_citer is_axis_name = this->str_kind_map.find(id);
           if ((this->str_kind_map.end() == is_axis_name)
             or (':' != *first)) { // if it is an axis-name, has to have a '::'
-            tokens.push_back(token_t(axis_t::unknown,token_t::axis_test,
-                                      strstore.size()));
-            strstore.push_back(id);
+            token_t test(axis_t::unknown,token_t::axis_test, strstore.size());
             // if it is followed by a '()' then it is a function, as well
             if ('(' == *first) {
               ++first; if ((first == last) or (')' != *first))
                 throw std::runtime_error("(lexer) missing closing `)` in `()`");
               ++first;
               tokens.back().function = true;
-            }
+              if (to_str("node") == id)
+                test.index = axis_t::Node;
+              else if (to_str("text") == id)
+                test.index = axis_t::Text;
+              else if (to_str("comment") == id)
+                test.index = axis_t::Comment;
+              else if (to_str("processing-instruction") == id)
+                test.index = axis_t::ProcessingInstruction;
+              else
+                strstore.push_back(id);
+            } else
+              strstore.push_back(id);
+            tokens.push_back(test);
           } else {
             if ((last == first) or (':' != *(first+1)))
               throw std::runtime_error("(lexer) missing second `:` in `::`");
@@ -372,7 +386,7 @@ struct path {
       case axis_t::preceding_sibling: bostr << "preceding-sibling::"; break;
       case axis_t::self:
         if (P.axes[a].function) {
-          if (P.test(a) == "node") {
+          if (axis_t::Node == P.axes[a].test) {
             refuse_function = abbreviated(bostr);
             bostr << (abbreviated(bostr)?".":"self::"); break;
           } else
