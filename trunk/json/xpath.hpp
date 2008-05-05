@@ -140,15 +140,16 @@ namespace JSONpp {
 namespace rdstl {
   template <typename X> struct reference_union<JSONpp::json_v, xpgtl::xpath<X> > {
     typedef boost::variant<
-      typename JSONpp::json_gen::value_t const*,
-      typename JSONpp::json_gen::string_t const*,
-      typename JSONpp::json_gen::number_t const*,
-      typename JSONpp::json_gen::object_t const*,
-      typename JSONpp::json_gen::array_t const*,
-      typename JSONpp::json_gen::bool_t const*,
-      typename JSONpp::json_gen::null_t const*,
-      JSONpp::entry<typename JSONpp::json_gen::object_t> const*,
-      rdstl::valued<std::size_t>
+      typename JSONpp::json_gen::value_t const*,  // store values (never used)
+      typename JSONpp::json_gen::string_t const*, // store strings
+      typename JSONpp::json_gen::number_t const*, // store "numbers" (double)
+      typename JSONpp::json_gen::object_t const*, // store objects
+      typename JSONpp::json_gen::array_t const*,  // store arrays
+      typename JSONpp::json_gen::bool_t const*,   // store booleans
+      typename JSONpp::json_gen::null_t const*,   // store Null
+      JSONpp::entry<typename JSONpp::json_gen::object_t> const*, // proxy; never used, for completeness
+      rdstl::valued<std::size_t>, // store the size-attribute
+      rdstl::valued<bool> // store the empty-attribute
       > type;
   };
 

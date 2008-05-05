@@ -66,6 +66,17 @@ struct query_generator {
     void set_siblings (Iter, Iter, Iter);
   };
 
+  template <typename Visitor>
+  struct visit_reference_union {
+    typedef void result_type;
+    template <typename T>
+    void operator () (T const& t) const {
+      // simply call onto the visitor we point to
+      (*this->visitor)(*t);
+    }
+    const Visitor* visitor;
+  };
+
   template <typename Node, typename Iterator=void>
   struct visitor : public visitor_base, sibling_base<Node,Iterator> {
     typedef Iterator      sibling_iterator;
@@ -104,9 +115,18 @@ struct query_generator {
     template <typename T>
     typename boost::enable_if<has_attributes<T,xpath_t> >::type
     handle_attribute (T const& t) const {
+      // the attribute returns some reference-union
+      // so we need to visit it
       const std::string attr = this->path->test(this->axis);
-      attribute(t, attr, xpath_t());
-      std::cout << "HANDLE ATTRIBUTE: " << attr << std::endl;
+      visitor<T> V(&t, this->path, this->axis+1, this, this->result_set);
+      visit_reference_union<visitor<T> > W;
+      W.visitor = &V;
+      // set the current axis name to "self"
+      const axis_t::name_e old_name = (*this->path)[this->axis].name;
+      this->path->axes[this->axis].name = axis_t::self;
+      rdstl::visit(W, attribute(t, attr, xpath_t()));
+      // unset the axis name
+      this->path->axes[this->axis].name = old_name;
     }
 
     template <typename T>
