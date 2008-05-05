@@ -62,11 +62,12 @@ Any data type that supports _any_ of the following concepts must also satisfy th
 || *Expression* || *Meaning* || *Note* ||
 || `q = &t;` || assignment from reference to type in `R` || must support at least all the types in `R` ||
 
-The concept follows; it is modified to carry a third type, because `ReferenceUnion` refines the `DiscriminatedUnion` type.
+The concept follows; it is modified to carry a third type, because `ReferenceUnion` refines the `DiscriminatedUnion` type. Note that the type `T` must satisfy the standards-compliant concept `Dereferencerable`.
 
 {{{
 concept ReferenceUnion<typename Q, typename T, typename Tag> {
-  Q& operator = (Q&, T const*);
+  requires Dereferenceable<T>;
+  Q& operator = (Q&, T);
 }
 }}}
 
