@@ -10,7 +10,8 @@
 namespace xpgtl {
 
 template <typename String, typename R>
-void Query (String const& str, R const& r) {
+void Query (xpgtl::path<String> const& path, R const& r) {
+  std::cout << "HERE" << std::endl;
 }
 
 }
