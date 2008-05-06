@@ -15,110 +15,80 @@
 namespace xpgtl {
 
   struct abstract_visitor;
-
   struct abstract_iterator {
     virtual ~ abstract_iterator () {}
-    virtual void next () = 0;
-    virtual void prev () = 0;
-    virtual bool eq (abstract_iterator const*) = 0;
-    virtual bool n_eq (abstract_iterator const*) = 0;
-    virtual abstract_visitor* dereference () const = 0;
     virtual abstract_iterator* clone () const = 0;
+    virtual bool eq (abstract_iterator const&) const = 0;
+    virtual bool n_eq (abstract_iterator const&) const = 0;
   };
   struct abstract_visitor {
     virtual ~ abstract_visitor () {}
-    virtual std::pair<abstract_iterator*,abstract_iterator*>
-      get_children () const = 0;
     virtual std::string get_tag () const = 0;
-    virtual bool get_proxy () const = 0;
-    virtual abstract_visitor* get_parent () const = 0;
-    virtual abstract_visitor* get_attribute (std::string const&) const = 0;
-    virtual abstract_visitor* clone () const = 0;
+    virtual std::pair<abstract_iterator*,abstract_iterator*>
+    get_children () const = 0;
   };
-
-  template <typename X, typename Tag> struct make_abstract_visitor;
-  template <typename X, typename Tag> struct abstract_iterator_T;
-  template <typename X, typename Tag> struct abstract_visitor_T;
 
   template <typename X, typename Tag>
   struct abstract_iterator_T : public abstract_iterator {
-    X x;
-    abstract_iterator_T (X const& x=X()) : x(x) {}
     virtual ~ abstract_iterator_T () {}
-    virtual void next () { ++this->x; }
-    virtual void prev () { ++this->x; }
-    virtual bool eq (abstract_iterator const* it) {
-      return this->x == static_cast<const abstract_iterator_T<X,Tag>*>(it)->x;
-    }
-    virtual bool n_eq (abstract_iterator const* it) {
-      return this->x != static_cast<const abstract_iterator_T<X,Tag>*>(it)->x;
-    }
-    virtual abstract_visitor* dereference () const {
-      make_abstract_visitor<X,Tag> M;
-      return 0;
-    }
+    abstract_iterator_T () {}
+    abstract_iterator_T (X const& x) : iterator(x) {}
     virtual abstract_iterator* clone () const {
-      return new abstract_iterator_T<X,Tag>(this->x);
+      return new abstract_iterator_T<X,Tag>(this->iterator);
     }
+    virtual bool eq (abstract_iterator const& atr) const {
+      return this->iterator ==
+        static_cast<abstract_iterator_T<X,Tag> const*>(&atr)->iterator;
+    }
+    virtual bool n_eq (abstract_iterator const& atr) const {
+      return this->iterator !=
+        static_cast<abstract_iterator_T<X,Tag> const*>(&atr)->iterator;
+    }
+    X iterator;
   };
-
   template <typename Tag>
   struct abstract_iterator_T<void,Tag> : public abstract_iterator {
-    template <typename X> abstract_iterator_T (X const& x) {}
-    abstract_iterator_T () {}
     virtual ~ abstract_iterator_T () {}
-    virtual void next () {}
-    virtual void prev () {}
-    virtual bool eq (abstract_iterator const*) { return false; }
-    virtual bool n_eq (abstract_iterator const*) { return true; }
-    virtual abstract_visitor* dereference () const { return 0; }
+    abstract_iterator_T () {}
+    template <typename T> abstract_iterator_T (T) {}
     virtual abstract_iterator* clone () const {
       return new abstract_iterator_T<void,Tag>();
     }
+    virtual bool eq (abstract_iterator const&) const { return false; }
+    virtual bool n_eq (abstract_iterator const&) const { return true; }
   };
-
   template <typename X, typename Tag>
   struct abstract_visitor_T : public abstract_visitor {
-    typedef Tag xpath_t;
-
-    virtual ~ abstract_visitor_T () {}
     abstract_visitor_T (X const& x) : x(&x) {}
+    virtual ~ abstract_visitor_T () {
+      this->x = 0;
+    }
+    virtual std::string get_tag () const {
+      if (0 != this->x)
+        return tag(*this->x, Tag());
+      return "";
+    }
     virtual std::pair<abstract_iterator*,abstract_iterator*>
     get_children () const {
       return this->get_children(this->x);
     }
-    virtual std::string get_tag () const {
-      return tag(*this->x, xpath_t());
-    }
-    virtual bool get_proxy () const {
-      return typename rdstl::is_proxy<X,xpath_t>::type().value;
-    }
-    virtual abstract_visitor* get_parent () const {
-      return 0;
-    }
-    virtual abstract_visitor* get_attribute (std::string const&) const {
-      return 0;
-    }
-    virtual abstract_visitor* clone () const {
-      return new abstract_visitor_T<X,Tag>(*this->x);
-    }
 
-    template <typename Y>
-    typename boost::enable_if<rdstl::has_children<Y,xpath_t>,
+    template <typename T>
+    typename boost::enable_if<rdstl::has_children<T,Tag>,
       std::pair<abstract_iterator*,abstract_iterator*> >::type
-    get_children (Y const*) const {
-      typedef typename bel::iterator<Y,xpath_t>::type ch_iter;
-      typedef abstract_iterator_T<ch_iter,Tag> iter_type;
-      ch_iter f, l;
-      boost::tie(f,l) = rdstl::children(*this->x, xpath_t());
-      return std::make_pair(new iter_type(f), new iter_type(l));
+    get_children (T const* t) const {
+      typedef typename bel::iterator<T,Tag>::type iterator;
+      typedef abstract_iterator_T<iterator,Tag> iter;
+      iterator f,l;
+      boost::tie(f,l) = rdstl::children(*t, Tag());
+      return std::make_pair(new iter(f), new iter(l));
     }
-    template <typename Y>
-    typename boost::disable_if<rdstl::has_children<Y,xpath_t>,
+    template <typename T>
+    typename boost::disable_if<rdstl::has_children<T,Tag>,
       std::pair<abstract_iterator*,abstract_iterator*> >::type
-    get_children (Y const*) const {
-      typedef abstract_iterator_T<void,Tag> iter_type;
-      return std::make_pair(new iter_type(), new iter_type());
+    get_children (T const*) const {
+      typedef abstract_iterator_T<void,Tag> iter;
+      return std::make_pair(new iter(), new iter());
     }
 
     X const* x;
@@ -139,67 +109,48 @@ namespace xpgtl {
 
     struct work_item {
       typedef boost::shared_ptr<abstract_visitor> shared_av;
-      work_item ()
-        : axis_index(0), proxy(false) {}
-      work_item (work_item const& w) {
-        this->visitor = w.visitor;
+      typedef boost::shared_ptr<abstract_iterator> shared_itr;
+
+      work_item () {}
+      work_item (abstract_visitor *av) : visitor(av) {
+        abstract_iterator *first, *last;
+        boost::tie(first, last) = av->get_children();
+        this->begin = shared_itr(first);
+        this->end = shared_itr(last);
       }
-      explicit work_item (abstract_visitor* av) {
-        this->visitor = shared_av(av);
-      }
-      work_item& operator = (work_item const& w) {
-        this->visitor = w.visitor;
-        return *this;
-      }
-      virtual ~ work_item () {}
 
       shared_av visitor;
-      bool proxy;
-      std::size_t axis_index;
+      shared_itr begin, end;
     };
 
-    Query (xpgtl::path<String> const& path, X const& x) {
+    Query (path<String> const& path, X const& x) : x(x) {
       this->path = path;
-      this->x  = &x;
       this->setup();
     }
-
-    virtual ~ Query () {
-      this->work_stack.empty();
-      this->x = 0;
-    }
-
     void setup () {
-      this->work_stack.clear();
-      this->axis_index = 0;
+      this->work.clear();
       make_abstract_visitor<X,xpath_t> M;
-      abstract_visitor *av = rdstl::visit(M, *this->x);
-      work_item w(av);
-      this->work_stack.push_back(w);
+      abstract_visitor *av = rdstl::visit(M, this->x);
+      this->work.push_back(work_item(av));
     }
-
-    void go_to_next_valid () {
-      while (not this->work_stack.empty()) {
-        axis_t Axis = this->path[this->work_stack.back().axis_index];
+    void next () {
+      for (std::size_t idx=0; idx<this->path.size(); ++idx) {
+        axis_t Axis = this->path[idx];
+        bool succeeded = false;
         switch (Axis.name) {
-        case axis_t::self: this->handle_self(Axis); break;
-        default: throw std::runtime_error("Unknown axis-name!");
+        case axis_t::self: succeeded = this->handle_self(idx); break;
+        default: break;
         }
       }
-      std::cout << "Found?" << std::endl;
+    }
+    bool handle_self (std::size_t idx) {
+      const std::string w_tag = this->work.back().visitor->get_tag();
+      return w_tag == this->path.test(idx);
     }
 
-    void handle_self (axis_t const& axis) {
-      //if (this->work_stack.back().visitor->get_tag() == this->path.test(axis)) {
-      //  ++this->axis_index;
-      //}
-      this->work_stack.pop_back();
-    }
-
-    std::size_t           axis_index;
-    std::list<work_item>  work_stack;
-    xpgtl::path<String>   path;
-    X const*              x;
+    std::list<work_item> work;
+    path<String> path;
+    X const& x;
   };
 
 }
@@ -227,7 +178,8 @@ int main (int argc, char *argv[]) {
       std::istream_iterator<wchar_t,wchar_t> cnd;
       JSONpp::json_v json = JSONpp::parse(ctr, cnd);
       xpgtl::Query<std::string,JSONpp::json_v> Q(path, json);
-      Q.go_to_next_valid();
+      Q.next();
+
       std::cout << std::endl;
     } catch (std::exception& e) {
       std::cout << "error: " << e.what() << std::endl;
