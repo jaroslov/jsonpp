@@ -11,6 +11,9 @@ belT: bel/*.hpp test_bel.cpp
 vpath: xpgtl/*.hpp test_vpath.cpp
 	g++ -O3 -I. test_vpath.cpp -o vtest
 
+xpath: xpgtl/*.hpp test_xpath.cpp
+	g++ -O3 -I. test_xpath.cpp -o xtest
+
 vpathT: vtest
 	echo "self::array" | ./vtest examples/*.*if
 	echo "self::object" | ./vtest examples/*.*if
