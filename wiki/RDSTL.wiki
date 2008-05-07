@@ -1,5 +1,7 @@
 #summary Concepts for the RDSTL
 
+_See the [RDSTLHints hints] page!_
+
 = Recursive Data-Structure Template Library =
 
 The Recursive Data-Structure Template Library (RDSTL) defines a hierarchy of concepts for types which are _recursive_. By recursive, it is meant types that form trees over types. A simple example the usual tree-type over nodes and leaves.
