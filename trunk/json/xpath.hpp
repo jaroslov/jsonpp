@@ -147,7 +147,7 @@ namespace rdstl {
       typename JSONpp::json_gen::array_t const*,  // store arrays
       typename JSONpp::json_gen::bool_t const*,   // store booleans
       typename JSONpp::json_gen::null_t const*,   // store Null
-      JSONpp::entry<typename JSONpp::json_gen::object_t> const*, // proxy; never used, for completeness
+      rdstl::valued<JSONpp::entry<typename JSONpp::json_gen::object_t> >, // proxy; never used, for completeness
       rdstl::valued<std::size_t>, // store the size-attribute
       rdstl::valued<bool> // store the empty-attribute
       > type;
