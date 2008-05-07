@@ -2,7 +2,7 @@
 
 = Hints =
 
-* the `tag` function should be put into the namespace of the first parameter, i.e.
+  * the `tag` function should be put into the namespace of the first parameter, i.e.
 {{{
 namespace foo {
   struct my_rds {/**/};
@@ -14,4 +14,4 @@ namespace foo {
 }
 }}}
 
-* you should _never_ overload the `children` function!
+  * you should _never_ overload the `children` function!
