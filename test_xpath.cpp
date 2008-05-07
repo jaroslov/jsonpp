@@ -20,6 +20,17 @@ namespace xpgtl {
     virtual abstract_iterator* clone () const = 0;
     virtual bool eq (abstract_iterator const&) const = 0;
     virtual bool n_eq (abstract_iterator const&) const = 0;
+    virtual void next () = 0;
+    abstract_iterator& operator ++ () {
+      this->next();
+      return *this;
+    }
+    friend bool operator == (abstract_iterator const& L, abstract_iterator const& R) {
+      return L.eq(R);
+    }
+    friend bool operator != (abstract_iterator const& L, abstract_iterator const& R) {
+      return L.n_eq(R);
+    }
   };
   struct abstract_visitor {
     virtual ~ abstract_visitor () {}
@@ -44,6 +55,9 @@ namespace xpgtl {
       return this->iterator !=
         static_cast<abstract_iterator_T<X,Tag> const*>(&atr)->iterator;
     }
+    virtual void next () {
+      ++this->iterator;
+    }
     X iterator;
   };
   template <typename Tag>
@@ -56,6 +70,7 @@ namespace xpgtl {
     }
     virtual bool eq (abstract_iterator const&) const { return false; }
     virtual bool n_eq (abstract_iterator const&) const { return true; }
+    virtual void next () {}
   };
   template <typename X, typename Tag>
   struct abstract_visitor_T : public abstract_visitor {
@@ -117,10 +132,11 @@ namespace xpgtl {
         boost::tie(first, last) = av->get_children();
         this->begin = shared_itr(first);
         this->end = shared_itr(last);
+        this->child = shared_itr(first->clone());
       }
 
       shared_av visitor;
-      shared_itr begin, end;
+      shared_itr begin, end, child;
     };
 
     Query (path<String> const& path, X const& x) : x(x) {
@@ -134,13 +150,12 @@ namespace xpgtl {
       this->work.push_back(work_item(av));
     }
     void next () {
-      for (std::size_t idx=0; idx<this->path.size(); ++idx) {
-        axis_t Axis = this->path[idx];
-        bool succeeded = false;
-        switch (Axis.name) {
-        case axis_t::self: succeeded = this->handle_self(idx); break;
-        default: break;
-        }
+      while (not this->work.empty()) {
+        work_item &item = this->work.back();
+        if (*item.child != *item.end) {
+          ++*item.child;
+        } else
+          this->work.pop_back();
       }
     }
     bool handle_self (std::size_t idx) {
@@ -168,7 +183,7 @@ int main (int argc, char *argv[]) {
   std::cout << xpgtl::long_form << path << std::endl;
   std::cout << std::endl;
 
-  for (++argv; argc > 0; --argc, ++argv) {
+  for (++argv; argc > 1; --argc, ++argv) {
     std::cout << *argv << std::endl;
     try {
       std::wifstream wifstr(*argv);
