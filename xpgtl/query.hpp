@@ -14,7 +14,7 @@
 #ifndef XPGTL_LIB_QUERY
 #define XPGTL_LIB_QUERY
 
-namespace xpgtl {
+/*namespace xpgtl {
 
 template <typename String, typename X>
 struct query_generator {
@@ -480,6 +480,6 @@ void print_result_set (std::set<ResultType> const& result_set) {
   std::cout << "]";
 }
 
-} // end xpgtl
+} // end xpgtl*/
 
 #endif//XPGTL_LIB_QUERY

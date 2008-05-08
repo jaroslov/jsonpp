@@ -100,6 +100,43 @@ namespace xpgtl {
     }
   };
 
+  struct print_pointer {
+    typedef void result_type;
+    template <typename T>
+    void operator () (T const&) const {}
+    void operator () (std::string const* str) const {
+      std::cout << "\"" << *str << "\"" << std::flush;
+    }
+    void operator () (std::wstring const* wstr) const {
+      std::wcout << "\"" << *wstr << "\"" << std::flush;
+    }
+    template <typename T>
+    static void go (T const& t) {
+      print_pointer pptr;
+      rdstl::visit(pptr, t);
+    }
+  };
+
+  template <typename TypeFilter>
+  struct filter_on_type {
+    typedef TypeFilter result_type;
+  
+    result_type operator () (TypeFilter const& t) const {
+      return t;
+    }
+    template <typename T>
+    result_type operator () (T const& t) const {
+      return 0;
+    }
+  };
+  
+  //
+  // this is a convenience function to give us BASIC-like syntax:
+  //   query(path, datastructure, as<foo>());
+  // returns a result-set of "foo const*"
+  template <typename ResultType>
+  ResultType const* as () { return 0; }
+
   template <typename String, typename X, typename Tag=xpath<X> >
   struct Query {
     typedef typename rdstl::reference_union<X,Tag>::type    ru_type;
@@ -205,23 +242,6 @@ namespace xpgtl {
       std::size_t index;
     };
 
-    struct print_pointer {
-      typedef void result_type;
-      template <typename T>
-      void operator () (T const&) const {}
-      void operator () (std::string const* str) const {
-        std::cout << *str << std::flush;
-      }
-      void operator () (std::wstring const* wstr) const {
-        std::wcout << *wstr << std::flush;
-      }
-      template <typename T>
-      static void go (T const& t) {
-        print_pointer pptr;
-        rdstl::visit(pptr, t);
-      }
-    };
-
     Query (path<String> const& path, X const& x) {
       this->setup(path, x);
     }
@@ -233,18 +253,19 @@ namespace xpgtl {
     bool done () const {
       return this->work.empty();
     }
+    template <typename FilterType>
+    FilterType const* next (FilterType const*) {
+      ru_type ru = this->next();
+      filter_on_type<FilterType const*> fot;
+      return rdstl::visit(fot, ru);
+    }
     ru_type next () {
-      ru_type ru;
       while (not this->work.empty()) {
         item &it = this->work.back();
         if (this->path.size() <= it.index) {
-          std::cout << std::string(this->work.size(),'-')
-            << this->work.back().tag_name << ": \"" << std::flush;
-          ru = this->work.back().node;
+          ru_type ru = this->work.back().node;
           this->work.pop_back();
-          print_pointer::go(ru);
-          std::cout << "\"" << std::endl;
-          break;
+          return ru;
         }
         axis_t const& axis = this->path[it.index];
         axis_t::name_e name
@@ -267,7 +288,7 @@ namespace xpgtl {
         default: throw std::runtime_error("Unrecognized axis-name.");
         }
       }
-      return ru;
+      return ru_type();
     }
     inline void handle_ancestor (item& it, axis_t const& axis) {
       if (it.knows_forebear or this->work.size() > 1) {
@@ -336,21 +357,6 @@ int main (int argc, char *argv[]) {
   std::locale loc("");
   std::wcout.imbue(loc);
 
-  if (argc == 1) {
-    xpgtl::path<std::string> path = xpgtl::path<std::string>("//string");
-    std::wifstream wifstr("examples/diamond-of-death.ffcif");
-    wifstr.imbue(loc);
-    wifstr >> std::noskipws;
-    std::istream_iterator<wchar_t,wchar_t> ctr(wifstr);
-    std::istream_iterator<wchar_t,wchar_t> cnd;
-    JSONpp::json_v json = JSONpp::parse(ctr, cnd);
-    xpgtl::Query<std::string,JSONpp::json_v> Q(path, json);
-    while (not Q.done())
-      Q.next();
-
-    return 0;
-  }
-
   std::string input;
   std::istream_iterator<char> ctr(std::cin), cnd;
   std::copy(ctr, cnd, std::back_inserter(input));
@@ -369,8 +375,11 @@ int main (int argc, char *argv[]) {
       std::istream_iterator<wchar_t,wchar_t> cnd;
       JSONpp::json_v json = JSONpp::parse(ctr, cnd);
       xpgtl::Query<std::string,JSONpp::json_v> Q(path, json);
-      while (not Q.done())
-        Q.next();
+      while (not Q.done()) {
+        std::wstring const* wstr = Q.next(xpgtl::as<std::wstring>());
+        if (Q.done()) break;
+        std::wcout << "\"" << (wstr?*wstr:std::wstring(L"")) << "\"" << std::endl;
+      }
 
       std::cout << std::endl;
     } catch (std::exception& e) {
