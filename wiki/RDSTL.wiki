@@ -142,7 +142,7 @@ The concept is this:
 {{{
 concept Parent<typename R, typename Tag> : Children<R,Tag> {
   Regular parent_type;
-  parent_type* const& parent (R, Tag);
+  parent_type* parent (R, Tag);
 }
 }}}
 
