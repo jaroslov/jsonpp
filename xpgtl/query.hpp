@@ -302,6 +302,7 @@ namespace xpgtl {
       this->path = path;
       this->work.clear();
       this->work.push_back(build_item::go(x));
+      this->pseudoroot = this->work.back().node;
     }
     bool done () const {
       return this->work.empty();
@@ -360,7 +361,13 @@ namespace xpgtl {
     inline void handle_child (item& it, axis_t const& axis) {
       // add a child and call it a self as a proxy
       if (*it.current != *it.end) {
-        item ntm = build_item::go(**it.current, axis_t::self, it.index, this->work.size()-1);
+        signed long pdx = this->work.size()-1;
+        if (1 == this->work.size())
+          pdx = -2;
+#ifdef XPGTL_DEBUG
+        std::cout << "PDX " << pdx << std::endl;
+#endif//XPGTL_DEBUG
+        item ntm = build_item::go(**it.current, axis_t::self, it.index, pdx);
         ++*it.current;
         this->work.push_back(ntm);
       } else
@@ -386,29 +393,40 @@ namespace xpgtl {
     }
     inline void handle_parent (item& it, axis_t const& axis) {
       std::pair<bool,ru_type> pr = it.get_parent(this->work);
+#ifdef XPGTL_DEBUG
       std::cout << std::string(this->work.size()-1,'=') << "> Parent? "
         << pr.first << std::flush;
-      if (pr.first) {
-        item ntm = build_item::go(pr.second, axis_t::self, it.index
+      std::string itgn = it.tag_name;
+#endif//XPGTL_DEBUG
+      if (pr.first or (-2 == it.parent_index)) {
+        item ntm;
+        if (-2 == it.parent_index)
+          ntm = build_item::go(this->pseudoroot, axis_t::self, it.index
           /*, get-parent needs to return parent's possible index */);
+        else
+          ntm = build_item::go(pr.second, axis_t::self, it.index
+          /*, get-parent needs to return parent's possible index */);
+#ifdef XPGTL_DEBUG
         std::cout << " " << ntm.tag_name << " " << std::flush;
-        print_pointer::go(ntm.node);
+#endif//XPGTL_DEBUG
         this->work.pop_back();
         this->work.push_back(ntm);
-      } else
+      }else
         this->work.pop_back();
-      std::cout << " ] " << it.tag_name << std::endl;
+#ifdef XPGTL_DEBUG
+      std::cout << "] " << itgn << std::endl;
+#endif//XPGTL_DEBUG
     }
     inline void handle_self (item& it, axis_t const& axis) {
       if ((axis.function and axis_t::Node == axis.test)
         or (it.tag_name == this->path.test(it.index))) {
-        std::cout << "SELF-SUCC" << std::endl;
         ++it.index;
         it.alternate = axis_t::unknown;
       } else
         this->work.pop_back();
     }
 
+    ru_type pseudoroot;
     std::vector<item> work;
     path<String> path;
   };

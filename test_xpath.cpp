@@ -1,4 +1,4 @@
-#define XPGTL_DEBUG
+//#define XPGTL_DEBUG
 #include <xpgtl/xpath.hpp>
 #include <json/jsonpp.hpp>
 #include <json/xpath.hpp>
@@ -40,11 +40,6 @@ int main (int argc, char *argv[]) {
       std::istream_iterator<wchar_t,wchar_t> cnd;
       JSONpp::json_v json = JSONpp::parse(ctr, cnd);
       xpgtl::Query<std::string,JSONpp::json_v> Q(path, json);
-      while (not Q.done()) {
-        std::wstring const* wstr = Q.next(xpgtl::as<std::wstring>());
-        if (Q.done()) break;
-        std::wcout << "\"" << (wstr?*wstr:std::wstring(L"")) << "\"" << std::endl;
-      }
       print_ptr_ctr(xpgtl::query(path, json, xpgtl::as<std::wstring>()));
 
       std::cout << std::endl;
