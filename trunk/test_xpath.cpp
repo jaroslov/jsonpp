@@ -99,6 +99,8 @@ namespace xpgtl {
       item () : node() {}
       template <typename T>
       item (T const& t) {
+        this->alternate = axis_t::unknown;
+        this->index = 0;
         this->initialize(t);
       }
       template <typename T>
@@ -129,6 +131,8 @@ namespace xpgtl {
         this->end = sa_iter_t(new node_iter(l));
       }
 
+      axis_t::name_e alternate;
+      std::string axis_index;
       std::string tag_name;
       sa_iter_t begin, current, end;
       ru_type   node;
