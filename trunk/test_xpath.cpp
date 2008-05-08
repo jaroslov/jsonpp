@@ -1,4 +1,4 @@
-//#define XPGTL_DEBUG
+#define XPGTL_DEBUG
 #include <xpgtl/xpath.hpp>
 #include <json/jsonpp.hpp>
 #include <json/xpath.hpp>
@@ -7,6 +7,15 @@
 #include <fstream>
 #include <sstream>
 #include <locale>
+
+template <typename Ctr>
+void print_ptr_ctr (Ctr const& ctr) {
+  typedef typename Ctr::const_iterator iterator;
+  iterator f, l;
+  for (boost::tie(f,l)=bel::sequence(ctr); f!=l; ++f)
+    if (0 != *f)
+      std::wcout << **f << std::endl;
+}
 
 int main (int argc, char *argv[]) {
 
@@ -36,6 +45,7 @@ int main (int argc, char *argv[]) {
         if (Q.done()) break;
         std::wcout << "\"" << (wstr?*wstr:std::wstring(L"")) << "\"" << std::endl;
       }
+      print_ptr_ctr(xpgtl::query(path, json, xpgtl::as<std::wstring>()));
 
       std::cout << std::endl;
     } catch (std::exception& e) {
