@@ -1,485 +1,356 @@
-// local stuff
-#include "concepts.hpp"
-#include "path.hpp"
 // rdstl
 #include <rdstl/rdstl.hpp>
 // boost stuff
 #include <boost/tuple/tuple.hpp>
-#include <boost/type_traits/is_same.hpp>
 #include <boost/utility/enable_if.hpp>
+#include <boost/shared_ptr.hpp>
 // STL stuff
-#include <set>
-#include <stdexcept>
+#include <vector>
+// local stuff
+#include "concepts.hpp"
+#include "path.hpp"
 
 #ifndef XPGTL_LIB_QUERY
 #define XPGTL_LIB_QUERY
 
-/*namespace xpgtl {
+namespace xpgtl {
 
-template <typename String, typename X>
-struct query_generator {
-  typedef xpgtl::path<String>               path_t;
-  typedef xpath<X>                          xpath_t;
-  typedef rdstl::reference_union<X,xpath_t> ru_mf;
-  typedef typename ru_mf::type              r_union_t;
-  typedef std::set<r_union_t>               result_set_t;
-  typedef query_generator<String,X>         qg_type;
-
-  struct visitor_base {
-    virtual void visit_parent () const = 0;
+  template <typename RU>
+  struct visit_node_ru {
+    typedef RU result_type;
+    template <typename T>
+    RU operator () (T const& t) const {
+      RU ru;
+      ru = &t;
+      return ru;
+    }
+    template <typename T>
+    static RU go (T const& t) {
+      visit_node_ru<RU> nru;
+      return rdstl::visit(nru, t);
+    }
   };
 
-  // We don't actually care about "Node" but explicit instantiations
-  // are illegal, whereas partial specialization is fine; another
-  // WTFism from C++
-  template <typename Node, typename Iterator>
-  struct sibling_base {
-
-    template <typename Visitor>
-    void handle_preceding_sibling_ (Visitor const& V) const {
-      for (Iterator iter=this->first; iter!=this->self; ++iter)
-        rdstl::visit(V, *iter);
+  template <typename RU>
+  struct abstract_iterator {
+    abstract_iterator () : ru_store() {}
+    abstract_iterator (RU const& ru) : ru_store(ru) {}
+    virtual ~ abstract_iterator () {}
+    virtual void next () = 0;
+    virtual bool eq (abstract_iterator const&) const = 0;
+    virtual bool n_eq (abstract_iterator const&) const = 0;
+    virtual void dereference () = 0;
+    virtual abstract_iterator<RU>* clone () const = 0;
+    RU const& operator * () {
+      this->dereference();
+      return this->ru_store;
+    }
+    const RU* operator -> () {
+      this->dereference();
+      return &this->ru_store;
+    }
+    abstract_iterator& operator ++ () {
+      this->next(); return *this;
+    }
+    friend bool operator == (abstract_iterator const& L, abstract_iterator const& R) {
+      return L.eq(R);
+    }
+    friend bool operator != (abstract_iterator const& L, abstract_iterator const& R) {
+      return L.n_eq(R);
     }
 
-    template <typename Visitor>
-    void handle_following_sibling_ (Visitor const& V) const {
-      if (this->self == this->last)
-        return;
-      Iterator iter = self; ++iter;
-      for ( ; iter!=this->last; ++iter)
-        rdstl::visit(V, *iter);
-    }
-
-    void set_siblings (Iterator first, Iterator self, Iterator last) {
-      this->first = first;
-      this->self  = self;
-      this->last  = last;
-    }
-    Iterator first, self, last;
+    RU ru_store;
   };
-  template <typename Node> struct sibling_base<Node,void> {
-    template <typename Visitor>
-    void handle_preceding_sibling_ (Visitor const& V) const {}
-    template <typename Visitor>
-    void handle_following_sibling_ (Visitor const& V) const {}
-    template <typename Iter>
-    void set_siblings (Iter, Iter, Iter);
+  template <typename RU, typename Iterator, typename Tag>
+  struct node_iterator : public abstract_iterator<RU> {
+    typedef abstract_iterator<RU>           base_type;
+    typedef node_iterator<RU,Iterator,Tag>  self_type;
+    node_iterator () : iterator() {}
+    node_iterator (Iterator const& iter) : iterator(iter) {}
+    node_iterator (Iterator const& iter, RU const& ru)
+      : iterator(iter), abstract_iterator<RU>(ru) {}
+    virtual ~ node_iterator () {}
+    virtual void next () {
+      ++this->iterator;
+    }
+    virtual bool eq (base_type const& atr) const {
+      return this->iterator == static_cast<const self_type*>(&atr)->iterator;
+    }
+    virtual bool n_eq (base_type const& atr) const {
+      return this->iterator != static_cast<const self_type*>(&atr)->iterator;
+    }
+    virtual void dereference () {
+      this->ru_store = visit_node_ru<RU>::go(*this->iterator);
+    }
+    virtual abstract_iterator<RU>* clone () const {
+      return new node_iterator<RU,Iterator,Tag>(this->iterator,this->ru_store);
+    }
+
+    Iterator iterator;
+  };
+  template <typename RU, typename Tag>
+  struct node_iterator<RU,void,Tag> : public abstract_iterator<RU> {
+    typedef abstract_iterator<RU>       base_type;
+    virtual ~ node_iterator () {}
+    virtual void next () {}
+    virtual bool eq (base_type const&) const { return true; }
+    virtual bool n_eq (base_type const&) const { return false; }
+    virtual void dereference () {}
+    virtual abstract_iterator<RU>* clone () const {
+      return new node_iterator<RU,void,Tag>();
+    }
   };
 
-  template <typename Visitor>
-  struct visit_reference_union {
+  struct print_pointer {
     typedef void result_type;
     template <typename T>
-    void operator () (T const& t) const {
-      // simply call onto the visitor we point to
-      (*this->visitor)(*t);
+    void operator () (T const&) const {}
+    void operator () (std::string const* str) const {
+      std::cout << "\"" << *str << "\"" << std::flush;
     }
-    const Visitor* visitor;
+    void operator () (std::wstring const* wstr) const {
+      std::wcout << "\"" << *wstr << "\"" << std::flush;
+    }
+    template <typename T>
+    static void go (T const& t) {
+      print_pointer pptr;
+      rdstl::visit(pptr, t);
+    }
   };
 
-  template <typename Node, typename Iterator=void>
-  struct visitor : public visitor_base, sibling_base<Node,Iterator> {
-    typedef Iterator      sibling_iterator;
-    typedef visitor<Node> self_type;
-    typedef Node          node_type;
-    typedef void          result_type;
-
-    virtual void visit_parent () const {
-      (*this)(*this->node);
-    }
-
-#ifdef XPGTL_DEBUG
-    std::string indent (char rep=' ', char head=' ') const {
-      std::size_t depth = 2*this->recursion_depth;
-      if (depth > 0)
-        depth -= 1;
-      return std::string(depth,rep) + (depth>0?std::string(1,head):"");
-    }
-#endif//XPGTL_DEBUG
-
-    visitor (node_type const* node=0, path_t* path=0,
-      std::size_t axis=0, visitor_base const* parent=0,
-      result_set_t* rset=0)
-      : path(path), axis(axis), node(node)
-      , parent(parent), result_set(rset) {
-#ifdef XPGTL_DEBUG
-      this->recursion_depth = 0;
-#endif//XPGTL_DEBUG
-    }
-
-    template <typename T>
-    typename boost::disable_if<has_attributes<T,xpath_t> >::type
-    handle_attribute (T const& t) const {
-      // do nothing
-    }
-    template <typename T>
-    typename boost::enable_if<has_attributes<T,xpath_t> >::type
-    handle_attribute (T const& t) const {
-      // the attribute returns some reference-union
-      // so we need to visit it
-      const std::string attr = this->path->test(this->axis);
-      visitor<T> V(&t, this->path, this->axis+1, this, this->result_set);
-      visit_reference_union<visitor<T> > W;
-      W.visitor = &V;
-      // set the current axis name to "self"
-      const axis_t::name_e old_name = (*this->path)[this->axis].name;
-      this->path->axes[this->axis].name = axis_t::self;
-      rdstl::visit(W, attribute(t, attr, xpath_t()));
-      // unset the axis name
-      this->path->axes[this->axis].name = old_name;
-    }
-
-    template <typename T>
-    typename boost::enable_if<rdstl::has_children<T,xpath_t> >::type
-    handle_children (T const& t, bool mask=true) const {
-      // mask: whether to mask the child as self
-      //  we don't do this when handle_children is being used
-      //  for "descendent" or "descendent-or-self"
-      typedef typename bel::iterator<T,xpath<X> >::type ch_iter;
-      ch_iter first, last;
-      visitor<T> V(&t, this->path, this->axis, this, this->result_set);
-#ifdef XPGTL_DEBUG
-      V.recursion_depth = this->recursion_depth+1;
-#endif//XPGTL_DEBUG
-
-      // set the current axis name to "self"
-      const axis_t::name_e old_name = (*this->path)[this->axis].name;
-      this->path->axes[this->axis].name = axis_t::self;
-      for (boost::tie(first,last)=rdstl::children(t, xpath_t()); first!=last; ++first)
-        rdstl::visit(V, *first);
-      // unset the axis name
-      this->path->axes[this->axis].name = old_name;
-    }
-    template <typename T>
-    typename boost::disable_if<rdstl::has_children<T,xpath_t> >::type
-    handle_children (T const& t) const {
-      // if an element has no children, we return nothing
-    }
-    template <typename T>
-    typename boost::enable_if<rdstl::knows_parent<T,xpath_t> >::type
-    handle_parent_internal_ (T const& t) const {
-      // real parent support; the parent must be a pointer,
-      // and it will be visitable with children
-      (*this)(*rdstl::parent(t, xpath_t()));
-    }
-    template <typename T>
-    typename boost::disable_if<rdstl::knows_parent<T,xpath_t> >::type
-    handle_parent_internal_ (T const& t) const {
-      // real parent support; the parent must be a pointer,
-      // and it will be visitable with children
-      this->parent->visit_parent();
-    }
-    template <typename T>
-    void handle_parent (T const& t) const {
-      // emulated parent support
-      if (0 == this->parent)
-        return;
-      // set the current axis name to "self"
-      const axis_t::name_e old_name = (*this->path)[this->axis].name;
-      this->path->axes[this->axis].name = axis_t::self;
-      this->handle_parent_internal_(t);
-      // unset the axis name
-      this->path->axes[this->axis].name = old_name;
-    }
-
-    template <typename T>
-    void handle_self (T const& t) const {
-      const xpgtl::axis_t Axis = (*this->path)[this->axis];
-      const String self_tag    = tag(t, xpath_t());
-
-      if ((Axis.function and axis_t::Node == Axis.test)
-        or (self_tag == this->path->test(this->axis))) {
-        visitor<T> V(&t, this->path, this->axis+1, this, this->result_set);
-#ifdef XPGTL_DEBUG
-        V.recursion_depth = this->recursion_depth+1;
-#endif//XPGTL_DEBUG
-        V(t);
-      }
-    }
-
-    template <typename T>
-    typename boost::enable_if<rdstl::has_children<T,xpath_t> >::type
-    handle_descendent (T const& t) const {
-      this->handle_children(t); // handle the children
-      // now, recurse on the children and tell them to
-      // do the same!
-
-      // we only look at descendents, never self
-      const axis_t::name_e old_name = (*this->path)[this->axis].name;
-      this->path->axes[this->axis].name = axis_t::descendent;
-
-      typedef typename bel::iterator<T,xpath<X> >::type ch_iter;
-      ch_iter first, last;
-      visitor<T> V(&t, this->path, this->axis, this, this->result_set);
-#ifdef XPGTL_DEBUG
-      V.recursion_depth = this->recursion_depth+1;
-#endif//XPGTL_DEBUG
-      for (boost::tie(first,last)=rdstl::children(t, xpath_t()); first!=last; ++first)
-        rdstl::visit(V, *first);
-      // put original name on the path-stack
-      this->path->axes[this->axis].name = old_name;
-    }
-    template <typename T>
-    typename boost::disable_if<rdstl::has_children<T,xpath_t> >::type
-    handle_descendent (T const& t) const {
-      // if an element has no children, we return nothing
-    }
-    template <typename T>
-    void handle_descendent_or_self (T const& t) const {
-      // a union of self & descendent handlers
-      this->handle_self(t);
-      this->handle_descendent(t);
-    }
-
-    template <typename T>
-    void handle_ancestor (T const& t) const {
-      // we call the "handle-parent" function which essentially goes
-      // to the parent while translating into a "self" call
-      this->handle_parent(t);
-      // Now, we call the parent directly, while setting the current
-      // stack to "ancestor"; this will recurse up the tree calling
-      // "handle-parent", resolving to "self" each time, and calling
-      // all of the parents
-      const axis_t::name_e old_name = (*this->path)[this->axis].name;
-      this->path->axes[this->axis].name = axis_t::ancestor;
-      this->handle_parent_internal_(t);
-      // put original name on the path-stack
-      this->path->axes[this->axis].name = old_name;
-    }
-    template <typename T>
-    void handle_ancestor_or_self (T const& t) const {
-      // union of self & ancestor handlers
-      // we don't have to modify the stack, because handle-self
-      // operates without any recursion (as the context-node)
-      // and ancestor replaces axis-name with the "ancestor" axis
-      this->handle_self(t);
-      this->handle_ancestor(t);
-    }
-
-    void handle_preceding_sibling () const {
-      // set the current axis name to "self"
-      const axis_t::name_e old_name = (*this->path)[this->axis].name;
-      this->path->axes[this->axis].name = axis_t::self;
-      this->handle_preceding_sibling_(*this);
-      // unset the axis name
-      this->path->axes[this->axis].name = old_name;
-    }
-    void handle_following_sibling () const {
-      // set the current axis name to "self"
-      const axis_t::name_e old_name = (*this->path)[this->axis].name;
-      this->path->axes[this->axis].name = axis_t::self;
-      this->handle_preceding_sibling_(*this);
-      // unset the axis name
-      this->path->axes[this->axis].name = old_name;
-    }
-
-    template <typename T>
-    void handle_preceding_ancestor_ (T const& t) const {
-      this->handle_parent_internal_(t);
-    }
-
-    template <typename T>
-    void handle_following_ancestor_ (T const& t) const {
-      this->handle_parent_internal_(t);
-    }
-
-    template <typename T>
-    void handle_preceding (T const& t) const {
-      this->handle_preceding_ancestor_(t);
-      const axis_t::name_e old_name = (*this->path)[this->axis].name;
-      this->path->axes[this->axis].name = axis_t::descendent;
-      this->handle_preceding_sibling_(*this);
-      // put original name on the path-stack
-      this->path->axes[this->axis].name = old_name;
-    }
-
-    template <typename T>
-    void handle_following (T const& t) const {
-      this->handle_following_ancestor_(t);
-      const axis_t::name_e old_name = (*this->path)[this->axis].name;
-      this->path->axes[this->axis].name = axis_t::descendent;
-      this->handle_following_sibling_(*this);
-      // put original name on the path-stack
-      this->path->axes[this->axis].name = old_name;
-    }
-
-    template <typename T>
-    bool apply_predicate (T const& t) const {
-      // ignore the predicate for now
-      return true;
-    }
-
-#ifdef XPGTL_DEBUG
-    template <typename T>
-    void print (T const& t) const {
-      std::cout << this->indent('-','>') << "Not a string" << std::endl;
-    }
-    template <typename Char>
-    void print (std::basic_string<Char> const& str) const {
-      std::string Str(str.begin(), str.end());
-      std::cout << this->indent('-','>') << "String: " << Str << std::endl;
-    }
-#endif//XPGTL_DEBUG
-
-    template <typename T>
-    typename boost::disable_if<rdstl::is_proxy<T,xpath_t> >::type
-    add_to_result_set (T const& t) const {
-      this->result_set->insert(&t);
-#ifdef XPGTL_DEBUG
-      this->print(t);
-#endif//XPGTL_DEBUG
-    }
-    template <typename T>
-    typename boost::enable_if<rdstl::is_proxy<T,xpath_t> >::type
-    add_to_result_set (T const& t) const {
-#ifdef XPGTL_DEBUG
-      std::cout << "NORESULT" << std::endl;
-#endif//XPGTL_DEBUG
-    }    
-
-    template <typename T>
-    void operator () (T const& t) const {
-
-      if (this->path->size() <= this->axis) {
-        // we trivially return the input if we have no test
-        this->add_to_result_set(t);
-        return;
-      }
-
-      const xpgtl::axis_t Axis = (*this->path)[this->axis];
-
-#ifdef XPGTL_DEBUG
-      std::cout << this->indent() << Axis << std::endl;
-#endif//XPGTL_DEBUG
+  template <typename TypeFilter>
+  struct filter_on_type {
+    typedef TypeFilter result_type;
   
-      switch (Axis.name) {
-      case axis_t::ancestor: this->handle_ancestor(t); break;
-      case axis_t::ancestor_or_self: this->handle_ancestor_or_self(t); break;
-      case axis_t::attribute: this->handle_attribute(t); break;
-      case axis_t::child: this->handle_children(t); break;
-      case axis_t::descendent: this->handle_descendent(t); break;
-      case axis_t::descendent_or_self: this->handle_descendent_or_self(t); break;
-      case axis_t::following: this->handle_following(t); break;
-      case axis_t::following_sibling: this->handle_following_sibling(); break;
-      case axis_t::namespace_: {
-          // honestly, this shit makes no sense
-          // basically, we'd be recursing on the instantiated type
-          // of the "xpath<*>" tag
-          throw std::runtime_error("Unsupported axis-name: namespace");
-        } break;
-      case axis_t::parent: this->handle_parent(t); break;
-      case axis_t::preceding: this->handle_preceding(t); break;
-      case axis_t::preceding_sibling: this->handle_preceding_sibling(); break;
-      case axis_t::self: this->handle_self(t); break;
-      default: std::runtime_error("Unrecognized axis-name.");
+    result_type operator () (TypeFilter const& t) const {
+      return t;
+    }
+    template <typename T>
+    result_type operator () (T const& t) const {
+      return 0;
+    }
+  };
+  
+  //
+  // this is a convenience function to give us BASIC-like syntax:
+  //   query(path, datastructure, as<foo>());
+  // returns a result-set of "foo const*"
+  template <typename ResultType>
+  ResultType const* as () { return 0; }
+
+  template <typename String, typename X, typename Tag=xpath<X> >
+  struct Query {
+    typedef typename rdstl::reference_union<X,Tag>::type    ru_type;
+    typedef boost::shared_ptr<abstract_iterator<ru_type> >  sa_iter_t;
+
+    struct build_item_ptr;
+    struct item {
+      item () : node() {}
+      item (item const& it) {
+        this->copy(it);
+      }
+      item& operator = (item const& it) {
+        this->copy(it);
+        return *this;
+      }
+      void copy (item const& it) {
+        this->alternate = it.alternate;
+        this->index     = it.index;
+        this->begin     = it.begin;
+        this->current   = it.current;
+        this->end       = it.end;
+        this->tag_name  = it.tag_name;
+        this->node      = it.node;
+        this->forebear  = it.forebear;
+        this->knows_forebear = it.knows_forebear;
+      }
+      template <typename T>
+      item (T const& t, axis_t::name_e name=axis_t::unknown,
+        std::size_t idx=0, ru_type const& parent=ru_type()) {
+        this->alternate = name;
+        this->index = idx;
+        this->init_children(t);
+        this->init_parent(t, parent);
+      }
+      template <typename T>
+      typename boost::disable_if<rdstl::has_children<T,Tag> >::type
+      init_children (T const& t) {
+        typedef node_iterator<ru_type,void,Tag> node_iter;
+        this->tag_name = tag(t, Tag());
+        this->node = &t;
+        this->begin = sa_iter_t(new node_iter());
+        this->current = sa_iter_t(new node_iter());
+        this->end = sa_iter_t(new node_iter());
+      }
+      template <typename T>
+      typename boost::enable_if<rdstl::has_children<T,Tag> >::type
+      init_children (T const& t) {
+        typedef typename bel::iterator<T,Tag>::type iter_t;
+        typedef node_iterator<ru_type,iter_t,Tag> node_iter;
+        this->tag_name = tag(t, Tag());
+        this->node = &t;
+        iter_t f, l;
+        boost::tie(f,l) = rdstl::children(t, Tag());
+        this->begin = sa_iter_t(new node_iter(f));
+        this->current = sa_iter_t(new node_iter(f));
+        this->end = sa_iter_t(new node_iter(l));
+      }
+      template <typename T>
+      typename boost::disable_if<rdstl::knows_parent<T,Tag> >::type
+      init_parent (T const& t, ru_type const& parent) {
+        this->forebear = parent;
+        this->knows_forebear = false;
+      }
+      template <typename T>
+      typename boost::enable_if<rdstl::knows_parent<T,Tag> >::type
+      init_parent (T const& t, ru_type const&) {
+        this->forebear = parent(t, Tag());
+        this->knows_forebear = true;
+      }
+
+      axis_t::name_e alternate;
+      std::size_t index;
+      std::string tag_name;
+      sa_iter_t begin, current, end;
+      ru_type node, forebear;
+      bool knows_forebear;
+    };
+    struct build_item {
+      typedef item result_type;
+      template <typename T>
+      item operator () (T const& t) const {
+        return item(t, this->name, this->index, this->parent);
+      }
+      template <typename T>
+      item operator () (T const* t) const {
+        return item(*t, this->name, this->index, this->parent);
+      }
+      template <typename T>
+      item operator () (rdstl::valued<T> const& t) const {
+        return item(*t, this->name, this->index, this->parent);
+      }
+      template <typename T>
+      static item go (T const& t, axis_t::name_e name=axis_t::unknown,
+        std::size_t idx=0, ru_type const& parent=ru_type()) {
+        build_item bi;
+        bi.parent = parent;
+        bi.name = name;
+        bi.index = idx;
+        return rdstl::visit(bi, t);
+      }
+      ru_type parent;
+      axis_t::name_e name;
+      std::size_t index;
+    };
+
+    Query (path<String> const& path, X const& x) {
+      this->setup(path, x);
+    }
+    void setup (path<String> const& path, X const& x) {
+      this->path = path;
+      this->work.clear();
+      this->work.push_back(build_item::go(x));
+    }
+    bool done () const {
+      return this->work.empty();
+    }
+    template <typename FilterType>
+    FilterType const* next (FilterType const*) {
+      ru_type ru = this->next();
+      filter_on_type<FilterType const*> fot;
+      return rdstl::visit(fot, ru);
+    }
+    ru_type next () {
+      while (not this->work.empty()) {
+        item &it = this->work.back();
+        if (this->path.size() <= it.index) {
+          ru_type ru = this->work.back().node;
+          this->work.pop_back();
+          return ru;
+        }
+        axis_t const& axis = this->path[it.index];
+        axis_t::name_e name
+          = axis_t::unknown == it.alternate
+              ? axis.name : it.alternate;
+        switch (name) {
+        case axis_t::ancestor: this->handle_ancestor(it, axis); break;
+        case axis_t::ancestor_or_self: this->handle_ancestor_or_self(it, axis); break;
+        case axis_t::attribute: break;
+        case axis_t::child: this->handle_child(it, axis); break;
+        case axis_t::descendent: this->handle_descendent(it, axis); break;
+        case axis_t::descendent_or_self: this->handle_descendent_or_self(it, axis); break;
+        case axis_t::following: break;
+        case axis_t::following_sibling: break;
+        case axis_t::namespace_: break;
+        case axis_t::parent: this->handle_parent(it, axis); break;
+        case axis_t::preceding: break;
+        case axis_t::preceding_sibling: break;
+        case axis_t::self: this->handle_self(it, axis); break;
+        default: throw std::runtime_error("Unrecognized axis-name.");
+        }
+      }
+      return ru_type();
+    }
+    inline void handle_ancestor (item& it, axis_t const& axis) {
+      if (it.knows_forebear or this->work.size() > 1) {
+        item ntm = build_item::go(it.forebear, axis_t::parent, it.index);
+        item mtm = build_item::go(it.forebear, axis_t::ancestor, it.index);
+        this->work.push_back(ntm);
+        this->work.push_back(mtm);
       }
     }
+    inline void handle_ancestor_or_self (item& it, axis_t const& axis) {
+      it.alternate = axis_t::self;
+      this->handle_ancestor(it, axis);
+    }
+    inline void handle_child (item& it, axis_t const& axis) {
+      // add a child and call it a self as a proxy
+      if (*it.current != *it.end) {
+        item ntm = build_item::go(**it.current, axis_t::self, it.index);
+        ++*it.current;
+        this->work.push_back(ntm);
+      } else
+        this->work.pop_back();
+    }
+    inline void handle_descendent (item& it, axis_t const& axis) {
+      if (*it.current != *it.end) {
+        // add two items: "child" and "descendent"
+        item ntm = build_item::go(**it.current, axis_t::self, it.index);
+        item mtm = build_item::go(**it.current, axis_t::descendent, it.index);
+        ++*it.current;
+        // don't invalidate "item"
+        this->work.push_back(ntm);
+        this->work.push_back(mtm);
+      } else
+        this->work.pop_back();
+    }
+    inline void handle_descendent_or_self (item& it, axis_t const& axis) {
+      // change self to point at "me"
+      // and look at all descendents
+      it.alternate = axis_t::self;
+      this->work.push_back(build_item::go(it.node, axis_t::descendent, it.index));
+    }
+    inline void handle_parent (item& it, axis_t const& axis) {
+      // either we have built-in parent support, or we are at least
+      // the second item in the work-list (if we're the first item
+      // and we don't have parent-support, we could have a false-positive
+      // if the first type in the variant is a "valued<*>" type)
+      if (it.knows_forebear or this->work.size() > 1) {
+        this->work.push_back(build_item::go(it.forebear, axis_t::self, it.index));
+      }
+    }
+    inline void handle_self (item& it, axis_t const& axis) {
+      if (it.tag_name == this->path.test(axis)) {
+        ++it.index;
+        it.alternate = axis_t::unknown;
+      } else
+        this->work.pop_back();
+    }
 
-#ifdef XPGTL_DEBUG
-    std::size_t recursion_depth;
-#endif//XPGTL_DEBUG
-    // Members
-    node_type const*    node;
-    visitor_base const* parent;
-    path_t*             path;
-    std::size_t         axis;
-    result_set_t*       result_set;
+    std::vector<item> work;
+    path<String> path;
   };
 
-  result_set_t operator () (path_t& path, X const& gds) {
-    result_set_t result_set;
-    visitor<X> V(&gds,&path,0,0,&result_set);
-    rdstl::visit(V, gds);
-    return result_set;
-  }
-};
-
-template <typename X, typename String>
-typename query_generator<String,X>::result_set_t
-query (xpgtl::path<String> const& path, X const& x) {
-  xpgtl::path<String> lpath(path);
-  query_generator<String,X> qg;
-  return qg(lpath, x);
-}
-
-template <typename X, typename String>
-typename query_generator<String,X>::result_set_t
-query (String const& path, X const& gds) {
-  return query(xpgtl::path<String>(path), gds);
-}
-
-template <typename TypeFilter>
-struct filter_on_type {
-  typedef TypeFilter result_type;
-
-  result_type operator () (TypeFilter const& t) const {
-    return t;
-  }
-  template <typename T>
-  result_type operator () (T const& t) const {
-    return 0;
-  }
-};
-
-//
-// this is a convenience function to give us BASIC-like syntax:
-//   query(path, datastructure, as<foo>());
-// returns a result-set of "foo const*"
-template <typename ResultType>
-ResultType const* as () { return 0; }
-
-template <typename ResultType, typename X, typename String>
-std::set<const ResultType*>
-query (String const& path, X const& x, ResultType const* rt=0) {
-  typedef std::set<const ResultType*> rset_t;
-  typedef typename query_generator<String,X>::result_set_t qset_t;
-  typedef typename qset_t::const_iterator q_iter;
-
-  qset_t qset = query(path, x);
-
-  rset_t rset;
-  q_iter first, last;
-  filter_on_type<const ResultType*> fot;
-  for (boost::tie(first,last) = bel::sequence(qset); first!=last; ++first) {
-    ResultType const* possible = rdstl::visit(fot,*first);
-    if (0 != possible)
-      rset.insert(possible);
-  }
-
-  return rset;
-}
-
-struct visit_result_set {
-  typedef void result_type;
-  template <typename T>
-  void operator () (T const& t) const {
-    std::cout << std::hex << t;
-  }
-};
-
-template <typename ResultType>
-void print_result_set (ResultType const& rtype) {
-  visit_result_set vrt;
-  rdstl::visit(vrt, rtype);
-}
-
-template <typename ResultType>
-void print_result_set (std::set<ResultType> const& result_set) {
-  typedef typename std::set<ResultType>::const_iterator iter;
-  iter first, last;
-  boost::tie(first,last)=bel::sequence(result_set);
-  std::cout << "[";
-  if (first != last) {
-    print_result_set(*first);
-    ++first;
-  }
-  for ( ;first!=last; ++first) {
-    std::cout << ", ";
-    print_result_set(*first);
-  }
-  std::cout << "]";
-}
-
-} // end xpgtl*/
+} // end xpgtl
 
 #endif//XPGTL_LIB_QUERY
