@@ -8,10 +8,6 @@
 #include <sstream>
 #include <locale>
 
-// for Query
-#include <boost/shared_ptr.hpp>
-#include <vector>
-
 int main (int argc, char *argv[]) {
 
   std::locale loc("");
