@@ -334,7 +334,7 @@ namespace xpgtl {
     inline void handle_child (item& it, axis_t const& axis) {
       // add a child and call it a self as a proxy
       if (*it.current != *it.end) {
-        item ntm = build_item::go(**it.current, axis_t::self, it.index);
+        item ntm = build_item::go(**it.current, axis_t::self, it.index, it.node);
         ++*it.current;
         this->work.push_back(ntm);
       } else
@@ -343,8 +343,8 @@ namespace xpgtl {
     inline void handle_descendent (item& it, axis_t const& axis) {
       if (*it.current != *it.end) {
         // add two items: "child" and "descendent"
-        item ntm = build_item::go(**it.current, axis_t::self, it.index);
-        item mtm = build_item::go(**it.current, axis_t::descendent, it.index);
+        item ntm = build_item::go(**it.current, axis_t::self, it.index, it.node);
+        item mtm = build_item::go(**it.current, axis_t::descendent, it.index, it.node);
         ++*it.current;
         // don't invalidate "item"
         this->work.push_back(ntm);
@@ -356,7 +356,7 @@ namespace xpgtl {
       // change self to point at "me"
       // and look at all descendents
       it.alternate = axis_t::self;
-      this->work.push_back(build_item::go(it.node, axis_t::descendent, it.index));
+      this->work.push_back(build_item::go(it.node, axis_t::descendent, it.index, it.forebear));
     }
     inline void handle_parent (item& it, axis_t const& axis) {
       // either we have built-in parent support, or we are at least
@@ -364,11 +364,15 @@ namespace xpgtl {
       // and we don't have parent-support, we could have a false-positive
       // if the first type in the variant is a "valued<*>" type)
       if (it.knows_forebear or this->work.size() > 1) {
-        this->work.push_back(build_item::go(it.forebear, axis_t::self, it.index));
+        std::cout << (it.knows_forebear?"scion":"bastard") << std::endl;
+        item ntm = build_item::go(it.forebear, axis_t::self, it.index);
+        this->work.pop_back();
+        this->work.push_back(ntm);
       }
     }
     inline void handle_self (item& it, axis_t const& axis) {
-      if (it.tag_name == this->path.test(axis)) {
+      if ((axis.function and axis_t::Node == axis.test)
+        or (it.tag_name == this->path.test(axis))) {
         ++it.index;
         it.alternate = axis_t::unknown;
       } else
