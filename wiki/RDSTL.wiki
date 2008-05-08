@@ -134,15 +134,15 @@ For C++ compatibility, membership is specified by specialization of the `has_chi
 The `Parent` concept has two carrier types, `R` and `Tag`. It refines the `Children` concept.
 
 || *Expression* || *Meaning* || *Note* ||
-|| `parent_type` || the type of the parent || usually a reference or proxy ||
-|| `parent(R, tag)` || returns `parent_type` || usually a reference or proxy  ||
+|| `parent_type` || the type of the parent ||  ||
+|| `parent(R, tag)` || returns `parent_type` || must be dereferenceable and comparable to `0` ||
 
 The concept is this:
 
 {{{
 concept Parent<typename R, typename Tag> : Children<R,Tag> {
   Regular parent_type;
-  parent_type const& parent (R, Tag);
+  parent_type* const& parent (R, Tag);
 }
 }}}
 
