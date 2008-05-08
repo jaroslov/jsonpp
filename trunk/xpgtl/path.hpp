@@ -290,7 +290,7 @@ private:
         } break;
       case '*': { // wild card
           tokens.push_back(token_t(axis_t::unknown,token_t::axis_test,
-                                    axis_t::WildCard));
+                                    axis_t::Node,true));
           ++first;
         } break;
       default: {
@@ -401,8 +401,15 @@ struct path {
           bostr << P.string_store[P.axes[a].test];
         else if (axis_t::WildCard == P.axes[a].test)
           bostr << "*";
-        if (P.axes[a].function)
+        if (P.axes[a].function) {
+          switch (P.axes[a].test) {
+          case axis_t::Node: bostr << "node"; break;
+          case axis_t::Text: bostr << "text"; break;
+          case axis_t::Comment: bostr << "comment"; break;
+          case axis_t::ProcessingInstruction: bostr << "processing-instruction"; break;
+          }
           bostr << "()";
+        }
       }
       if (axis_t::None < P.axes[a].predicate)
         bostr << "[" << P.axes[a].predicate << "]";
