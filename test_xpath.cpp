@@ -14,25 +14,86 @@
 
 namespace xpgtl {
 
+  template <typename RU>
+  struct visit_node_ru {
+    typedef RU result_type;
+    template <typename T>
+    RU operator () (T const& t) const {
+      RU ru;
+      ru = &t;
+      return ru;
+    }
+    template <typename T>
+    static RU go (T const& t) {
+      visit_node_ru<RU> nru;
+      return rdstl::visit(nru, t);
+    }
+  };
+
+  template <typename RU>
   struct abstract_iterator {
     virtual ~ abstract_iterator () {}
+    virtual void next () = 0;
+    virtual bool eq (abstract_iterator const&) const = 0;
+    virtual bool n_eq (abstract_iterator const&) const = 0;
+    virtual void dereference () = 0;
+    RU const& operator * () {
+      this->dereference();
+      return this->ru_store;
+    }
+    const RU* operator -> () {
+      this->dereference();
+      return &this->ru_store;
+    }
+    abstract_iterator& operator ++ () {
+      this->next(); return *this;
+    }
+    friend bool operator == (abstract_iterator const& L, abstract_iterator const& R) {
+      return L.eq(R);
+    }
+    friend bool operator != (abstract_iterator const& L, abstract_iterator const& R) {
+      return L.n_eq(R);
+    }
+
+    protected:
+    RU ru_store;
   };
-  template <typename Iterator, typename Tag>
-  struct node_iterator : public abstract_iterator {
+  template <typename RU, typename Iterator, typename Tag>
+  struct node_iterator : public abstract_iterator<RU> {
+    typedef abstract_iterator<RU>           base_type;
+    typedef node_iterator<RU,Iterator,Tag>  self_type;
     node_iterator () : iterator() {}
     node_iterator (Iterator const& iter) : iterator(iter) {}
     virtual ~ node_iterator () {}
+    virtual void next () {
+      ++this->iterator;
+    }
+    virtual bool eq (base_type const& atr) const {
+      return this->iterator == static_cast<const self_type*>(&atr)->iterator;
+    }
+    virtual bool n_eq (base_type const& atr) const {
+      return this->iterator != static_cast<const self_type*>(&atr)->iterator;
+    }
+    virtual void dereference () {
+      this->ru_store = visit_node_ru<RU>::go(*this->iterator);
+    }
+
     Iterator iterator;
   };
-  template <typename Tag>
-  struct node_iterator<void,Tag> : public abstract_iterator {
+  template <typename RU, typename Tag>
+  struct node_iterator<RU,void,Tag> : public abstract_iterator<RU> {
+    typedef abstract_iterator<RU>       base_type;
     virtual ~ node_iterator () {}
+    virtual void next () {}
+    virtual bool eq (base_type const&) const { return true; }
+    virtual bool n_eq (base_type const&) const { return false; }
+    virtual void dereference () {}
   };
 
   template <typename String, typename X, typename Tag=xpath<X> >
   struct Query {
-    typedef typename rdstl::reference_union<X,Tag>::type  ru_type;
-    typedef boost::shared_ptr<abstract_iterator>          sa_iter_t;
+    typedef typename rdstl::reference_union<X,Tag>::type    ru_type;
+    typedef boost::shared_ptr<abstract_iterator<ru_type> >  sa_iter_t;
 
     struct item {
       item () : node() {}
@@ -41,28 +102,34 @@ namespace xpgtl {
         this->initialize(t);
       }
       template <typename T>
+      item (T const* t) {
+        this->initialize(*t);
+      }
+      template <typename T>
       typename boost::disable_if<rdstl::has_children<T,Tag> >::type
       initialize (T const& t) {
-        this->tag = rdstl::tag(t, Tag());
+        typedef node_iterator<ru_type,void,Tag> node_iter;
+        this->tag_name = tag(t, Tag());
         this->node = &t;
-        this->begin = sa_iter_t(new node_iterator<void,Tag>());
-        this->current = sa_iter_t(new node_iterator<void,Tag>());
-        this->end = sa_iter_t(new node_iterator<void,Tag>());
+        this->begin = sa_iter_t(new node_iter());
+        this->current = sa_iter_t(new node_iter());
+        this->end = sa_iter_t(new node_iter());
       }
       template <typename T>
       typename boost::enable_if<rdstl::has_children<T,Tag> >::type
       initialize (T const& t) {
         typedef typename bel::iterator<T,Tag>::type iter_t;
-        this->tag = rdstl::tag(t, Tag());
+        typedef node_iterator<ru_type,iter_t,Tag> node_iter;
+        this->tag_name = tag(t, Tag());
         this->node = &t;
         iter_t f, l;
         boost::tie(f,l) = rdstl::children(t, Tag());
-        this->begin = sa_iter_t(new node_iterator<iter_t,Tag>(f));
-        this->current = sa_iter_t(new node_iterator<iter_t,Tag>(f));
-        this->end = sa_iter_t(new node_iterator<iter_t,Tag>(l));
+        this->begin = sa_iter_t(new node_iter(f));
+        this->current = sa_iter_t(new node_iter(f));
+        this->end = sa_iter_t(new node_iter(l));
       }
 
-      std::string tag;
+      std::string tag_name;
       sa_iter_t begin, current, end;
       ru_type   node;
     };
@@ -78,6 +145,18 @@ namespace xpgtl {
         return rdstl::visit(bi, t);
       }
     };
+    struct build_item_ptr {
+      typedef item result_type;
+      template <typename T>
+      item operator () (T const& t) const {
+        return item(*t);
+      }
+      template <typename T>
+      static item go (T const& t) {
+        build_item_ptr bi;
+        return rdstl::visit(bi, t);
+      }
+    };
 
     Query (path<String> const& path, X const& x) {
       this->setup(path, x);
@@ -89,7 +168,15 @@ namespace xpgtl {
     }
     void next () {
       while (not this->work.empty()) {
-        this->work.pop_back();
+        item &it = this->work.back();
+        if (*it.current != *it.end) {
+          this->work.push_back(build_item_ptr::go(**it.current));
+          ++*it.current;
+        } else {
+          std::cout << std::string(this->work.size()-1,' ')
+            << this->work.back().tag_name << std::endl;
+          this->work.pop_back();
+        }
       }
     }
 
