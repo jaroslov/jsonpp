@@ -39,6 +39,11 @@ typename knows_parent<T,Tag>::type const&
 parent (P, T const& t, Tag) {
   return t.parent();
 }
+template <typename P, typename T, typename Tag>
+typename knows_parent<T,Tag>::type const&
+parent (T const& t, Tag) {
+  return t.parent();
+}
 
 // children metafunction; if "true" then the type T is
 // recursive and supports an iterator over the children,
@@ -120,6 +125,9 @@ struct valued {
   }
   T const& operator * () const {
     return this->value;
+  }
+  const T* operator & () const {
+    return &this->value;
   }
   const T* get () const {
     return &this->value;
