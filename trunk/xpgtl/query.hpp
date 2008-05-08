@@ -15,6 +15,9 @@
 
 namespace xpgtl {
 
+  // a generic visitor for some unknown variant type;
+  // the value of the variant is place into the reference_union
+  // type (RU) by reference, when found
   template <typename RU>
   struct visit_node_ru {
     typedef RU result_type;
@@ -31,6 +34,22 @@ namespace xpgtl {
     }
   };
 
+  //
+  // We need a way to store iterators for any type we
+  // find in the RDS. The RDSTL does not give us a
+  // guarantee that there exists a reference-union that
+  // can store any type of iterator we'll find. That
+  // means we have to build an "abstract" iterator
+  // that captures the interface to a forward iterator
+  // (the kind of iterator we need).
+  //
+  // there are two implementations of the abstract
+  // iterator: the node-iterator specialized for some type
+  // "T" and for the type "void". A "T" specialized
+  // iterator actually does work---it holds a real
+  // iterator by value. The "void" specialized iterator
+  // is a proxy for those types that do not have children.
+  // The void-iterator always "fails".
   template <typename RU>
   struct abstract_iterator {
     abstract_iterator () : ru_store() {}
@@ -41,6 +60,7 @@ namespace xpgtl {
     virtual bool n_eq (abstract_iterator const&) const = 0;
     virtual void dereference () = 0;
     virtual abstract_iterator<RU>* clone () const = 0;
+    // these make the iterator "pretty"
     RU const& operator * () {
       this->dereference();
       return this->ru_store;
@@ -101,6 +121,8 @@ namespace xpgtl {
     }
   };
 
+#ifdef XPGTL_DEBUG
+  // this is an internal convenience visitor for debugging
   struct print_pointer {
     typedef void result_type;
     template <typename T>
@@ -117,7 +139,13 @@ namespace xpgtl {
       rdstl::visit(pptr, t);
     }
   };
+#endif//XPGTL_DEBUG
 
+  //
+  // Filters a variant so that it returns a pointer
+  // or "0". That means that "TypeFilter" must be
+  // of some dereferenceable type, and that "0"
+  // is convertiable to that type.
   template <typename TypeFilter>
   struct filter_on_type {
     typedef TypeFilter result_type;
@@ -133,7 +161,7 @@ namespace xpgtl {
   
   //
   // this is a convenience function to give us BASIC-like syntax:
-  //   query(path, datastructure, as<foo>());
+  //   Q.next(as<foo>());
   // returns a result-set of "foo const*"
   template <typename ResultType>
   ResultType const* as () { return 0; }
