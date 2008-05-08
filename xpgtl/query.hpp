@@ -6,6 +6,7 @@
 #include <boost/shared_ptr.hpp>
 // STL stuff
 #include <vector>
+#include <set>
 // local stuff
 #include "concepts.hpp"
 #include "path.hpp"
@@ -126,7 +127,9 @@ namespace xpgtl {
   struct print_pointer {
     typedef void result_type;
     template <typename T>
-    void operator () (T const&) const {}
+    void operator () (T const&) const {
+      std::cout << typeid(T).name() << std::endl;
+    }
     void operator () (std::string const* str) const {
       std::cout << "\"" << *str << "\"" << std::flush;
     }
@@ -169,9 +172,42 @@ namespace xpgtl {
   template <typename String, typename X, typename Tag=xpath<X> >
   struct Query {
     typedef typename rdstl::reference_union<X,Tag>::type    ru_type;
+    typedef ru_type                                         value_type;
     typedef boost::shared_ptr<abstract_iterator<ru_type> >  sa_iter_t;
 
-    struct build_item_ptr;
+    template <typename WorkQueue>
+    struct retrieve_parent {
+      typedef std::pair<bool, ru_type> result_type;
+      template <typename T>
+      typename boost::enable_if<rdstl::knows_parent<T,Tag>,result_type>::type
+      operator () (T const& t) const {
+        // real support
+        if (0 == parent(*t, Tag()))
+          return std::make_pair(false, ru_type());
+        return std::make_pair(true, ru_type());
+      }
+      template <typename T>
+      typename boost::disable_if<rdstl::knows_parent<T,Tag>,result_type>::type
+      operator () (T const& t) const {
+        // emulated support
+        if (this->parent_index > 0)
+          return std::make_pair(true, (*this->workq)[this->parent_index].node);
+        return std::make_pair(false, ru_type());
+      }
+      template <typename T>
+      static std::pair<bool, ru_type>
+      go (WorkQueue const& workq, T const& t, signed long pdx) {
+        // mind you "T" is some sort of dereferenceable-type (the node)
+        retrieve_parent<WorkQueue> gp;
+        gp.workq = &workq;
+        gp.parent_index = pdx;
+        return rdstl::visit(gp, t);
+      }
+
+      WorkQueue const* workq;
+      signed long parent_index;
+    };
+
     struct item {
       item () : node() {}
       item (item const& it) {
@@ -182,23 +218,21 @@ namespace xpgtl {
         return *this;
       }
       void copy (item const& it) {
-        this->alternate = it.alternate;
-        this->index     = it.index;
-        this->begin     = it.begin;
-        this->current   = it.current;
-        this->end       = it.end;
-        this->tag_name  = it.tag_name;
-        this->node      = it.node;
-        this->forebear  = it.forebear;
-        this->knows_forebear = it.knows_forebear;
+        this->alternate     = it.alternate;
+        this->index         = it.index;
+        this->begin         = it.begin;
+        this->current       = it.current;
+        this->end           = it.end;
+        this->tag_name      = it.tag_name;
+        this->node          = it.node;
+        this->parent_index  = it.parent_index;
       }
       template <typename T>
-      item (T const& t, axis_t::name_e name=axis_t::unknown,
-        std::size_t idx=0, ru_type const& parent=ru_type()) {
+      item (T const& t, axis_t::name_e name=axis_t::unknown, std::size_t idx=0, signed long pdx=-1) {
         this->alternate = name;
         this->index = idx;
+        this->parent_index = pdx;
         this->init_children(t);
-        this->init_parent(t, parent);
       }
       template <typename T>
       typename boost::disable_if<rdstl::has_children<T,Tag> >::type
@@ -223,52 +257,42 @@ namespace xpgtl {
         this->current = sa_iter_t(new node_iter(f));
         this->end = sa_iter_t(new node_iter(l));
       }
-      template <typename T>
-      typename boost::disable_if<rdstl::knows_parent<T,Tag> >::type
-      init_parent (T const& t, ru_type const& parent) {
-        this->forebear = parent;
-        this->knows_forebear = false;
-      }
-      template <typename T>
-      typename boost::enable_if<rdstl::knows_parent<T,Tag> >::type
-      init_parent (T const& t, ru_type const&) {
-        this->forebear = parent(t, Tag());
-        this->knows_forebear = true;
+      template <typename WorkQueue>
+      std::pair<bool,ru_type> get_parent (WorkQueue const& workq) {
+        return retrieve_parent<WorkQueue>::go(workq, this->node, this->parent_index);
       }
 
       axis_t::name_e alternate;
       std::size_t index;
+      signed long parent_index;
       std::string tag_name;
       sa_iter_t begin, current, end;
-      ru_type node, forebear;
-      bool knows_forebear;
+      ru_type node;
     };
     struct build_item {
       typedef item result_type;
       template <typename T>
       item operator () (T const& t) const {
-        return item(t, this->name, this->index, this->parent);
+        return item(t, this->name, this->index, this->parent_index);
       }
       template <typename T>
       item operator () (T const* t) const {
-        return item(*t, this->name, this->index, this->parent);
+        return item(*t, this->name, this->index, this->parent_index);
       }
       template <typename T>
       item operator () (rdstl::valued<T> const& t) const {
-        return item(*t, this->name, this->index, this->parent);
+        return item(*t, this->name, this->index, this->parent_index);
       }
       template <typename T>
-      static item go (T const& t, axis_t::name_e name=axis_t::unknown,
-        std::size_t idx=0, ru_type const& parent=ru_type()) {
+      static item go (T const& t, axis_t::name_e name=axis_t::unknown, std::size_t idx=0, std::size_t pdx=0) {
         build_item bi;
-        bi.parent = parent;
         bi.name = name;
         bi.index = idx;
+        bi.parent_index = pdx;
         return rdstl::visit(bi, t);
       }
-      ru_type parent;
       axis_t::name_e name;
-      std::size_t index;
+      std::size_t index, parent_index;
     };
 
     Query (path<String> const& path, X const& x) {
@@ -293,7 +317,8 @@ namespace xpgtl {
         item &it = this->work.back();
         if (this->path.size() <= it.index) {
 #ifdef XPGTL_DEBUG
-          std::cout << "FOUND " << this->work.back().tag_name << std::endl;
+          std::cout << std::string(this->work.size()-1,'-') << ">"
+            << this->work.back().tag_name << std::endl;
 #endif//XPGTL_DEBUG
           ru_type ru = this->work.back().node;
           this->work.pop_back();
@@ -305,7 +330,9 @@ namespace xpgtl {
               ? axis.name : it.alternate;
 #ifdef XPGTL_DEBUG
         std::cout << std::string(this->work.size(),' ') << axis
-          << " alt: " << (char)name << " idx: " << it.index << std::endl;
+          << " alt: " << (char)name << " idx: " << it.index
+          << " " << this->path.test(it.index) << " ?= "
+          << it.tag_name << std::endl;
 #endif//XPGTL_DEBUG
         switch (name) {
         case axis_t::ancestor: this->handle_ancestor(it, axis); break;
@@ -327,21 +354,13 @@ namespace xpgtl {
       return ru_type();
     }
     inline void handle_ancestor (item& it, axis_t const& axis) {
-      if (it.knows_forebear or this->work.size() > 1) {
-        item ntm = build_item::go(it.forebear, axis_t::parent, it.index);
-        item mtm = build_item::go(it.forebear, axis_t::ancestor, it.index);
-        this->work.push_back(ntm);
-        this->work.push_back(mtm);
-      }
     }
     inline void handle_ancestor_or_self (item& it, axis_t const& axis) {
-      it.alternate = axis_t::self;
-      this->handle_ancestor(it, axis);
     }
     inline void handle_child (item& it, axis_t const& axis) {
       // add a child and call it a self as a proxy
       if (*it.current != *it.end) {
-        item ntm = build_item::go(**it.current, axis_t::self, it.index, it.node);
+        item ntm = build_item::go(**it.current, axis_t::self, it.index, this->work.size()-1);
         ++*it.current;
         this->work.push_back(ntm);
       } else
@@ -350,8 +369,8 @@ namespace xpgtl {
     inline void handle_descendent (item& it, axis_t const& axis) {
       if (*it.current != *it.end) {
         // add two items: "child" and "descendent"
-        item ntm = build_item::go(**it.current, axis_t::self, it.index, it.node);
-        item mtm = build_item::go(**it.current, axis_t::descendent, it.index, it.node);
+        item ntm = build_item::go(**it.current, axis_t::self, it.index, this->work.size()-1);
+        item mtm = build_item::go(**it.current, axis_t::descendent, it.index, this->work.size()-1);
         ++*it.current;
         // don't invalidate "item"
         this->work.push_back(ntm);
@@ -363,23 +382,27 @@ namespace xpgtl {
       // change self to point at "me"
       // and look at all descendents
       it.alternate = axis_t::self;
-      this->work.push_back(build_item::go(it.node, axis_t::descendent, it.index, it.forebear));
+      this->work.push_back(build_item::go(it.node, axis_t::descendent, it.index, it.parent_index));
     }
     inline void handle_parent (item& it, axis_t const& axis) {
-      // either we have built-in parent support, or we are at least
-      // the second item in the work-list (if we're the first item
-      // and we don't have parent-support, we could have a false-positive
-      // if the first type in the variant is a "valued<*>" type)
-      if (it.knows_forebear or this->work.size() > 1) {
-        item ntm = build_item::go(it.forebear, axis_t::self, it.index+1);
+      std::pair<bool,ru_type> pr = it.get_parent(this->work);
+      std::cout << std::string(this->work.size()-1,'=') << "> Parent? "
+        << pr.first << std::flush;
+      if (pr.first) {
+        item ntm = build_item::go(pr.second, axis_t::self, it.index
+          /*, get-parent needs to return parent's possible index */);
+        std::cout << " " << ntm.tag_name << " " << std::flush;
+        print_pointer::go(ntm.node);
         this->work.pop_back();
         this->work.push_back(ntm);
       } else
         this->work.pop_back();
+      std::cout << " ] " << it.tag_name << std::endl;
     }
     inline void handle_self (item& it, axis_t const& axis) {
       if ((axis.function and axis_t::Node == axis.test)
-        or (it.tag_name == this->path.test(axis))) {
+        or (it.tag_name == this->path.test(it.index))) {
+        std::cout << "SELF-SUCC" << std::endl;
         ++it.index;
         it.alternate = axis_t::unknown;
       } else
@@ -389,6 +412,35 @@ namespace xpgtl {
     std::vector<item> work;
     path<String> path;
   };
+
+template <typename String, typename X>
+std::set<typename Query<String,X>::value_type>
+query (path<String> const& path, X const& x) {
+  typedef typename Query<String,X>::value_type v_type;
+  typedef std::set<v_type> r_set_t;
+  r_set_t rset;
+  Query<String,X> Q(path, x);
+  while (not Q.done()) {
+    v_type vt = Q.next();
+    if (not Q.done())
+      rset.insert(vt);
+  }
+  return rset;
+}
+
+template <typename String, typename X, typename FilterType>
+std::set<FilterType const*>
+query (path<String> const& path, X const& x, FilterType const*) {
+  typedef std::set<FilterType const*> r_set_t;
+  r_set_t rset;
+  Query<String,X> Q(path, x);
+  while (not Q.done()) {
+    FilterType const* ft = Q.next(as<FilterType>());
+    if (not Q.done())
+      rset.insert(ft);
+  }
+  return rset;
+}
 
 } // end xpgtl
 

@@ -8,6 +8,18 @@
 
 namespace rdstl {
 
+// the references traits; a discriminated union type for
+// T and Tag that can hold a reference to any element
+// in the RDS; i.e., if U is the reference, then
+// for all x in X, for X the types in the RDS, then
+// U = &x;
+// The reference-union exists if the has_children function
+// is "true"
+template <typename T, typename Tag>
+struct reference_union {
+  typedef typename T::reference_union type;
+};
+
 // tag metafunction; if "true" then the type T
 // has a tag-name, which is some Regular type which
 // is located at: has_tag<T,Tag>::type
@@ -31,36 +43,12 @@ typename has_tag<T,Tag>::type tag (T, Tag) {
 // is located at: knows_parent<T,Tag>::type
 template <typename T, typename Tag>
 struct knows_parent : boost::mpl::false_ {};
-// the related "parent" function returns the parent of
-// a given value t:T given the parent data-structure P,
-// for some tag-type Tag
-template <typename P, typename T, typename Tag>
-typename knows_parent<T,Tag>::type const&
-parent (P, T const& t, Tag) {
-  return t.parent();
-}
-template <typename P, typename T, typename Tag>
-typename knows_parent<T,Tag>::type const&
-parent (T const& t, Tag) {
-  return t.parent();
-}
 
 // children metafunction; if "true" then the type T is
 // recursive and supports an iterator over the children,
 // see "children"
 template <typename T, typename Tag>
 struct has_children : boost::mpl::false_ {};
-// the references traits; a discriminated union type for
-// T and Tag that can hold a reference to any element
-// in the RDS; i.e., if U is the reference, then
-// for all x in X, for X the types in the RDS, then
-// U = &x;
-// The reference-union exists if the has_children function
-// is "true"
-template <typename T, typename Tag>
-struct reference_union {
-  typedef typename T::reference_union type;
-};
 // the "children" retrieves an iterator to the first
 // and last elements of a sequence over the children of
 // the type T; it defaults to calling the begin-end library's
