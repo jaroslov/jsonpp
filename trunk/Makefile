@@ -12,8 +12,8 @@ vpath: xpgtl/*.hpp test_vpath.cpp
 	g++ -O3 -I. test_vpath.cpp -o vtest
 
 xpath: xpgtl/*.hpp test_xpath.cpp
-	g++ -O3 -I. test_xpath.cpp -o xtest >& error.text || withsubetha error.text
-	echo "//string" | ./xtest examples/*.*if
+	g++ -O3 -I. test_xpath.cpp -o xtest >& error.text || open -a SubEthaEdit error.text
+	echo "self::array" | ./xtest examples/*.*if
 
 vpathT: vtest
 	echo "self::array" | ./vtest examples/*.*if

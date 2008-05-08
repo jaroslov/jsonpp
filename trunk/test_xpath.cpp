@@ -132,7 +132,7 @@ namespace xpgtl {
       }
 
       axis_t::name_e alternate;
-      std::string axis_index;
+      std::size_t index;
       std::string tag_name;
       sa_iter_t begin, current, end;
       ru_type   node;
@@ -173,13 +173,38 @@ namespace xpgtl {
     void next () {
       while (not this->work.empty()) {
         item &it = this->work.back();
-        if (*it.current != *it.end) {
-          this->work.push_back(build_item_ptr::go(**it.current));
-          ++*it.current;
-        } else {
-          std::cout << std::string(this->work.size()-1,' ')
-            << this->work.back().tag_name << std::endl;
+        if (this->path.size() <= it.index) {
+          std::cout << "FOUND!" << std::endl;
           this->work.pop_back();
+          break;
+        }
+        axis_t const& Axis = this->path[it.index];
+        axis_t::name_e name
+          = axis_t::unknown == it.alternate
+              ? Axis.name : it.alternate;
+        switch (name) {
+        case axis_t::child: {
+            if (*it.current != *it.end) {
+              const std::size_t idx = it.index;
+              this->work.push_back(build_item_ptr::go(**it.current));
+              this->work.back().index = idx;
+              this->work.back().alternate = axis_t::self;
+              ++*it.current;
+            } else
+              this->work.pop_back();
+          } break;
+        case axis_t::descendent: {
+          } break;
+        case axis_t::self: {
+            if (it.tag_name == this->path.test(Axis))
+              ++it.index;
+            else
+              this->work.pop_back();
+          } break;
+        default:
+          std::cout << "WTF? pop back!" << std::endl;
+          this->work.pop_back();
+          break;
         }
       }
     }
