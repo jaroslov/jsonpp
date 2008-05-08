@@ -225,13 +225,11 @@ namespace xpgtl {
         this->end           = it.end;
         this->tag_name      = it.tag_name;
         this->node          = it.node;
-        this->parent_index  = it.parent_index;
       }
       template <typename T>
-      item (T const& t, axis_t::name_e name=axis_t::unknown, std::size_t idx=0, signed long pdx=-1) {
+      item (T const& t, axis_t::name_e name=axis_t::unknown, std::size_t idx=0) {
         this->alternate = name;
         this->index = idx;
-        this->parent_index = pdx;
         this->init_children(t);
       }
       template <typename T>
@@ -257,14 +255,9 @@ namespace xpgtl {
         this->current = sa_iter_t(new node_iter(f));
         this->end = sa_iter_t(new node_iter(l));
       }
-      template <typename WorkQueue>
-      std::pair<bool,ru_type> get_parent (WorkQueue const& workq) {
-        return retrieve_parent<WorkQueue>::go(workq, this->node, this->parent_index);
-      }
 
       axis_t::name_e alternate;
       std::size_t index;
-      signed long parent_index;
       std::string tag_name;
       sa_iter_t begin, current, end;
       ru_type node;
@@ -273,26 +266,25 @@ namespace xpgtl {
       typedef item result_type;
       template <typename T>
       item operator () (T const& t) const {
-        return item(t, this->name, this->index, this->parent_index);
+        return item(t, this->name, this->index);
       }
       template <typename T>
       item operator () (T const* t) const {
-        return item(*t, this->name, this->index, this->parent_index);
+        return item(*t, this->name, this->index);
       }
       template <typename T>
       item operator () (rdstl::valued<T> const& t) const {
-        return item(*t, this->name, this->index, this->parent_index);
+        return item(*t, this->name, this->index);
       }
       template <typename T>
-      static item go (T const& t, axis_t::name_e name=axis_t::unknown, std::size_t idx=0, std::size_t pdx=0) {
+      static item go (T const& t, axis_t::name_e name=axis_t::unknown, std::size_t idx=0) {
         build_item bi;
         bi.name = name;
         bi.index = idx;
-        bi.parent_index = pdx;
         return rdstl::visit(bi, t);
       }
       axis_t::name_e name;
-      std::size_t index, parent_index;
+      std::size_t index;
     };
 
     Query (path<String> const& path, X const& x) {
@@ -361,13 +353,7 @@ namespace xpgtl {
     inline void handle_child (item& it, axis_t const& axis) {
       // add a child and call it a self as a proxy
       if (*it.current != *it.end) {
-        signed long pdx = this->work.size()-1;
-        if (1 == this->work.size())
-          pdx = -2;
-#ifdef XPGTL_DEBUG
-        std::cout << "PDX " << pdx << std::endl;
-#endif//XPGTL_DEBUG
-        item ntm = build_item::go(**it.current, axis_t::self, it.index, pdx);
+        item ntm = build_item::go(**it.current, axis_t::self, it.index);
         ++*it.current;
         this->work.push_back(ntm);
       } else
@@ -376,8 +362,8 @@ namespace xpgtl {
     inline void handle_descendent (item& it, axis_t const& axis) {
       if (*it.current != *it.end) {
         // add two items: "child" and "descendent"
-        item ntm = build_item::go(**it.current, axis_t::self, it.index, this->work.size()-1);
-        item mtm = build_item::go(**it.current, axis_t::descendent, it.index, this->work.size()-1);
+        item ntm = build_item::go(**it.current, axis_t::self, it.index);
+        item mtm = build_item::go(**it.current, axis_t::descendent, it.index);
         ++*it.current;
         // don't invalidate "item"
         this->work.push_back(ntm);
@@ -389,33 +375,10 @@ namespace xpgtl {
       // change self to point at "me"
       // and look at all descendents
       it.alternate = axis_t::self;
-      this->work.push_back(build_item::go(it.node, axis_t::descendent, it.index, it.parent_index));
+      this->work.push_back(build_item::go(it.node, axis_t::descendent, it.index));
     }
     inline void handle_parent (item& it, axis_t const& axis) {
-      std::pair<bool,ru_type> pr = it.get_parent(this->work);
-#ifdef XPGTL_DEBUG
-      std::cout << std::string(this->work.size()-1,'=') << "> Parent? "
-        << pr.first << std::flush;
-      std::string itgn = it.tag_name;
-#endif//XPGTL_DEBUG
-      if (pr.first or (-2 == it.parent_index)) {
-        item ntm;
-        if (-2 == it.parent_index)
-          ntm = build_item::go(this->pseudoroot, axis_t::self, it.index
-          /*, get-parent needs to return parent's possible index */);
-        else
-          ntm = build_item::go(pr.second, axis_t::self, it.index
-          /*, get-parent needs to return parent's possible index */);
-#ifdef XPGTL_DEBUG
-        std::cout << " " << ntm.tag_name << " " << std::flush;
-#endif//XPGTL_DEBUG
         this->work.pop_back();
-        this->work.push_back(ntm);
-      }else
-        this->work.pop_back();
-#ifdef XPGTL_DEBUG
-      std::cout << "] " << itgn << std::endl;
-#endif//XPGTL_DEBUG
     }
     inline void handle_self (item& it, axis_t const& axis) {
       if ((axis.function and axis_t::Node == axis.test)
