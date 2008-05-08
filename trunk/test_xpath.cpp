@@ -238,7 +238,8 @@ namespace xpgtl {
       while (not this->work.empty()) {
         item &it = this->work.back();
         if (this->path.size() <= it.index) {
-          std::cout << this->work.back().tag_name << ": \"" << std::flush;
+          std::cout << std::string(this->work.size(),'-')
+            << this->work.back().tag_name << ": \"" << std::flush;
           ru = this->work.back().node;
           this->work.pop_back();
           print_pointer::go(ru);
@@ -289,12 +290,6 @@ namespace xpgtl {
       } else
         this->work.pop_back();
     }
-    inline void handle_descendent_or_self (item& it, axis_t const& axis) {
-      // change self to point at "me"
-      // and look at all descendents
-      it.alternate = axis_t::self;
-      this->work.push_back(build_item::go(it.node, axis_t::descendent, it.index));
-    }
     inline void handle_descendent (item& it, axis_t const& axis) {
       if (*it.current != *it.end) {
         // add two items: "child" and "descendent"
@@ -307,6 +302,12 @@ namespace xpgtl {
       } else
         this->work.pop_back();
     }
+    inline void handle_descendent_or_self (item& it, axis_t const& axis) {
+      // change self to point at "me"
+      // and look at all descendents
+      it.alternate = axis_t::self;
+      this->work.push_back(build_item::go(it.node, axis_t::descendent, it.index));
+    }
     inline void handle_parent (item& it, axis_t const& axis) {
       // either we have built-in parent support, or we are at least
       // the second item in the work-list (if we're the first item
@@ -317,9 +318,10 @@ namespace xpgtl {
       }
     }
     inline void handle_self (item& it, axis_t const& axis) {
-      if (it.tag_name == this->path.test(axis))
+      if (it.tag_name == this->path.test(axis)) {
         ++it.index;
-      else
+        it.alternate = axis_t::unknown;
+      } else
         this->work.pop_back();
     }
 
