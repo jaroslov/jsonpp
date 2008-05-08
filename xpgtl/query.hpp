@@ -292,6 +292,9 @@ namespace xpgtl {
       while (not this->work.empty()) {
         item &it = this->work.back();
         if (this->path.size() <= it.index) {
+#ifdef XPGTL_DEBUG
+          std::cout << "FOUND " << this->work.back().tag_name << std::endl;
+#endif//XPGTL_DEBUG
           ru_type ru = this->work.back().node;
           this->work.pop_back();
           return ru;
@@ -300,6 +303,10 @@ namespace xpgtl {
         axis_t::name_e name
           = axis_t::unknown == it.alternate
               ? axis.name : it.alternate;
+#ifdef XPGTL_DEBUG
+        std::cout << std::string(this->work.size(),' ') << axis
+          << " alt: " << (char)name << " idx: " << it.index << std::endl;
+#endif//XPGTL_DEBUG
         switch (name) {
         case axis_t::ancestor: this->handle_ancestor(it, axis); break;
         case axis_t::ancestor_or_self: this->handle_ancestor_or_self(it, axis); break;
@@ -364,11 +371,11 @@ namespace xpgtl {
       // and we don't have parent-support, we could have a false-positive
       // if the first type in the variant is a "valued<*>" type)
       if (it.knows_forebear or this->work.size() > 1) {
-        std::cout << (it.knows_forebear?"scion":"bastard") << std::endl;
-        item ntm = build_item::go(it.forebear, axis_t::self, it.index);
+        item ntm = build_item::go(it.forebear, axis_t::self, it.index+1);
         this->work.pop_back();
         this->work.push_back(ntm);
-      }
+      } else
+        this->work.pop_back();
     }
     inline void handle_self (item& it, axis_t const& axis) {
       if ((axis.function and axis_t::Node == axis.test)
