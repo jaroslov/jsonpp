@@ -225,12 +225,14 @@ namespace xpgtl {
         this->end           = it.end;
         this->tag_name      = it.tag_name;
         this->node          = it.node;
+        this->parent_index  = it.parent_index;
       }
       template <typename T>
-      item (T const& t, axis_t::name_e name=axis_t::unknown, std::size_t idx=0) {
+      item (T const& t, axis_t::name_e name=axis_t::unknown, std::size_t idx=0, signed long pdx=-1) {
         this->alternate = name;
         this->index = idx;
         this->init_children(t);
+        this->parent_index = pdx;
       }
       template <typename T>
       typename boost::disable_if<rdstl::has_children<T,Tag> >::type
@@ -259,6 +261,7 @@ namespace xpgtl {
       axis_t::name_e alternate;
       std::size_t index;
       std::string tag_name;
+      signed long parent_index;
       sa_iter_t begin, current, end;
       ru_type node;
     };
@@ -266,23 +269,25 @@ namespace xpgtl {
       typedef item result_type;
       template <typename T>
       item operator () (T const& t) const {
-        return item(t, this->name, this->index);
+        return item(t, this->name, this->index, this->parent_index);
       }
       template <typename T>
       item operator () (T const* t) const {
-        return item(*t, this->name, this->index);
+        return item(*t, this->name, this->index, this->parent_index);
       }
       template <typename T>
       item operator () (rdstl::valued<T> const& t) const {
-        return item(*t, this->name, this->index);
+        return item(*t, this->name, this->index, this->parent_index);
       }
       template <typename T>
-      static item go (T const& t, axis_t::name_e name=axis_t::unknown, std::size_t idx=0) {
+      static item go (T const& t, axis_t::name_e name=axis_t::unknown, std::size_t idx=0, signed long pdx=-1) {
         build_item bi;
         bi.name = name;
         bi.index = idx;
+        bi.parent_index = pdx;
         return rdstl::visit(bi, t);
       }
+      signed long parent_index;
       axis_t::name_e name;
       std::size_t index;
     };
@@ -294,7 +299,7 @@ namespace xpgtl {
       this->path = path;
       this->work.clear();
       this->work.push_back(build_item::go(x));
-      this->pseudoroot = this->work.back().node;
+      this->ancestors.push_back(this->work.back().node);
     }
     bool done () const {
       return this->work.empty();
@@ -330,16 +335,16 @@ namespace xpgtl {
         switch (name) {
         case axis_t::ancestor: this->handle_ancestor(it, axis); break;
         case axis_t::ancestor_or_self: this->handle_ancestor_or_self(it, axis); break;
-        case axis_t::attribute: break;
+        case axis_t::attribute: this->handle_attribute(it, axis); break;
         case axis_t::child: this->handle_child(it, axis); break;
         case axis_t::descendent: this->handle_descendent(it, axis); break;
         case axis_t::descendent_or_self: this->handle_descendent_or_self(it, axis); break;
-        case axis_t::following: break;
-        case axis_t::following_sibling: break;
-        case axis_t::namespace_: break;
+        case axis_t::following: this->handle_following(it, axis); break;
+        case axis_t::following_sibling: this->handle_following_sibling(it, axis); break;
+        case axis_t::namespace_: this->handle_namespace(it, axis); break;
         case axis_t::parent: this->handle_parent(it, axis); break;
-        case axis_t::preceding: break;
-        case axis_t::preceding_sibling: break;
+        case axis_t::preceding: this->handle_preceding(it, axis); break;
+        case axis_t::preceding_sibling: this->handle_preceding_sibling(it, axis); break;
         case axis_t::self: this->handle_self(it, axis); break;
         default: throw std::runtime_error("Unrecognized axis-name.");
         }
@@ -350,46 +355,51 @@ namespace xpgtl {
     }
     inline void handle_ancestor_or_self (item& it, axis_t const& axis) {
     }
+    inline void handle_attribute (item& it, axis_t const& axis) {
+    }
     inline void handle_child (item& it, axis_t const& axis) {
-      // add a child and call it a self as a proxy
       if (*it.current != *it.end) {
-        item ntm = build_item::go(**it.current, axis_t::self, it.index);
+        item nt = build_item::go(**it.current, axis_t::self, it.index);
         ++*it.current;
-        this->work.push_back(ntm);
+        this->work.push_back(nt);
       } else
         this->work.pop_back();
     }
     inline void handle_descendent (item& it, axis_t const& axis) {
-      if (*it.current != *it.end) {
-        // add two items: "child" and "descendent"
-        item ntm = build_item::go(**it.current, axis_t::self, it.index);
-        item mtm = build_item::go(**it.current, axis_t::descendent, it.index);
-        ++*it.current;
-        // don't invalidate "item"
-        this->work.push_back(ntm);
-        this->work.push_back(mtm);
+      if (axis_t::child != it.alternate) {
+        item cp = build_item::go(it.node);
+        for ( ; *cp.current != *cp.end; ++*cp.current)
+          this->work.push_back(build_item::go(**cp.current, axis_t::descendent, it.index));
       } else
-        this->work.pop_back();
+        it.alternate = axis_t::child;
     }
     inline void handle_descendent_or_self (item& it, axis_t const& axis) {
-      // change self to point at "me"
-      // and look at all descendents
-      it.alternate = axis_t::self;
-      this->work.push_back(build_item::go(it.node, axis_t::descendent, it.index));
+    }
+    inline void handle_following (item& it, axis_t const& axis) {
+    }
+    inline void handle_following_sibling (item& it, axis_t const& axis) {
     }
     inline void handle_parent (item& it, axis_t const& axis) {
-        this->work.pop_back();
+    }
+    inline void handle_namespace (item& it, axis_t const& axis) {
+    }
+    inline void handle_preceding (item& it, axis_t const& axis) {
+    }
+    inline void handle_preceding_sibling (item& it, axis_t const& axis) {
     }
     inline void handle_self (item& it, axis_t const& axis) {
-      if ((axis.function and axis_t::Node == axis.test)
-        or (it.tag_name == this->path.test(it.index))) {
+      if (this->satisfies_test(it, it.index))
         ++it.index;
-        it.alternate = axis_t::unknown;
-      } else
+      else
         this->work.pop_back();
     }
+    inline bool satisfies_test (item const& it, std::size_t idx) const {
+      const axis_t axis = this->path[idx];
+      return (axis.function and axis_t::Node == axis.test)
+        or (this->path.test(idx) == it.tag_name);
+    }
 
-    ru_type pseudoroot;
+    std::vector<ru_type> ancestors;
     std::vector<item> work;
     path<String> path;
   };

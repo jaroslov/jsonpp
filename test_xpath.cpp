@@ -1,4 +1,4 @@
-//#define XPGTL_DEBUG
+#define XPGTL_DEBUG
 #include <xpgtl/xpath.hpp>
 #include <json/jsonpp.hpp>
 #include <json/xpath.hpp>
