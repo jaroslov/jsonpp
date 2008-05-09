@@ -174,20 +174,56 @@ namespace xpgtl {
     typedef typename rdstl::reference_union<X,Tag>::type    ru_type;
     typedef ru_type                                         value_type;
     typedef boost::shared_ptr<abstract_iterator<ru_type> >  sa_iter_t;
+    typedef std::pair<sa_iter_t,sa_iter_t>                  sa_iter_p;
+
+    struct get_reference {
+      typedef ru_type result_type;
+      template <typename T>
+      ru_type operator () (T const& t) const {
+        ru_type RU;
+        RU = &t;
+        return RU;
+      }
+      template <typename T>
+      static ru_type go (T const& t) {
+        get_reference G;
+        return rdstl::visit(G, t);
+      }
+    };
 
     struct node {
       struct build {
         typedef node result_type;
         template <typename T>
         node operator () (T const& t) const {
-          return node();
+          return node(*t, this->path_index, this->alternate, this->siblings);
         }
-        template <typename T>
-        static node go (ru_type const& ru) {
+        static node go (ru_type const& ru, std::size_t pdx=0,
+          axis_t::name_e alt=axis_t::unknown,
+          sa_iter_p const& sibs=sa_iter_p()) {
           build B;
+          B.path_index = pdx;
+          B.alternate = alt;
+          B.siblings = sibs;
           return rdstl::visit(B, ru);
         }
+
+        std::size_t path_index;
+        axis_t::name_e alternate;
+        sa_iter_p siblings;
       };
+
+      node () {}
+      template <typename T>
+      node (T const& t, std::size_t pdx=0, axis_t::name_e alt=axis_t::unknown,
+          sa_iter_p const& sibs=sa_iter_p()) {
+        this->path_index = pdx;
+        this->alternate = alt;
+        this->reference = &t;
+        this->init_children(t);
+        this->siblings = sibs;
+        this->tag_name = tag(t, Tag());
+      }
 
       template <typename T>
       typename boost::disable_if<rdstl::has_children<T,Tag> >::type
@@ -204,15 +240,14 @@ namespace xpgtl {
         iter_t f, l;
         boost::tie(f,l) = rdstl::children(t, Tag());
         this->children.first = sa_iter_t(new node_iter(f));
-        this->children.first = sa_iter_t(new node_iter(l));
+        this->children.second = sa_iter_t(new node_iter(l));
       }
 
       std::size_t path_index;
       axis_t::name_e alternate;
       ru_type reference;
-      ru_type parent_reference;
-      std::pair<sa_iter_t,sa_iter_t> children;
-      std::pair<sa_iter_t,sa_iter_t> siblings;
+      sa_iter_p children;
+      sa_iter_p siblings;
       std::string tag_name;
     };
 
@@ -222,6 +257,7 @@ namespace xpgtl {
     void setup (path<String> const& path, X const& x) {
       this->path = path;
       this->work.clear();
+      this->work.push_back(node::build::go(get_reference::go(x)));
     }
     bool done () const {
       return this->work.empty();
@@ -236,38 +272,28 @@ namespace xpgtl {
       while (not this->work.empty()) {
         node &it = this->work.back();
         if (this->path.size() <= it.path_index) {
-#ifdef XPGTL_DEBUG
-          std::cout << std::string(this->work.size()-1,'-') << ">"
-            << this->work.back().tag_name << std::endl;
-#endif//XPGTL_DEBUG
           ru_type ru = this->work.back().reference;
           this->work.pop_back();
           return ru;
         }
         axis_t const& axis = this->path[it.path_index];
-        axis_t::name_e name
-          = axis_t::unknown == it.alternate
-              ? axis.name : it.alternate;
-#ifdef XPGTL_DEBUG
-        std::cout << std::string(this->work.size(),' ') << axis
-          << " alt: " << (char)name << " idx: " << it.path_index
-          << " " << this->path.test(it.path_index) << " ?= "
-          << it.tag_name << std::endl;
-#endif//XPGTL_DEBUG
+        axis_t::name_e name = axis_t::unknown == it.alternate
+                            ? axis.name : it.alternate;
+        const std::size_t last_index = this->work.size() - 1;
         switch (name) {
         case axis_t::ancestor: this->handle_ancestor(it, axis); break;
         case axis_t::ancestor_or_self: this->handle_ancestor_or_self(it, axis); break;
         case axis_t::attribute: this->handle_attribute(it, axis); break;
-        case axis_t::child: this->handle_child(it, axis); break;
-        case axis_t::descendent: this->handle_descendent(it, axis); break;
-        case axis_t::descendent_or_self: this->handle_descendent_or_self(it, axis); break;
+        case axis_t::child: this->handle_child(last_index); break;
+        case axis_t::descendent: this->handle_descendent(last_index); break;
+        case axis_t::descendent_or_self: this->handle_descendent_or_self(last_index); break;
         case axis_t::following: this->handle_following(it, axis); break;
         case axis_t::following_sibling: this->handle_following_sibling(it, axis); break;
         case axis_t::namespace_: this->handle_namespace(it, axis); break;
         case axis_t::parent: this->handle_parent(it, axis); break;
         case axis_t::preceding: this->handle_preceding(it, axis); break;
         case axis_t::preceding_sibling: this->handle_preceding_sibling(it, axis); break;
-        case axis_t::self: this->handle_self(it, axis); break;
+        case axis_t::self: this->handle_self(last_index); break;
         default: throw std::runtime_error("Unrecognized axis-name.");
         }
       }
@@ -279,11 +305,21 @@ namespace xpgtl {
     }
     inline void handle_attribute (node& it, axis_t const& axis) {
     }
-    inline void handle_child (node& it, axis_t const& axis) {
+    inline void handle_child (std::size_t idx) {
+      // iterate over all the children and add them to the list
+      // as "self" tests
+      node N = this->work[idx];
+      this->work.erase(this->work.begin()+idx);
+      sa_iter_t iter(N.children.first->clone());
+      for ( ; *iter != *N.children.second; ++*iter) {
+        node M = node::build::go(**iter, N.path_index, axis_t::self, N.children);
+        if (this->satisfies_test(M, idx))
+          this->work.push_back(M);
+      }
     }
-    inline void handle_descendent (node& it, axis_t const& axis) {
+    inline void handle_descendent (std::size_t idx) {
     }
-    inline void handle_descendent_or_self (node& it, axis_t const& axis) {
+    inline void handle_descendent_or_self (std::size_t idx) {
     }
     inline void handle_following (node& it, axis_t const& axis) {
     }
@@ -297,9 +333,16 @@ namespace xpgtl {
     }
     inline void handle_preceding_sibling (node& it, axis_t const& axis) {
     }
-    inline void handle_self (node& it, axis_t const& axis) {
+    inline void handle_self (std::size_t idx) {
+      node &N = this->work[idx];
+      if (this->satisfies_test(N, N.path_index))
+        ++N.path_index;
+      else
+        this->work.pop_back();
     }
     inline bool satisfies_test (node const& it, std::size_t idx) const {
+      return (this->path[idx].function and axis_t::Node == this->path[idx].test)
+        or (this->path.test(idx) == it.tag_name);
     }
 
     std::vector<node> work;
