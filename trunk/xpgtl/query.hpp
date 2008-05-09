@@ -196,31 +196,34 @@ namespace xpgtl {
         typedef node result_type;
         template <typename T>
         node operator () (T const& t) const {
-          return node(*t, this->path_index, this->alternate, this->siblings);
+          return node(*t, this->path_index, this->alternate, this->siblings, this->self);
         }
         static node go (ru_type const& ru, std::size_t pdx=0,
           axis_t::name_e alt=axis_t::unknown,
-          sa_iter_p const& sibs=sa_iter_p()) {
+          sa_iter_p const& sibs=sa_iter_p(), sa_iter_t const& self=sa_iter_t()) {
           build B;
           B.path_index = pdx;
           B.alternate = alt;
           B.siblings = sibs;
+          B.self = self;
           return rdstl::visit(B, ru);
         }
 
         std::size_t path_index;
         axis_t::name_e alternate;
         sa_iter_p siblings;
+        sa_iter_t self;
       };
 
       node () {}
       template <typename T>
       node (T const& t, std::size_t pdx=0, axis_t::name_e alt=axis_t::unknown,
-          sa_iter_p const& sibs=sa_iter_p()) {
+          sa_iter_p const& sibs=sa_iter_p(), sa_iter_t const& self=sa_iter_t()) {
         this->path_index = pdx;
         this->alternate = alt;
         this->reference = &t;
         this->init_children(t);
+        this->self = self;
         this->siblings = sibs;
         this->tag_name = tag(t, Tag());
       }
@@ -247,6 +250,7 @@ namespace xpgtl {
       axis_t::name_e alternate;
       ru_type reference;
       sa_iter_p children;
+      sa_iter_t self;
       sa_iter_p siblings;
       std::string tag_name;
     };
@@ -273,12 +277,20 @@ namespace xpgtl {
         node &it = this->work.back();
         if (this->path.size() <= it.path_index) {
           ru_type ru = this->work.back().reference;
+          //std::cout << "Found: " << this->work.back().tag_name << std::endl;
           this->work.pop_back();
           return ru;
         }
+        //std::cout << "[ ";
+        //for (std::size_t i=0; i<this->work.size(); ++i) {
+        //  std::cout << this->work[i].tag_name << " ";
+        //}
+        //std::cout << "]" << std::endl;
         axis_t const& axis = this->path[it.path_index];
         axis_t::name_e name = axis_t::unknown == it.alternate
                             ? axis.name : it.alternate;
+        //std::cout << "Test " << axis << " " << (char)name << std::endl;
+        //std::cout << "Find N-" << it.tag_name << " == T:" << this->path.test(it.path_index) << std::endl;
         const std::size_t last_index = this->work.size() - 1;
         switch (name) {
         case axis_t::ancestor: this->handle_ancestor(it, axis); break;
@@ -287,12 +299,12 @@ namespace xpgtl {
         case axis_t::child: this->handle_child(last_index); break;
         case axis_t::descendent: this->handle_descendent(last_index); break;
         case axis_t::descendent_or_self: this->handle_descendent_or_self(last_index); break;
-        case axis_t::following: this->handle_following(it, axis); break;
-        case axis_t::following_sibling: this->handle_following_sibling(it, axis); break;
+        case axis_t::following: this->handle_following(last_index); break;
+        case axis_t::following_sibling: this->handle_following_sibling(last_index); break;
         case axis_t::namespace_: this->handle_namespace(it, axis); break;
         case axis_t::parent: this->handle_parent(it, axis); break;
-        case axis_t::preceding: this->handle_preceding(it, axis); break;
-        case axis_t::preceding_sibling: this->handle_preceding_sibling(it, axis); break;
+        case axis_t::preceding: this->handle_preceding(last_index); break;
+        case axis_t::preceding_sibling: this->handle_preceding_sibling(last_index); break;
         case axis_t::self: this->handle_self(last_index); break;
         default: throw std::runtime_error("Unrecognized axis-name.");
         }
@@ -306,39 +318,76 @@ namespace xpgtl {
     inline void handle_attribute (node& it, axis_t const& axis) {
     }
     inline void handle_child (std::size_t idx) {
-      // iterate over all the children and add them to the list
-      // as "self" tests
+      // replace self with children marked with the axis-name 'self'
       node N = this->work[idx];
       this->work.erase(this->work.begin()+idx);
       sa_iter_t iter(N.children.first->clone());
       for ( ; *iter != *N.children.second; ++*iter) {
-        node M = node::build::go(**iter, N.path_index, axis_t::self, N.children);
-        if (this->satisfies_test(M, idx))
+        sa_iter_t cp(iter->clone());
+        node M = node::build::go(**iter, N.path_index, axis_t::self, N.children, cp);
+        if (this->satisfies_test(M, M.path_index))
           this->work.push_back(M);
       }
     }
     inline void handle_descendent (std::size_t idx) {
+      // add an axis-name of descendent using each child (recurses the name)
+      // and call-back to handle-child to look at the context-node's
+      // children
+      node N = this->work[idx];
+      sa_iter_t iter(N.children.first->clone());
+      for ( ; *iter != *N.children.second; ++*iter) {
+        sa_iter_t cp(iter->clone());
+        this->work.push_back(node::build::go(**iter, N.path_index, axis_t::descendent, N.children, cp));
+      }
+      this->handle_child(idx);
     }
     inline void handle_descendent_or_self (std::size_t idx) {
+      // add self as a new 'self' context node, and call back to 
+      // 'handle-descendent'; we have to add ourselves again because
+      // handle-child will remove the current context-node
+      node N = this->work[idx];
+      N.alternate = axis_t::self;
+      this->work.push_back(N);
+      this->handle_descendent(idx);
     }
-    inline void handle_following (node& it, axis_t const& axis) {
+    inline void handle_following (std::size_t idx) {
     }
-    inline void handle_following_sibling (node& it, axis_t const& axis) {
+    inline void handle_following_sibling (std::size_t idx) {
+      // remove the context-node and look at all of it's
+      // following siblings
+      node N = this->work[idx];
+      this->work.erase(this->work.begin()+idx);
+      sa_iter_t iter(N.self->clone());
+      for ( ; *iter != *N.siblings.second; ++*iter) {
+        sa_iter_t cp(iter->clone());
+        this->work.push_back(node::build::go(**iter, N.path_index, axis_t::self, N.siblings, cp));
+      }
     }
     inline void handle_parent (node& it, axis_t const& axis) {
     }
     inline void handle_namespace (node& it, axis_t const& axis) {
     }
-    inline void handle_preceding (node& it, axis_t const& axis) {
+    inline void handle_preceding (std::size_t idx) {
     }
-    inline void handle_preceding_sibling (node& it, axis_t const& axis) {
+    inline void handle_preceding_sibling (std::size_t idx) {
+      // remove the context-node and look at all of it's
+      // preceding siblings
+      node N = this->work[idx];
+      this->work.erase(this->work.begin()+idx);
+      sa_iter_t iter(N.siblings.first->clone());
+      for ( ; *iter != *N.self; ++*iter) {
+        sa_iter_t cp(iter->clone());
+        this->work.push_back(node::build::go(**iter, N.path_index, axis_t::self, N.siblings, cp));
+      }
     }
     inline void handle_self (std::size_t idx) {
       node &N = this->work[idx];
-      if (this->satisfies_test(N, N.path_index))
+      if (this->satisfies_test(N, N.path_index)) {
         ++N.path_index;
-      else
-        this->work.pop_back();
+        if (N.path_index < this->path.size())
+          N.alternate = this->path[N.path_index].name;
+      } else
+        this->work.erase(this->work.begin()+idx);
     }
     inline bool satisfies_test (node const& it, std::size_t idx) const {
       return (this->path[idx].function and axis_t::Node == this->path[idx].test)
