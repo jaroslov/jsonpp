@@ -367,11 +367,11 @@ namespace xpgtl {
     }
     inline void handle_descendent (item& it, axis_t const& axis) {
       if (axis_t::child != it.alternate) {
+        it.alternate = axis_t::child;
         item cp = build_item::go(it.node);
         for ( ; *cp.current != *cp.end; ++*cp.current)
           this->work.push_back(build_item::go(**cp.current, axis_t::descendent, it.index));
-      } else
-        it.alternate = axis_t::child;
+      }
     }
     inline void handle_descendent_or_self (item& it, axis_t const& axis) {
     }
