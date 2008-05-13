@@ -6,7 +6,7 @@ jtest: test_json.cpp json/*.hpp
 	g++ -O3 -I. test_json.cpp -o jtest -liconv
 
 jsonT: test_json.cpp json/*.hpp jtest
-	./jtest Examples/*.*if
+	./jtest Examples/*.*
 
 belT: bel/*.hpp test_bel.cpp
 	g++ -O3 -I. test_bel.cpp -o btest
