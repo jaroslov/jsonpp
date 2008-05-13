@@ -5,6 +5,7 @@
 #include <fstream>
 #include <locale>
 
+typedef std::basic_string<std::size_t> jstring;
 // begin testing unicode conversion
 enum json_utf_encoding {
   error     = 0,
@@ -33,7 +34,9 @@ json_utf_encoding encoding (std::string const& fname) {
                | (0 != block[3] ? 1 : 0);
   return (json_utf_encoding)encode_;
 }
-std::wstring transcode (char* file, std::size_t length, json_utf_encoding jue) {
+
+jstring transcode (char* file, std::size_t length, json_utf_encoding jue) {
+
   std::size_t utf8_len = (3*length)/2+1;
   char * buffer = (char*)calloc(utf8_len,1);
   char * bufstart = buffer;
@@ -51,21 +54,28 @@ std::wstring transcode (char* file, std::size_t length, json_utf_encoding jue) {
   case UTF_8:
   default:  from = utf_8; break; // why not?
   }
-  iconv_t cd = iconv_open("UTF8", from);
+  iconv_t cd = iconv_open("UTF-16BE", from);
   std::size_t inbytesleft = length, outbytesleft = utf8_len;
   std::size_t result = iconv(cd,
                           &file, &inbytesleft,
                           &buffer, &outbytesleft);
-  std::cout << result << " " << inbytesleft << " " << outbytesleft << std::endl;
   if (iconv_close(cd))
     throw std::runtime_error("iconv somehow failed");
-  for (std::size_t i=0; i<length; ++i)
-    std::cout << (int)(unsigned char)buffer[i] << " ";
-  std::cout << std::endl;
+  const std::size_t conv_length = utf8_len - outbytesleft;
+  jstring rawstr;
+  for (std::size_t i=0; i<conv_length/2; i+=2) {
+    const std::size_t hi = (unsigned char)bufstart[i];
+    const std::size_t lo = (unsigned char)bufstart[i+1];
+    // now, C is the codepoint
+    if (0 == hi)
+      rawstr += (std::size_t)lo;
+    else
+      rawstr += (hi << 16) & lo;
+  }
   free(bufstart);
-  return std::wstring();
+  return rawstr;
 }
-std::wstring transcode_file (std::string const& fname) {
+jstring transcode_file (std::string const& fname) {
   std::ifstream wif(fname.c_str(), std::ios::binary|std::ios::in);
   const std::size_t position = wif.tellg();
   wif.seekg(0, std::ios::end);
@@ -74,17 +84,10 @@ std::wstring transcode_file (std::string const& fname) {
   char buffer[length+4];
   wif.read(buffer, length);
   wif.close();
-  for (std::size_t i=0; i<length; ++i)
-    std::cout << (int)(unsigned char)buffer[i] << " ";
-  std::cout << std::endl;
-  std::wstring wstr = transcode(buffer, length, encoding(fname));
-  return wstr;
+  return transcode(buffer, length, encoding(fname));
 }
 
 int main (int argc, char *argv[]) {
-
-  std::locale loc("C");
-  std::wcout.imbue(loc);
 
   if (argc < 1)
     return 1;
@@ -94,8 +97,19 @@ int main (int argc, char *argv[]) {
     try {
       transcode_file(std::string(*argv));
 
+      {
+        std::wifstream wifstr(*argv);
+        wifstr >> std::noskipws;
+        std::istream_iterator<wchar_t,wchar_t> ctr(wifstr);
+        std::istream_iterator<wchar_t,wchar_t> cnd;
+        while (ctr != cnd) {
+          std::cout << (int)(unsigned char)*ctr << " ";
+          ++ctr;
+        }
+        std::cout << std::endl;
+      }
+
       std::wifstream wifstr(*argv);
-      wifstr.imbue(loc);
       wifstr >> std::noskipws;
       std::istream_iterator<wchar_t,wchar_t> ctr(wifstr);
       std::istream_iterator<wchar_t,wchar_t> cnd;
