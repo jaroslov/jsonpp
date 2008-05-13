@@ -1,0 +1,7 @@
+#summary JSONpp TODO list
+
+= TODO =
+  * _finished_ add iomanipulator support for printing
+  * add printing support based on the iomanipulator above
+  * convert `string_t` support in the parser to UTF-8 using iconv; this means the user will give us a std::stream or std::wstream we just do what is usual; but if the user gives us a file-name we try to figure out what the encoding is, and do "the right thing"; this is going to require a refactoring of internal support
+  * btw, figure out wchar_t -> unicode stuff (oy)
