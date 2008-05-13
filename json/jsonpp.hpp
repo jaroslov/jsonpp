@@ -800,15 +800,28 @@ struct make_json_value {
 typedef make_json_value<> json_gen;
 typedef json_gen::value_t json_v;
 
+// specialization of the standard JSON type for
+// the json_traits class
+template <>
+struct json_traits<json_v> {
+  typedef json_v                        value_t;
+  typedef std::wstring                  string_t;
+  typedef double                        number_t;
+  typedef std::map<std::wstring,json_v> object_t;
+  typedef std::vector<json_v>           array_t;
+  typedef bool                          bool_t;
+  typedef nil                           null_t;
+};
+
 template <typename Iter>
 json_v parse (Iter first, Iter last) {
-  JSONpp::push_parser<json_gen> parser;
+  JSONpp::push_parser<json_v> parser;
   return parser(first, last);
 }
 
 json_gen::string_t
 to_string (json_v const& value, bool pretty_print=false) {
-  json_to_string<json_gen> printer;
+  json_to_string<json_v> printer;
   return printer.translate(value, pretty_print);
 }
 
