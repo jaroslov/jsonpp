@@ -838,6 +838,10 @@ public:
     array_first = 8,  // new-line for array_rc occurs after first element
     object_rc   = 16, // new-line + indent for objects
     object_key  = 32, // new-line + indent after key in an object
+    ascii_all   = ascii | readable | array_rc | array_first | object_rc | object_key,
+    unicode_all = unicode | readable | array_rc | array_first | object_rc | object_key,
+    ascii_rc    = ascii | readable | array_rc | object_rc,
+    unicode_rc  = unicode | readable | array_rc | object_rc,
   };
   iomanipulator_ (kinds const& k) : kind_(k) {
     if (-1 == iomanipulator_::iword)
@@ -854,7 +858,11 @@ private:
 };
 signed long iomanipulator_::iword       = -1;
 static const iomanipulator_ ascii       = iomanipulator_(iomanipulator_::ascii);
+static const iomanipulator_ ascii_all   = iomanipulator_(iomanipulator_::ascii_all);
+static const iomanipulator_ ascii_rc    = iomanipulator_(iomanipulator_::ascii_rc);
 static const iomanipulator_ unicode     = iomanipulator_(iomanipulator_::unicode);
+static const iomanipulator_ unicode_all = iomanipulator_(iomanipulator_::unicode_all);
+static const iomanipulator_ unicode_rc  = iomanipulator_(iomanipulator_::unicode_rc);
 static const iomanipulator_ readable    = iomanipulator_(iomanipulator_::readable);
 static const iomanipulator_ array_rc    = iomanipulator_(iomanipulator_::array_rc);
 static const iomanipulator_ array_first = iomanipulator_(iomanipulator_::array_first);
