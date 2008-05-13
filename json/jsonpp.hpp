@@ -825,6 +825,49 @@ to_string (json_v const& value, bool pretty_print=false) {
   return printer.translate(value, pretty_print);
 }
 
+//=== [JSON IOMANIPULATOR] ===
+// this controls the format of the outputted JSON type
+class iomanipulator_ {
+  static signed long iword;
+public:
+  enum kinds {
+    ascii       = 0,  // all unicode characters are \uXXXX | \UXXXXXXXX
+    unicode     = 1,  // attempt to make unicode as unicode (not always possible)
+    readable    = 2,  // spaces after commas & between structure control
+    array_rc    = 4,  // new-line + indent for arrays
+    array_first = 8,  // new-line for array_rc occurs after first element
+    object_rc   = 16, // new-line + indent for objects
+    object_key  = 32, // new-line + indent after key in an object
+  };
+  iomanipulator_ (kinds const& k) : kind_(k) {
+    if (-1 == iomanipulator_::iword)
+      iomanipulator_::iword = std::ios_base::xalloc();
+  }
+  void set_format (std::ios_base& ios) const {
+    ios.iword(iomanipulator_::iword) = this->kind_;
+  }
+  signed long format (std::ios_base& ios) const {
+    return ios.iword(iomanipulator_::iword);
+  }
+private:
+  kinds kind_;
+};
+signed long iomanipulator_::iword       = -1;
+static const iomanipulator_ ascii       = iomanipulator_(iomanipulator_::ascii);
+static const iomanipulator_ unicode     = iomanipulator_(iomanipulator_::unicode);
+static const iomanipulator_ readable    = iomanipulator_(iomanipulator_::readable);
+static const iomanipulator_ array_rc    = iomanipulator_(iomanipulator_::array_rc);
+static const iomanipulator_ array_first = iomanipulator_(iomanipulator_::array_first);
+static const iomanipulator_ object_rc   = iomanipulator_(iomanipulator_::object_rc);
+static const iomanipulator_ object_key  = iomanipulator_(iomanipulator_::object_key);
+
+template <typename CharT>
+std::basic_ostream<CharT>&
+operator << (std::basic_ostream<CharT>& bostr, iomanipulator_ const& iom) {
+  iom.set_format(bostr);
+  return bostr;
+}
+
 }
 
 #endif//JSON_PARSER
