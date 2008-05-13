@@ -6,6 +6,11 @@
 
 int main (int argc, char *argv[]) {
 
+  const char * INSET = "UTF-8";
+  const char * OUTSET = "UCS-4BE";
+
+  iconv_t iconv = iconv_open(INSET, OUTSET);
+
   std::locale loc("");
   std::wcout.imbue(loc);
 
