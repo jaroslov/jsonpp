@@ -3,10 +3,9 @@ all: json bel vpath
 json: test_json.cpp json/*.hpp jtest
 
 jtest: test_json.cpp json/*.hpp
-	g++ -O3 -I. test_json.cpp -o jtest
+	g++ -O3 -I. test_json.cpp -o jtest -Llibiconv
 
-jsonT: test_json.cpp json/*.hpp
-	g++ -O3 -I. test_json.cpp -o jtest
+jsonT: test_json.cpp json/*.hpp jtest
 	./jtest Examples/*.*if
 
 belT: bel/*.hpp test_bel.cpp
@@ -16,14 +15,15 @@ belT: bel/*.hpp test_bel.cpp
 vpath: xpgtl/*.hpp test_vpath.cpp
 	g++ -O3 -I. test_vpath.cpp -o vtest
 
+xtest: xpgtl/*.hpp test_xpath.cpp
+	g++ -O3 -I. test_xpath.cpp -o xtest >& error.text || open -a SubEthaEdit error.text
+
 xpathG: xpgtl/*.hpp test_xpath.cpp
 	g++ -g -I. test_xpath.cpp -o xtest
 
-xpath: xpgtl/*.hpp test_xpath.cpp
-	g++ -O3 -I. test_xpath.cpp -o xtest >& error.text || open -a SubEthaEdit error.text
+xpath: xpgtl/*.hpp test_xpath.cpp xtest
 
-xpathT: xpgtl/*.hpp test_xpath.cpp
-	g++ -O3 -I. test_xpath.cpp -o xtest >& error.text || open -a SubEthaEdit error.text
+xpathT: xpgtl/*.hpp test_xpath.cpp xtest
 	echo "self::array" | ./xtest examples/*.*if
 	echo "self::array/string" | ./xtest examples/*.*if
 	echo "//string" | ./xtest examples/*.*if
