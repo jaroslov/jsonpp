@@ -3,7 +3,7 @@ all: json bel vpath
 json: test_json.cpp json/*.hpp jtest
 
 jtest: test_json.cpp json/*.hpp
-	g++ -O3 -I. test_json.cpp -o jtest -Llibiconv
+	g++ -O3 -I. test_json.cpp -o jtest -liconv
 
 jsonT: test_json.cpp json/*.hpp jtest
 	./jtest Examples/*.*if
