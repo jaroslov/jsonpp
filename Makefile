@@ -16,17 +16,17 @@ vpath: xpgtl/*.hpp test_vpath.cpp
 	g++ -O3 -I. test_vpath.cpp -o vtest
 
 xtest: xpgtl/*.hpp test_xpath.cpp
-	g++ -O3 -I. test_xpath.cpp -o xtest >& error.text || open -a SubEthaEdit error.text
+	g++ -O3 -I. test_xpath.cpp -o xtest -liconv >& error.text || open -a SubEthaEdit error.text
 
 xpathG: xpgtl/*.hpp test_xpath.cpp
-	g++ -g -I. test_xpath.cpp -o xtest
+	g++ -g -I. test_xpath.cpp -o xtest -liconv
 
 xpath: xpgtl/*.hpp test_xpath.cpp xtest
 
 xpathT: xpgtl/*.hpp test_xpath.cpp xtest
-	echo "self::array" | ./xtest examples/*.*if
-	echo "self::array/string" | ./xtest examples/*.*if
-	echo "//string" | ./xtest examples/*.*if
+	echo "self::array" | ./xtest examples/*.*
+	echo "self::array/string" | ./xtest examples/*.*
+	echo "//string" | ./xtest examples/*.*
 
 vpathT: vtest
 	echo "self::array" | ./vtest examples/*.*if

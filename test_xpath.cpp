@@ -14,7 +14,7 @@ void print_ptr_ctr (Ctr const& ctr) {
   iterator f, l;
   for (boost::tie(f,l)=bel::sequence(ctr); f!=l; ++f)
     if (0 != *f)
-      std::wcout << **f << std::endl;
+      std::cout << **f << std::endl;
 }
 
 int main (int argc, char *argv[]) {
@@ -40,7 +40,7 @@ int main (int argc, char *argv[]) {
       std::istream_iterator<wchar_t,wchar_t> cnd;
       JSONpp::json_v json = JSONpp::parse(ctr, cnd);
       xpgtl::Query<std::string,JSONpp::json_v> Q(path, json);
-      print_ptr_ctr(xpgtl::query(path, json, xpgtl::as<std::wstring>()));
+      print_ptr_ctr(xpgtl::query(path, json, xpgtl::as<std::string>()));
 
       std::cout << std::endl;
     } catch (std::exception& e) {

@@ -4,6 +4,15 @@
 #include <iostream>
 #include <fstream>
 #include <locale>
+#include <iterator>
+
+template <typename Stream, std::size_t BUFLEN=256>
+struct stream_transcoder {
+
+  Stream stream;
+  char buffer[BUFLEN];
+  iconv_t cd;
+};
 
 int main (int argc, char *argv[]) {
 
