@@ -43,140 +43,120 @@ namespace JSONpp {
 // a string, and for us to convert it into canonical form, and for us to be
 // able to recognize a string in canonical form.
 
-/*struct jstring : public std::string {
-  jstring () : std::string() {}
-  ~ jstring () {}
-  jstring (char const* str) {
-    this->load_ptr(str, str+std::strlen(str));
-  }
-  template <typename T>
-  jstring (T const* ttr, T const* tnd) {
-    this->load_ptr(ttr, tnd);
-  }
-  template <typename Iter>
-  jstring (Iter itr, Iter const& ind) {
-    this->load_iter(itr, ind);
-  }
-  friend jstring operator + (jstring const& L, jstring const& R) {
-    return *static_cast<jstring const*>(&L) + *static_cast<jstring const*>(&R);
-  }
-  std::string const& str () const {
-    return *this;
-  }
-  template <typename T>
-  void load_ptr (T const* ttr, T const* tnd) {
-    if (ttr == tnd) return;
-    const std::size_t t_length = tnd - ttr;
-    // figure out if T is packed
-    // if T is "packed" (more than one character per element)
-    // then "unpack" it by copying its memory into a buffer,
-    // otherwise, copy the data into the buffer
-    bool packed = (*ttr>>8) > 0;// not (ttr[0] > 255);
-    char *buffer = 0;
-    if (packed) {
-      buffer = (char*)calloc(t_length, sizeof(T));
-      std::memcpy(buffer, reinterpret_cast<const char*>(ttr), t_length);
+// What are the different unicode scenarios:
+//  1. We are given a std::basic_string<T>
+//  2. We are given a std::basic_stream<T>
+//
+// Case 1:
+//    Convert the basic_string into a std::string and do the ASCII folding
+// Case 2:
+//    Lazily read (chunks) and convert by-chunk into the ASCII folding
+//
+// Utilities:
+//  UTF-16LE => JSON-ASCII
+
+char to_hex_value (wchar_t S) {
+  return (15&S) + (((15&S) > 9) ? ('A'-10) : '0');
+}
+
+std::string utf_16le_to_json_ascii (std::string const& utf16le) {
+  typedef std::string::const_iterator citer;
+
+  std::string result(utf16le.size()*6, 0); // worst case scenario
+  std::size_t offset = 0;
+
+  for (citer ctr=utf16le.begin(), cnd=utf16le.end(); ctr!=cnd; ctr+=2) {
+    const wchar_t value = (unsigned char)*ctr + (((unsigned char)*(ctr+1)) << 8);
+    if (31 < value and value < 127) {
+      result[offset] = (char)value;
+      ++offset;
     } else {
-      buffer = (char*)calloc(t_length, 1);
-      char *tbuf = buffer;
-      while (ttr != tnd)
-        *tbuf = (char)*ttr,
-        ++ttr, ++tbuf;
-    }
-    this->load_cptr(buffer, buffer+t_length);
-    free(buffer);
-  }
-  template <typename T>
-  void load_iter (T itr, T const& ind) {
-    typedef typename T::value_type value_type;
-    if (itr == ind) return;
-    const std::size_t t_length = std::distance(itr, ind);
-    value_type buffer[t_length];
-    value_type *tbuf = buffer;
-    while (itr != ind) {
-      *tbuf = *itr;
-      ++tbuf;
-      ++itr;
-    }
-    this->load_ptr(buffer, buffer+t_length);
-  }
-  void load_cptr (char const* ttr, char const* tnd) {
-    if (ttr == tnd) return;
-    const std::size_t t_length = tnd - ttr;
-    const char * utf_32be = "UTF-32BE";
-    const char * utf_16be = "UTF-16BE";
-    const char * utf_32le = "UTF-32LE";
-    const char * utf_16le = "UTF-16LE";
-    const char * utf_8    = "UTF8";
-    const char * from;
-    if (t_length < 4) {
-      // we're in UTF-8 format
-      from = utf_8;
-    } else {
-      // We need to figure out what kind of string we are
-      // the choices are described in the table in the comments
-      // above. Basically, we're going to do some "bit twiddling":
-      int encoding = (0 != ttr[0] ? 8 : 0)
-                   | (0 != ttr[1] ? 4 : 0)
-                   | (0 != ttr[2] ? 2 : 0)
-                   | (0 != ttr[3] ? 1 : 0);
-      switch (encoding) {
-      case 1  /*UTF-32BE* /: from = utf_32be; break;
-      case 5  /*UTF-16BE* /: from = utf_16be; break;
-      case 8  /*UTF-32LE* /: from = utf_32le; break;
-      case 10 /*UTF-16LE* /: from = utf_16le; break;
-      case 15 /*UTF-8* /:
-      default:  from = utf_8; break; // why not?
+      switch (value) {
+      case '\t': result[offset] = '\t'; ++offset; break;
+      case '\v': result[offset] = '\v'; ++offset; break;
+      case '\n': result[offset] = '\n'; ++offset; break;
+      case '\r': result[offset] = '\r'; ++offset; break;
+      case '\b': result[offset] = '\b'; ++offset; break;
+      case '\f': result[offset] = '\f'; ++offset; break;
+      default: // large code-points
+        result[offset] = '\\'; ++offset;
+        result[offset] = 'u'; ++offset;
+        result[offset] = to_hex_value(value>>12); ++offset;
+        result[offset] = to_hex_value(value>> 8); ++offset;
+        result[offset] = to_hex_value(value>> 4); ++offset;
+        result[offset] = to_hex_value(value>> 0); ++offset;
+        break;
       }
     }
-    iconv_t cd = iconv_open("UTF-16LE", from);
-    const std::size_t multiplier = 2;
-    char obuffer[t_length*multiplier];
-    char *obuf = obuffer;
-    char *tbuf = const_cast<char*>(ttr);
-    std::size_t in = t_length;
-    std::size_t out = t_length*multiplier;
-    std::size_t result = iconv(cd, &tbuf, &in, &obuf, &out);
-    const std::size_t r_length = t_length*multiplier - out;
+  }
+  return result;
+}
+
+template <typename X>
+std::string utf_to_utf_16le (std::basic_string<X> const& str) {
+  typedef typename std::basic_string<X>::const_iterator xc_iter;
+
+  const char * utf_32be = "UTF-32BE";
+  const char * utf_16be = "UTF-16BE";
+  const char * utf_32le = "UTF-32LE";
+  const char * utf_16le = "UTF-16LE";
+  const char * utf_8    = "UTF8";
+
+  // first, determine if it is "packed"
+  bool packed = (str[0]>>8) > 0; // whether the values are greater than 255
+  char *source = 0;
+  if (packed) {
+    source = (char*)calloc(str.size(), sizeof(X));
+    std::memcpy(source, reinterpret_cast<const char*>(str.c_str()), str.size()*sizeof(X));
+  } else {
+    source = (char*)calloc(str.size(), 1);
+    char *src = source;
+    for (xc_iter xtr=str.begin(), xnd=str.end(); xtr!=xnd; ++xtr, ++src)
+      *src = *xtr;
+  }
+  // look at the first four bytes and determine the encoding
+  const char * from;
+  int encoding = (0 != source[0] ? 8 : 0)
+               | (0 != source[1] ? 4 : 0)
+               | (0 != source[2] ? 2 : 0)
+               | (0 != source[3] ? 1 : 0);
+  switch (encoding) {
+  case 1  /*UTF-32BE*/: from = utf_32be; break;
+  case 5  /*UTF-16BE*/: from = utf_16be; break;
+  case 8  /*UTF-32LE*/: from = utf_32le; break;
+  case 10 /*UTF-16LE*/: from = utf_16le; break;
+  case 15 /*UTF-8*/:
+  default:  from = utf_8; break; // why not?
+  }
+
+  // the worst case scenario is that we'll need two 16-bit values for
+  // each character...
+  const std::size_t sourceL = str.size();
+  const std::size_t destinationL = 2*str.size();
+  char *destination = (char*)calloc(destinationL, 1);
+
+  // now we use iconv to convert...
+  std::size_t length = 0;
+  iconv_t cd = iconv_open ("UTF-16LE", from);
+  if ((iconv_t)-1 != cd) {
+    std::size_t srcL = sourceL, dstL = destinationL;
+    char *src = source;
+    char *dst = destination;
+    std::size_t result = iconv(cd, &src, &srcL, &dst, &dstL);
+    length = destinationL - dstL;
     iconv_close(cd);
-    this->clear();
-    this->resize(t_length*12); // worst-case scenario
-    std::size_t offset = 0;
-    for (std::size_t i=0; i<r_length; i+=2) {
-      wchar_t value = (unsigned char)obuffer[i] + (unsigned char)(obuffer[i+1]<<8);
-      if (31 < value and value < 127) {
-        (*this)[offset] = obuffer[i];
-        ++offset;
-      } else {
-        switch (value) {
-        case '\t': (*this)[offset] = '\t'; ++offset; break;
-        case '\v': (*this)[offset] = '\v'; ++offset; break;
-        case '\n': (*this)[offset] = '\n'; ++offset; break;
-        case '\r': (*this)[offset] = '\r'; ++offset; break;
-        case '\b': (*this)[offset] = '\b'; ++offset; break;
-        case '\f': (*this)[offset] = '\f'; ++offset; break;
-        default: // large code-points
-          (*this)[offset] = '\\';++offset;
-          (*this)[offset] = 'u'; ++offset;
-          (*this)[offset] = this->to_hex_value(value>>12); ++offset;
-          (*this)[offset] = this->to_hex_value(value>> 8); ++offset;
-          (*this)[offset] = this->to_hex_value(value>> 4); ++offset;
-          (*this)[offset] = this->to_hex_value(value>> 0); ++offset;
-          break;
-        }
-      }
-    }
-    this->resize(offset);
   }
-  inline char to_hex_value (std::size_t S) {
-    return (15&S) + (((15&S) > 9) ? ('A'-10) : '0');
-  }
-  jstring (jstring const& jstr) : std::string(jstr) {}
-  jstring& operator = (jstring const& jstr) {
-    *static_cast<std::string*>(this) = *static_cast<const std::string*>(&jstr);
-    return *this;
-  }
-};*/
+  std::string result(destination, length);
+
+  free(destination), destination = 0;
+  free(source), source = 0;
+  return result;
+}
+
+template <typename X>
+std::string json_ascii (std::basic_string<X> const& str) {
+  return utf_16le_to_json_ascii(utf_to_utf_16le(str));
+}
 
 //=== [ERROR MESSAGES] ===
 struct unknown_identifier : std::exception {
@@ -343,6 +323,7 @@ public:
       // string type to simplify things, heavy-weight, but
       // we can optimize later
       std::string lcp(begin, end);
+      lcp = json_ascii(lcp);
       // lex the file and get the tokens
       std::vector<token> tokens = this->lex(bel::begin(lcp),bel::end(lcp));
       // parse tokens
@@ -872,7 +853,7 @@ struct json_to_string {
 // it is NOT compatible with pretty_print
 struct nil {};
 
-template <typename String=std::wstring,
+template <typename String=std::string,
   typename Double=double,
   typename Bool=bool,
   typename Null=nil>
@@ -900,9 +881,9 @@ typedef json_gen::value_t json_v;
 template <>
 struct json_traits<json_v> {
   typedef json_v                        value_t;
-  typedef std::wstring                  string_t;
+  typedef std::string                   string_t;
   typedef double                        number_t;
-  typedef std::map<std::wstring,json_v> object_t;
+  typedef std::map<std::string,json_v>  object_t;
   typedef std::vector<json_v>           array_t;
   typedef bool                          bool_t;
   typedef nil                           null_t;
