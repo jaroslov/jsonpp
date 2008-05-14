@@ -260,8 +260,7 @@ int main (int argc, char *argv[]) {
         wifstr >> std::noskipws;
         std::istream_iterator<wchar_t,wchar_t> ctr(wifstr);
         std::istream_iterator<wchar_t,wchar_t> cnd;
-        build_transcode_iterator(ctr, cnd);
-        build_transcode_iterator(cnd, cnd);
+        JSONpp::transcode(ctr, cnd);
       }
 
       std::wifstream wifstr(*argv);
