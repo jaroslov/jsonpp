@@ -11,6 +11,8 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+// iconv
+#include <iconv.h>
 
 #ifndef JSON_PARSER
 #define JSON_PARSER
