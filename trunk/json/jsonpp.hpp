@@ -11,8 +11,6 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-// JSON
-#include "unicode-support.hpp"
 
 #ifndef JSON_PARSER
 #define JSON_PARSER
@@ -46,6 +44,155 @@ std::string to_ascii_string (String const& str) {
   }
   return rstr;
 }
+
+//=== [JSTRING (UNICODE SUPPORT)] ===
+// JSON is a little inconsistent in its representation of strings.
+// It says (rfc4627) that the encodings in the following table are legal:
+//
+//    00 00 00 xx  UTF-32BE => 1
+//    00 xx 00 xx  UTF-16BE => 5
+//    xx 00 00 00  UTF-32LE => 8
+//    xx 00 xx 00  UTF-16LE => 10
+//    xx xx xx xx  UTF-8    => 15
+//
+// And that the "UTF-8" encoding is the default encoding. However, its
+// `escape' mechanism uses UTF-16BE, that is, when representing unicode
+// character points as a stream of the form "\uXXXX" it uses the UTF-16BE
+// encoding scheme.
+//
+// Our JSON parser will thus always use an internal representation of the
+// string as ASCII, where characters outside the range [32,127] will be
+// represented as code-points of the form "\uXXXX" (plus any appropriate
+// surrogates).
+//
+// This means that we must provide a convenient way for users to give us
+// a string, and for us to convert it into canonical form, and for us to be
+// able to recognize a string in canonical form.
+
+struct jstring : public std::string {
+  jstring () : std::string() {}
+  ~ jstring () {}
+  template <typename T>
+  jstring (T const* ttr, T const* tnd) {
+    this->load_ptr(ttr, tnd);
+  }
+  template <typename Iter>
+  jstring (Iter itr, Iter const& ind) {
+    this->load_iter(itr, ind);
+  }
+  template <typename T>
+  void load_ptr (T const* ttr, T const* tnd) {
+    if (ttr == tnd) return;
+    const std::size_t t_length = tnd - ttr;
+    // figure out if T is packed
+    // if T is "packed" (more than one character per element)
+    // then "unpack" it by copying its memory into a buffer,
+    // otherwise, copy the data into the buffer
+    bool packed = (*ttr>>8) > 0;// not (ttr[0] > 255);
+    char *buffer = 0;
+    if (packed) {
+      buffer = (char*)calloc(t_length, sizeof(T));
+      std::memcpy(buffer, reinterpret_cast<const char*>(ttr), t_length);
+    } else {
+      buffer = (char*)calloc(t_length, 1);
+      char *tbuf = buffer;
+      while (ttr != tnd)
+        *tbuf = (char)*ttr,
+        ++ttr, ++tbuf;
+    }
+    this->load_ptr(buffer, buffer+t_length);
+    free(buffer);
+  }
+  template <typename T>
+  void load_iter (T itr, T const& ind) {
+    typedef typename T::value_type value_type;
+    if (itr == ind) return;
+    const std::size_t t_length = ind - itr;
+    value_type buffer[t_length];
+    value_type *tbuf = buffer;
+    while (itr != ind)
+      *tbuf = *itr,
+      ++tbuf, ++itr;
+    this->load_ptr(buffer, buffer+t_length);
+  }
+  void load_ptr (char const* ttr, char const* tnd) {
+    if (ttr == tnd) return;
+    const std::size_t t_length = tnd - ttr;
+    const char * utf_32be = "UTF-32BE";
+    const char * utf_16be = "UTF-16BE";
+    const char * utf_32le = "UTF-32LE";
+    const char * utf_16le = "UTF-16LE";
+    const char * utf_8    = "UTF8";
+    const char * from;
+    if (t_length < 4) {
+      // we're in UTF-8 format
+      from = utf_8;
+    } else {
+      // We need to figure out what kind of string we are
+      // the choices are described in the table in the comments
+      // above. Basically, we're going to do some "bit twiddling":
+      int encoding = (0 != ttr[0] ? 8 : 0)
+                   | (0 != ttr[1] ? 4 : 0)
+                   | (0 != ttr[2] ? 2 : 0)
+                   | (0 != ttr[3] ? 1 : 0);
+      switch (encoding) {
+      case 1  /*UTF-32BE*/: from = utf_32be; break;
+      case 5  /*UTF-16BE*/: from = utf_16be; break;
+      case 8  /*UTF-32LE*/: from = utf_32le; break;
+      case 10 /*UTF-16LE*/: from = utf_16le; break;
+      case 15 /*UTF-8*/:
+      default:  from = utf_8; break; // why not?
+      }
+    }
+    iconv_t cd = iconv_open("UTF-16LE", from);
+    const std::size_t multiplier = 2;
+    char obuffer[t_length*multiplier];
+    char *obuf = obuffer;
+    char *tbuf = const_cast<char*>(ttr);
+    std::size_t in = t_length;
+    std::size_t out = t_length*multiplier;
+    std::size_t result = iconv(cd, &tbuf, &in, &obuf, &out);
+    const std::size_t r_length = t_length*multiplier - out;
+    iconv_close(cd);
+    this->clear();
+    this->resize(t_length*12); // worst-case scenario
+    std::size_t offset = 0;
+    for (std::size_t i=0; i<r_length; i+=2) {
+      wchar_t value = (unsigned char)obuffer[i] + (unsigned char)(obuffer[i+1]<<8);
+      if (31 < value and value < 127) {
+        (*this)[offset] = obuffer[i];
+        ++offset;
+      } else {
+        switch (value) {
+        case '\t': (*this)[offset] = '\t'; ++offset; break;
+        case '\v': (*this)[offset] = '\v'; ++offset; break;
+        case '\n': (*this)[offset] = '\n'; ++offset; break;
+        case '\r': (*this)[offset] = '\r'; ++offset; break;
+        case '\b': (*this)[offset] = '\b'; ++offset; break;
+        case '\f': (*this)[offset] = '\f'; ++offset; break;
+        default: // large code-points
+          (*this)[offset] = '\\';++offset;
+          (*this)[offset] = 'u'; ++offset;
+          (*this)[offset] = this->to_hex_value(value>>12); ++offset;
+          (*this)[offset] = this->to_hex_value(value>> 8); ++offset;
+          (*this)[offset] = this->to_hex_value(value>> 4); ++offset;
+          (*this)[offset] = this->to_hex_value(value>> 0); ++offset;
+          break;
+        }
+      }
+    }
+    this->resize(offset);
+    std::cout << *this << std::endl;
+  }
+  inline char to_hex_value (std::size_t S) {
+    return (15&S) + (((15&S) > 9) ? ('A'-10) : '0');
+  }
+  jstring (jstring const& jstr) : std::string(jstr) {}
+  jstring& operator = (jstring const& jstr) {
+    *static_cast<std::string*>(this) = *static_cast<const std::string*>(&jstr);
+    return *this;
+  }
+};
 
 //=== [ERROR MESSAGES] ===
 struct unknown_identifier : std::exception {
