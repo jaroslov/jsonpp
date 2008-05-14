@@ -952,6 +952,18 @@ operator << (std::basic_ostream<CharT>& bostr, iomanipulator_ const& iom) {
   return bostr;
 }
 
+template <typename JsonType>
+struct printer {
+  printer (JsonType const& json) : json(json) {}
+  JsonType const& json;
+};
+
+template <typename JsonType>
+std::basic_ostream<CharT>&
+operator << (std::basic_ostream<CharT>& bostr, printer<JsonType> const& pr) {
+  return bostr;
+}
+
 }
 
 #endif//JSON_PARSER
