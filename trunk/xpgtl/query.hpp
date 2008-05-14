@@ -196,11 +196,13 @@ namespace xpgtl {
         typedef node result_type;
         template <typename T>
         node operator () (T const& t) const {
-          return node(*t, this->path_index, this->alternate, this->siblings, this->self);
+          return node(*t, this->path_index,
+                  this->alternate, this->siblings, this->self);
         }
         static node go (ru_type const& ru, std::size_t pdx=0,
           axis_t::name_e alt=axis_t::unknown,
-          sa_iter_p const& sibs=sa_iter_p(), sa_iter_t const& self=sa_iter_t()) {
+          sa_iter_p const& sibs=sa_iter_p(),
+          sa_iter_t const& self=sa_iter_t()) {
           build B;
           B.path_index = pdx;
           B.alternate = alt;
@@ -218,7 +220,8 @@ namespace xpgtl {
       node () {}
       template <typename T>
       node (T const& t, std::size_t pdx=0, axis_t::name_e alt=axis_t::unknown,
-          sa_iter_p const& sibs=sa_iter_p(), sa_iter_t const& self=sa_iter_t()) {
+          sa_iter_p const& sibs=sa_iter_p(),
+          sa_iter_t const& self=sa_iter_t()) {
         this->path_index = pdx;
         this->alternate = alt;
         this->reference = &t;
