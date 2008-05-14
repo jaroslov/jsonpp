@@ -719,7 +719,105 @@ const std::string push_parser<JsonType>::False = std::string(JSON__false);
 template <typename JsonType>
 const std::string push_parser<JsonType>::Null = std::string(JSON__null);
 
-//=== [PRINTER] ===
+//=== [PREDEFINED JSON Type] ===
+// a predefined family of JSON Types using boost::variant
+// it is NOT compatible with pretty_print
+struct nil {};
+
+template <typename String=std::string,
+  typename Double=double,
+  typename Bool=bool,
+  typename Null=nil>
+struct make_json_value {
+
+  typedef typename boost::make_recursive_variant<
+    String,Double,Bool,Null,
+    std::map<String,boost::recursive_variant_>,
+    std::vector<boost::recursive_variant_> >::type type;
+
+  typedef type                            value_t;
+  typedef String                          string_t;
+  typedef Double                          number_t;
+  typedef std::map<String,type>           object_t;
+  typedef std::vector<type>               array_t;
+  typedef Bool                            bool_t;
+  typedef Null                            null_t;
+};
+
+typedef make_json_value<> json_gen;
+typedef json_gen::value_t json_v;
+
+// specialization of the standard JSON type for
+// the json_traits class
+template <>
+struct json_traits<json_v> {
+  typedef json_v                        value_t;
+  typedef std::string                   string_t;
+  typedef double                        number_t;
+  typedef std::map<std::string,json_v>  object_t;
+  typedef std::vector<json_v>           array_t;
+  typedef bool                          bool_t;
+  typedef nil                           null_t;
+};
+
+template <typename Iter>
+json_v parse (Iter first, Iter last) {
+  JSONpp::push_parser<json_v> parser;
+  return parser(first, last);
+}
+
+//=== [JSON IOMANIPULATOR] ===
+// this controls the format of the outputted JSON type
+class iomanipulator_ {
+  static signed long iword;
+public:
+  enum kinds {
+    ascii       = 0,  // all unicode characters are \uXXXX | \UXXXXXXXX
+    unicode     = 1,  // attempt to make unicode as unicode (not always possible)
+    readable    = 2,  // spaces after commas & between structure control
+    array_rc    = 4,  // new-line + indent for arrays
+    array_first = 8,  // new-line for array_rc occurs after first element
+    object_rc   = 16, // new-line + indent for objects
+    object_key  = 32, // new-line + indent after key in an object
+    ascii_all   = ascii | readable | array_rc | array_first | object_rc | object_key,
+    unicode_all = unicode | readable | array_rc | array_first | object_rc | object_key,
+    ascii_rc    = ascii | readable | array_rc | object_rc,
+    unicode_rc  = unicode | readable | array_rc | object_rc,
+  };
+  iomanipulator_ (kinds const& k) : kind_(k) {
+    if (-1 == iomanipulator_::iword)
+      iomanipulator_::iword = std::ios_base::xalloc();
+  }
+  void set_format (std::ios_base& ios) const {
+    ios.iword(iomanipulator_::iword) = this->kind_;
+  }
+  signed long format (std::ios_base& ios) const {
+    return ios.iword(iomanipulator_::iword);
+  }
+private:
+  kinds kind_;
+};
+signed long iomanipulator_::iword       = -1;
+static const iomanipulator_ ascii       = iomanipulator_(iomanipulator_::ascii);
+static const iomanipulator_ ascii_all   = iomanipulator_(iomanipulator_::ascii_all);
+static const iomanipulator_ ascii_rc    = iomanipulator_(iomanipulator_::ascii_rc);
+static const iomanipulator_ unicode     = iomanipulator_(iomanipulator_::unicode);
+static const iomanipulator_ unicode_all = iomanipulator_(iomanipulator_::unicode_all);
+static const iomanipulator_ unicode_rc  = iomanipulator_(iomanipulator_::unicode_rc);
+static const iomanipulator_ readable    = iomanipulator_(iomanipulator_::readable);
+static const iomanipulator_ array_rc    = iomanipulator_(iomanipulator_::array_rc);
+static const iomanipulator_ array_first = iomanipulator_(iomanipulator_::array_first);
+static const iomanipulator_ object_rc   = iomanipulator_(iomanipulator_::object_rc);
+static const iomanipulator_ object_key  = iomanipulator_(iomanipulator_::object_key);
+
+template <typename CharT>
+std::basic_ostream<CharT>&
+operator << (std::basic_ostream<CharT>& bostr, iomanipulator_ const& iom) {
+  iom.set_format(bostr);
+  return bostr;
+}
+
+//=== [CONVERTS THE JSON TO STRING] ===
 // the usual boost::variant visitor class
 template <typename JsonType>
 struct json_to_string {
@@ -836,10 +934,10 @@ struct json_to_string {
     }
 
     std::size_t*  index;
-    bool          pretty;
+    signed long   pretty;
   };
 
-  string_t translate (value_t const& v, bool pp=false) const {
+  string_t translate (value_t const& v, signed long pp=0) const {
     std::size_t idx;
     __detail D;
     D.pretty = pp;
@@ -848,119 +946,26 @@ struct json_to_string {
   }
 };
 
-//=== [PREDEFINED JSON Type] ===
-// a predefined family of JSON Types using boost::variant
-// it is NOT compatible with pretty_print
-struct nil {};
-
-template <typename String=std::string,
-  typename Double=double,
-  typename Bool=bool,
-  typename Null=nil>
-struct make_json_value {
-
-  typedef typename boost::make_recursive_variant<
-    String,Double,Bool,Null,
-    std::map<String,boost::recursive_variant_>,
-    std::vector<boost::recursive_variant_> >::type type;
-
-  typedef type                            value_t;
-  typedef String                          string_t;
-  typedef Double                          number_t;
-  typedef std::map<String,type>           object_t;
-  typedef std::vector<type>               array_t;
-  typedef Bool                            bool_t;
-  typedef Null                            null_t;
-};
-
-typedef make_json_value<> json_gen;
-typedef json_gen::value_t json_v;
-
-// specialization of the standard JSON type for
-// the json_traits class
-template <>
-struct json_traits<json_v> {
-  typedef json_v                        value_t;
-  typedef std::string                   string_t;
-  typedef double                        number_t;
-  typedef std::map<std::string,json_v>  object_t;
-  typedef std::vector<json_v>           array_t;
-  typedef bool                          bool_t;
-  typedef nil                           null_t;
-};
-
-template <typename Iter>
-json_v parse (Iter first, Iter last) {
-  JSONpp::push_parser<json_v> parser;
-  return parser(first, last);
-}
-
 json_gen::string_t
-to_string (json_v const& value, bool pretty_print=false) {
+to_string (json_v const& value, signed long pretty_print=0) {
   json_to_string<json_v> printer;
   return printer.translate(value, pretty_print);
 }
 
-//=== [JSON IOMANIPULATOR] ===
-// this controls the format of the outputted JSON type
-class iomanipulator_ {
-  static signed long iword;
-public:
-  enum kinds {
-    ascii       = 0,  // all unicode characters are \uXXXX | \UXXXXXXXX
-    unicode     = 1,  // attempt to make unicode as unicode (not always possible)
-    readable    = 2,  // spaces after commas & between structure control
-    array_rc    = 4,  // new-line + indent for arrays
-    array_first = 8,  // new-line for array_rc occurs after first element
-    object_rc   = 16, // new-line + indent for objects
-    object_key  = 32, // new-line + indent after key in an object
-    ascii_all   = ascii | readable | array_rc | array_first | object_rc | object_key,
-    unicode_all = unicode | readable | array_rc | array_first | object_rc | object_key,
-    ascii_rc    = ascii | readable | array_rc | object_rc,
-    unicode_rc  = unicode | readable | array_rc | object_rc,
-  };
-  iomanipulator_ (kinds const& k) : kind_(k) {
-    if (-1 == iomanipulator_::iword)
-      iomanipulator_::iword = std::ios_base::xalloc();
-  }
-  void set_format (std::ios_base& ios) const {
-    ios.iword(iomanipulator_::iword) = this->kind_;
-  }
-  signed long format (std::ios_base& ios) const {
-    return ios.iword(iomanipulator_::iword);
-  }
-private:
-  kinds kind_;
+template <typename JsonType>
+struct printer_ {
+  printer_ (JsonType const& json) : json_(json) {}
+  JsonType const& json_;
 };
-signed long iomanipulator_::iword       = -1;
-static const iomanipulator_ ascii       = iomanipulator_(iomanipulator_::ascii);
-static const iomanipulator_ ascii_all   = iomanipulator_(iomanipulator_::ascii_all);
-static const iomanipulator_ ascii_rc    = iomanipulator_(iomanipulator_::ascii_rc);
-static const iomanipulator_ unicode     = iomanipulator_(iomanipulator_::unicode);
-static const iomanipulator_ unicode_all = iomanipulator_(iomanipulator_::unicode_all);
-static const iomanipulator_ unicode_rc  = iomanipulator_(iomanipulator_::unicode_rc);
-static const iomanipulator_ readable    = iomanipulator_(iomanipulator_::readable);
-static const iomanipulator_ array_rc    = iomanipulator_(iomanipulator_::array_rc);
-static const iomanipulator_ array_first = iomanipulator_(iomanipulator_::array_first);
-static const iomanipulator_ object_rc   = iomanipulator_(iomanipulator_::object_rc);
-static const iomanipulator_ object_key  = iomanipulator_(iomanipulator_::object_key);
 
-template <typename CharT>
-std::basic_ostream<CharT>&
-operator << (std::basic_ostream<CharT>& bostr, iomanipulator_ const& iom) {
-  iom.set_format(bostr);
-  return bostr;
+template <typename JsonType>
+printer_<JsonType> printer (JsonType const& json) {
+  return printer_<JsonType>(json);
 }
 
-template <typename JsonType>
-struct printer {
-  printer (JsonType const& json) : json(json) {}
-  JsonType const& json;
-};
-
-template <typename JsonType>
+template <typename CharT, typename JsonType>
 std::basic_ostream<CharT>&
-operator << (std::basic_ostream<CharT>& bostr, printer<JsonType> const& pr) {
+operator << (std::basic_ostream<CharT>& bostr, printer_<JsonType> const& pr) {
   return bostr;
 }
 
