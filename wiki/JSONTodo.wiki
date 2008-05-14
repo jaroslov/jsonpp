@@ -3,5 +3,13 @@
 = TODO =
   * _finished_ add iomanipulator support for printing
   * add printing support based on the iomanipulator above
-  * convert `string_t` support in the parser to UTF-8 using iconv; this means the user will give us a std::stream or std::wstream we just do what is usual; but if the user gives us a file-name we try to figure out what the encoding is, and do "the right thing"; this is going to require a refactoring of internal support
-  * btw, figure out wchar_t -> unicode stuff (oy)
+  * set the following policy:
+    # no matter the `CharT` type of the input stream, we always look for the encoding information and try to discover which of the 5 encodings we have in the stream
+    # once we discover the encoding stream, we convert the stream (on the fly) to proper internal encoding; for UTF-8 this is natural, for the other encodings it may involve call `iconv` on a buffer-at-a-time basis (4096-char blocks); note that we have to be careful not to cut chars into pieces!
+    # we always convert \uD8xx\uDCxx code-points into their UTF-8 string representation
+    # we always convert \t, \r, etc. into their internal encodings as well, i.e., if the stream includes \t, we replace it with \u0009, etc.
+  * on output if the representation is:
+    # ASCII: dump straight out
+    # UNICODE:
+      # if the dump type is `char` then we dump ASCI,
+      # if the type is `sizeof(char)*CHAR_BIT >= 16`, then we convert to code-points
