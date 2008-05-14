@@ -772,17 +772,17 @@ class iomanipulator_ {
   static signed long iword;
 public:
   enum kinds {
-    ascii       = 0,  // all unicode characters are \uXXXX | \UXXXXXXXX
-    unicode     = 1,  // attempt to make unicode as unicode (not always possible)
-    readable    = 2,  // spaces after commas & between structure control
-    array_rc    = 4,  // new-line + indent for arrays
-    array_first = 8,  // new-line for array_rc occurs after first element
-    object_rc   = 16, // new-line + indent for objects
-    object_key  = 32, // new-line + indent after key in an object
-    ascii_all   = ascii | readable | array_rc | array_first | object_rc | object_key,
-    unicode_all = unicode | readable | array_rc | array_first | object_rc | object_key,
-    ascii_rc    = ascii | readable | array_rc | object_rc,
-    unicode_rc  = unicode | readable | array_rc | object_rc,
+    ascii         = 0,  // all unicode characters are \uXXXX | \UXXXXXXXX
+    unicode       = 1,  // attempt to make unicode as unicode (not always possible)
+    readable      = 2,  // spaces after commas & between structure control
+    array_rc      = 4,  // new-line after each comma for array
+    object_rc     = 8,  // new-line after each comma for object
+    array_first   = 16, // new line before first element
+    object_first  = 32, // new line before first element
+    object_key    = 64, // new line after each key
+    standard      = readable | array_rc | object_rc | object_key,
+    std_ascii     = ascii | standard,
+    std_unicode   = unicode | standard,
   };
   iomanipulator_ (kinds const& k) : kind_(k) {
     if (-1 == iomanipulator_::iword)
@@ -791,24 +791,23 @@ public:
   void set_format (std::ios_base& ios) const {
     ios.iword(iomanipulator_::iword) = this->kind_;
   }
-  signed long format (std::ios_base& ios) const {
+  static signed long format (std::ios_base& ios) {
     return ios.iword(iomanipulator_::iword);
   }
 private:
   kinds kind_;
 };
-signed long iomanipulator_::iword       = -1;
-static const iomanipulator_ ascii       = iomanipulator_(iomanipulator_::ascii);
-static const iomanipulator_ ascii_all   = iomanipulator_(iomanipulator_::ascii_all);
-static const iomanipulator_ ascii_rc    = iomanipulator_(iomanipulator_::ascii_rc);
-static const iomanipulator_ unicode     = iomanipulator_(iomanipulator_::unicode);
-static const iomanipulator_ unicode_all = iomanipulator_(iomanipulator_::unicode_all);
-static const iomanipulator_ unicode_rc  = iomanipulator_(iomanipulator_::unicode_rc);
-static const iomanipulator_ readable    = iomanipulator_(iomanipulator_::readable);
-static const iomanipulator_ array_rc    = iomanipulator_(iomanipulator_::array_rc);
-static const iomanipulator_ array_first = iomanipulator_(iomanipulator_::array_first);
-static const iomanipulator_ object_rc   = iomanipulator_(iomanipulator_::object_rc);
-static const iomanipulator_ object_key  = iomanipulator_(iomanipulator_::object_key);
+signed long iomanipulator_::iword         = -1;
+static const iomanipulator_ ascii         = iomanipulator_(iomanipulator_::ascii);
+static const iomanipulator_ unicode       = iomanipulator_(iomanipulator_::unicode);
+static const iomanipulator_ readable      = iomanipulator_(iomanipulator_::readable);
+static const iomanipulator_ array_rc      = iomanipulator_(iomanipulator_::array_rc);
+static const iomanipulator_ object_rc     = iomanipulator_(iomanipulator_::object_rc);
+static const iomanipulator_ array_first   = iomanipulator_(iomanipulator_::array_first);
+static const iomanipulator_ object_first  = iomanipulator_(iomanipulator_::object_first);
+static const iomanipulator_ standard      = iomanipulator_(iomanipulator_::standard);
+static const iomanipulator_ std_ascii     = iomanipulator_(iomanipulator_::std_ascii);
+static const iomanipulator_ std_unicode   = iomanipulator_(iomanipulator_::std_unicode);;
 
 template <typename CharT>
 std::basic_ostream<CharT>&
@@ -860,88 +859,89 @@ struct json_to_string {
       return to_string_t("null");;
     }
     string_t operator () (array_t const& A) const {
-      typedef typename array_t::const_iterator citer;
-      citer F = bel::begin(A), L = bel::end(A);
       string_t result = to_string_t("[");
-      *this->index += 2;
-      if (F != L) {
-        if (this->pretty) {
-          //result += string_t(1, '\n');
-          result += string_t(1, ' ');
+      *this->offset += 2;
+      for (std::size_t i=0; i<A.size(); ++i) {
+        if (0 == i) {
+          if (iomanipulator_::readable & this->pretty)
+            result += ' ';
+          if (iomanipulator_::object_first & this->pretty)
+            result += '\n' + string_t(*this->offset, ' ');
         }
-        result += boost::apply_visitor(*this, *F);
-        ++F;
-      }
-      while (F != L) {
-        result += to_string_t(",");
-        if (this->pretty) {
-          result += string_t(1, '\n');
-          result += string_t(*this->index, ' ');
+        string_t lres = boost::apply_visitor(*this, A[i]);
+        result += lres;
+        if (A.size() != (i+1)) {
+          result += ',';
+          if (iomanipulator_::readable & this->pretty)
+            result += ' ';
+          if (iomanipulator_::array_rc & this->pretty)
+            result += '\n' + string_t(*this->offset, ' ');
+        } else {
+          if (iomanipulator_::readable & this->pretty)
+            result += ' ';
         }
-        result += boost::apply_visitor(*this, *F);
-        ++F;
       }
-      *this->index -= 2;
-      if (this->pretty)
-        result += string_t(1, ' ');
+      *this->offset -= 2;
       result += to_string_t("]");
       return result;
     }
     string_t operator () (object_t const& O) const {
-      typedef typename object_t::const_iterator citer;
-      citer F = bel::begin(O), L = bel::end(O);
+      typedef typename object_t::const_iterator c_iter;
+
       string_t result = to_string_t("{");
-      *this->index += 2;
-      if (F != L) {
-        if (this->pretty)
-          result += string_t(1, ' ');
-        result += to_string_t("\"")
-          + F->first
-          + to_string_t("\"");
-        result += string_t(1, ':');
-        if (this->pretty) {
-          result += string_t(1, '\n');
-          result += string_t(*this->index+2, ' ');
+      c_iter beg, end, fst, lst;
+      beg = fst = O.begin();
+      end = lst = O.end();
+      *this->offset += 2;
+      for ( ; fst != lst; ++fst) {
+        if (beg == fst) {
+          if (iomanipulator_::readable & this->pretty)
+            result += ' ';
+          if (iomanipulator_::object_first & this->pretty)
+            result += '\n' + string_t(*this->offset, ' ');
         }
-        *this->index += 2;
-        result += boost::apply_visitor(*this, F->second);
-        *this->index -= 2;
-        ++F;
+        string_t lres = '\"' + to_string_t(fst->first) + '\"';
+        result += lres;
+        if (iomanipulator_::readable & this->pretty)
+          result += ' ';
+        result += ':';
+        if (iomanipulator_::readable & this->pretty)
+          result += ' ';
+        if (iomanipulator_::object_key & this->pretty) {
+          result += '\n';
+          *this->offset += lres.size()/4+1;
+          result += string_t(*this->offset, ' ');
+        }
+        result += boost::apply_visitor(*this, fst->second);
+        if (iomanipulator_::object_key & this->pretty) {
+          *this->offset -= lres.size()/4+1;
+        }
+        c_iter next = fst; ++next;
+        if (next != lst) {
+          result += ',';
+          if (iomanipulator_::readable & this->pretty)
+            result += ' ';
+          if (iomanipulator_::object_rc & this->pretty)
+            result += '\n' + string_t(*this->offset, ' ');
+        } else {
+          if (iomanipulator_::readable & this->pretty)
+            result += ' ';
+        }
       }
-      while (F != L) {
-        result += to_string_t(",");
-        if (this->pretty) {
-          result += string_t(1, '\n');
-          result += string_t(*this->index, ' ');
-        }
-        result += to_string_t("\"") + F->first
-               + to_string_t("\"");
-        result += string_t(1, ':');
-        if (this->pretty) {
-          result += string_t(1, '\n');
-          result += string_t(*this->index+2, ' ');
-        }
-        *this->index += 2;
-        result += boost::apply_visitor(*this, F->second);
-        *this->index -= 2;
-        ++F;
-      }
-      *this->index -= 2;
-      if (this->pretty)
-        result += string_t(1, ' ');
+      *this->offset -= 2;
       result += to_string_t("}");
       return result;
     }
 
-    std::size_t*  index;
+    std::size_t*  offset;
     signed long   pretty;
   };
 
   string_t translate (value_t const& v, signed long pp=0) const {
-    std::size_t idx;
+    std::size_t offset = 0;
     __detail D;
     D.pretty = pp;
-    D.index = &idx;
+    D.offset = &offset;
     return boost::apply_visitor(D, v);
   }
 };
@@ -966,6 +966,8 @@ printer_<JsonType> printer (JsonType const& json) {
 template <typename CharT, typename JsonType>
 std::basic_ostream<CharT>&
 operator << (std::basic_ostream<CharT>& bostr, printer_<JsonType> const& pr) {
+  json_to_string<JsonType> jts;
+  bostr << jts.translate(pr.json_, iomanipulator_::format(bostr));
   return bostr;
 }
 
