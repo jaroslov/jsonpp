@@ -18,8 +18,7 @@ int main (int argc, char *argv[]) {
       std::istream_iterator<wchar_t,wchar_t> ctr(wifstr);
       std::istream_iterator<wchar_t,wchar_t> cnd;
       JSONpp::json_v json = JSONpp::parse(ctr, cnd);
-      JSONpp::json_gen::string_t str = JSONpp::to_string(json, true);
-      std::cout << str << std::endl;
+      std::cout << JSONpp::printer(json) << std::endl;
     } catch (std::exception& e) {
       std::cout << "error: " << e.what() << std::endl;
     }
