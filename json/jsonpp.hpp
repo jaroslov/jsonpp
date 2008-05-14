@@ -11,8 +11,8 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-// ICONV
-#include <iconv.h>
+// JSON
+#include "unicode-support.hpp"
 
 #ifndef JSON_PARSER
 #define JSON_PARSER
