@@ -43,7 +43,7 @@ namespace JSONpp {
 // a string, and for us to convert it into canonical form, and for us to be
 // able to recognize a string in canonical form.
 
-struct jstring : public std::string {
+/*struct jstring : public std::string {
   jstring () : std::string() {}
   ~ jstring () {}
   jstring (char const* str) {
@@ -59,6 +59,9 @@ struct jstring : public std::string {
   }
   friend jstring operator + (jstring const& L, jstring const& R) {
     return *static_cast<jstring const*>(&L) + *static_cast<jstring const*>(&R);
+  }
+  std::string const& str () const {
+    return *this;
   }
   template <typename T>
   void load_ptr (T const* ttr, T const* tnd) {
@@ -80,22 +83,24 @@ struct jstring : public std::string {
         *tbuf = (char)*ttr,
         ++ttr, ++tbuf;
     }
-    this->load_ptr(buffer, buffer+t_length);
+    this->load_cptr(buffer, buffer+t_length);
     free(buffer);
   }
   template <typename T>
   void load_iter (T itr, T const& ind) {
     typedef typename T::value_type value_type;
     if (itr == ind) return;
-    const std::size_t t_length = std::distance(ind, itr);
+    const std::size_t t_length = std::distance(itr, ind);
     value_type buffer[t_length];
     value_type *tbuf = buffer;
-    while (itr != ind)
-      *tbuf = *itr,
-      ++tbuf, ++itr;
+    while (itr != ind) {
+      *tbuf = *itr;
+      ++tbuf;
+      ++itr;
+    }
     this->load_ptr(buffer, buffer+t_length);
   }
-  void load_ptr (char const* ttr, char const* tnd) {
+  void load_cptr (char const* ttr, char const* tnd) {
     if (ttr == tnd) return;
     const std::size_t t_length = tnd - ttr;
     const char * utf_32be = "UTF-32BE";
@@ -116,11 +121,11 @@ struct jstring : public std::string {
                    | (0 != ttr[2] ? 2 : 0)
                    | (0 != ttr[3] ? 1 : 0);
       switch (encoding) {
-      case 1  /*UTF-32BE*/: from = utf_32be; break;
-      case 5  /*UTF-16BE*/: from = utf_16be; break;
-      case 8  /*UTF-32LE*/: from = utf_32le; break;
-      case 10 /*UTF-16LE*/: from = utf_16le; break;
-      case 15 /*UTF-8*/:
+      case 1  /*UTF-32BE* /: from = utf_32be; break;
+      case 5  /*UTF-16BE* /: from = utf_16be; break;
+      case 8  /*UTF-32LE* /: from = utf_32le; break;
+      case 10 /*UTF-16LE* /: from = utf_16le; break;
+      case 15 /*UTF-8* /:
       default:  from = utf_8; break; // why not?
       }
     }
@@ -162,7 +167,6 @@ struct jstring : public std::string {
       }
     }
     this->resize(offset);
-    std::cout << *this << std::endl;
   }
   inline char to_hex_value (std::size_t S) {
     return (15&S) + (((15&S) > 9) ? ('A'-10) : '0');
@@ -172,13 +176,13 @@ struct jstring : public std::string {
     *static_cast<std::string*>(this) = *static_cast<const std::string*>(&jstr);
     return *this;
   }
-};
+};*/
 
 //=== [ERROR MESSAGES] ===
 struct unknown_identifier : std::exception {
-  jstring message;
-  unknown_identifier (jstring const& val) {
-    this->message = jstring("Not a valid identifier: ") + val;
+  std::string message;
+  unknown_identifier (std::string const& val) {
+    this->message = std::string("Not a valid identifier: ") + val;
   }
   virtual ~unknown_identifier () throw() {}
   virtual const char* what () const throw() {
@@ -187,9 +191,9 @@ struct unknown_identifier : std::exception {
 };
 
 struct unknown_token : std::exception {
-  jstring message;
-  unknown_token (jstring const& val) {
-    this->message = jstring("Not a valid token: ") + val;
+  std::string message;
+  unknown_token (std::string const& val) {
+    this->message = std::string("Not a valid token: ") + val;
   }
   virtual ~unknown_token () throw() {}
   virtual const char* what () const throw() {
@@ -198,9 +202,9 @@ struct unknown_token : std::exception {
 };
 
 struct unexpected_token : std::exception {
-  jstring message;
-  unexpected_token (jstring const& val) {
-    this->message = jstring("Unexpected token: ") + val;
+  std::string message;
+  unexpected_token (std::string const& val) {
+    this->message = std::string("Unexpected token: ") + val;
   }
   virtual ~unexpected_token () throw() {}
   virtual const char* what () const throw() {
@@ -209,9 +213,9 @@ struct unexpected_token : std::exception {
 };
 
 struct expected_got : std::exception {
-  jstring message;
-  expected_got (jstring const& exp, jstring const& got) {
-    this->message = jstring("Expected a ") + exp + jstring(" got a ") + got;
+  std::string message;
+  expected_got (std::string const& exp, std::string const& got) {
+    this->message = std::string("Expected a ") + exp + std::string(" got a ") + got;
   }
   virtual ~expected_got () throw() {}
   virtual const char* what () const throw() {
@@ -268,18 +272,9 @@ struct push_parser {
   // Because we don't know what type of string we'll be getting
   // we have to jump through some hoops; these values, below,
   // represent hoops.
-  static const string_t True;
-  static const string_t False;
-  static const string_t Null;
-
-  // so we know how to write stuff
-  typedef typename string_t::value_type char_type;
-  typedef std::basic_ostream<char_type> ostream;
-
-  // short hand
-  static string_t to_string_t (const char* cstr) {
-    return string_t(cstr,cstr+std::strlen(cstr));
-  }
+  static const std::string True;
+  static const std::string False;
+  static const std::string Null;
 
 private:
   // internal token class, should not be publically exposed
@@ -308,13 +303,12 @@ private:
     token () : kind_(unk), value_(), offset_(0) {}
 
     // mainly for debug purposes
-    friend ostream& operator << (ostream& ostr, token const& tok) {
-      ostr << to_string_t("`") << tok.value
-           << to_string_t("`@") << tok.offset_;
+    friend std::ostream& operator << (std::ostream& ostr, token const& tok) {
+      ostr << "`" << tok.value_ << "`@" << tok.offset_;
       return ostr;
     }
     kind kind_;           // which kind of token we are
-    jstring value_;       // the string representation from the file
+    std::string value_;   // the string representation from the file
     std::size_t offset_;  // the offset into the file for printing purposes
                           // TODO: build an offset->(line,col) converter
   };
@@ -334,7 +328,7 @@ public:
   }
   template <typename Iter>
   value_t operator () (Iter begin, Iter end) {
-    return this->parse(begin,end);
+    return this->parse(begin, end);
   }
 
   // exactly like operator (), but with a name
@@ -348,7 +342,7 @@ public:
       // make a copy of the input string into our internal
       // string type to simplify things, heavy-weight, but
       // we can optimize later
-      jstring lcp(begin,end);
+      std::string lcp(begin, end);
       // lex the file and get the tokens
       std::vector<token> tokens = this->lex(bel::begin(lcp),bel::end(lcp));
       // parse tokens
@@ -388,7 +382,7 @@ private:
     while (first != last) {
       token tok;
       tok.offset_ = first - init;
-      tok.value_ = jstring(first,first+1);
+      tok.value_ = std::string(first,first+1);
       bool skip = false;
       // we're going to greedily eat the following things:
       // 1. strings "...", which include the legal escapes
@@ -435,12 +429,12 @@ private:
                     ++first; // look at next char
                     if (first == last)
                       throw expected_got("\\u[0-9a-fA-F]*4",
-                        jstring(begin,first));
+                        std::string(begin,first));
                     if (not ((('0' <= *first) and (*first <= '9'))
                       or (('a' <= *first) and (*first <= 'f'))
                       or (('A' <= *first) and (*first <= 'F'))))
                       throw expected_got("\\u[0-9a-fA-F]*4",
-                        jstring(first,first+1));
+                        std::string(first,first+1));
                   }
                 } break;
               default: // uhoh
@@ -449,7 +443,7 @@ private:
               }
             }
           }
-          tok.value_ = jstring(begin, first);
+          tok.value_ = std::string(begin, first);
           ++first; // eat last " character
         } break;
       case '0':case '1':case '2':case '3':case '4':
@@ -477,7 +471,7 @@ private:
               ++first;
             first = get_digits(first,last);
           }
-          tok.value_ = jstring(begin, first);
+          tok.value_ = std::string(begin, first);
         } break;
       case 't': case 'f': case 'n': {
           // possibly an identifier, there are three legal ones:
@@ -489,21 +483,21 @@ private:
           // abort.
           begin = first;
           tok.kind_ = token::boolean;
-          string_t wh = True; // default to "true"
+          std::string wh = True; // default to "true"
           if ('f' == *first) wh = False; // "false"
           else if ('n' == *first) {
             wh = Null; // "null"; also, change the token type
             tok.kind_ = token::null;
           }
           // compare the next few chars to our identifier
-          typename string_t::const_iterator whs = bel::begin(wh), whd = bel::end(wh);
+          typename std::string::const_iterator whs = bel::begin(wh), whd = bel::end(wh);
           while (first != last and whs != whd) {
             if (*first != *whs) {
-              throw unknown_token(jstring(begin,first));
+              throw unknown_token(std::string(begin,first));
             }
             ++first; ++whs;
           }
-          tok.value_ = jstring(begin, first);
+          tok.value_ = std::string(begin, first);
         } break;
       case '/': case '#': {
           // comments are actually an optional construt for JSON, but
@@ -518,14 +512,14 @@ private:
           const Iter orig = first;
           ++first;
           if (first == last) // / is not a legal anything
-            throw unknown_token(jstring("/"));
+            throw unknown_token("/");
           if ('*' == *first) { // C-style comment
             // c-style
             while (first != last) {
               if ('*' == *first) { // look for a */
                 ++first;
                 if (first == last) // comment ended before */
-                  throw unknown_token(jstring("*"));
+                  throw unknown_token("*");
                 if ('/' == *first) { // it is done!
                   ++first;
                   break;
@@ -546,7 +540,7 @@ private:
           } else if ('#' == *orig)
             goto cppcomment; // blech
           else // /? is not legal
-            throw unknown_token(jstring(first,first+1));
+            throw unknown_token(std::string(first,first+1));
         } break;
       default: // don't know ... but also don't care (for now)
         tok.kind_ = token::unk;
@@ -625,15 +619,14 @@ private:
   // a string is a single token, just assign to the out value
   tok_iter parse (tok_iter first, tok_iter last, string_t& str) {
     if (first == last) return last;
-    str = first->value_;// BUG!
+    str = string_t(first->value_.begin(), first->value_.end());
     return ++first;
   }
   // a number is a single token, just assign to the out value
   // NB: we build our own stringstream for conversion ... oy
   tok_iter parse (tok_iter first, tok_iter last, number_t& num) {
     if (first == last) return last;
-    typedef std::basic_stringstream<typename string_t::value_type> sstream_t;
-    sstream_t ss(first->value_);
+    std::stringstream ss(first->value_);
     ss >> num; // this is where our requirement
                // for stringstream convertible comes from
     return ++first;
@@ -676,14 +669,12 @@ private:
       first = prog;
       // eat the colon (:)
       if (token::colon != first->kind_)
-        throw expected_got(to_string_t(":"),first->value_);
+        throw expected_got(":",first->value_);
       ++first;
       // eat the value
       prog = this->parse(first, last, val);
       if (prog == first) // maintain progress
-        throw expected_got(
-                to_string_t("value"),
-                to_string_t("nothing"));
+        throw expected_got("value","nothing");
       first = prog;
       // eat possible comma (,)
       obj[key] = val;
@@ -696,10 +687,9 @@ private:
     } while (first != last);
     // had better be a }, if so, eat it
     if (first == last)
-      throw expected_got(to_string_t("}"),
-        to_string_t("nothing"));
+      throw expected_got("}","nothing");
     if (token::curlyR != first->kind_)
-      throw expected_got(to_string_t("}"),first->value_);
+      throw expected_got("}",first->value_);
     return ++first;
   }
   // arrays are a simpler versino of objects, the format is easier,
@@ -729,10 +719,9 @@ private:
         ++first;
     } while (first != last);
     if (first == last)
-      throw expected_got(to_string_t("]"),
-        to_string_t("nothing"));
+      throw expected_got("]", "nothing");
     if (token::brakR != first->kind_)
-      throw expected_got(to_string_t("]"),first->value_);
+      throw expected_got("]", first->value_);
     // eat the ]
     return ++first;
   }
@@ -743,20 +732,11 @@ static const char JSON__true[] = "true";
 static const char JSON__false[] = "false";
 static const char JSON__null[] = "null";
 template <typename JsonType>
-const typename json_traits<JsonType>::string_t
-push_parser<JsonType>::True
-  = typename json_traits<JsonType>::string_t(JSON__true, // yeah ... -1 ???
-                                      JSON__true+sizeof(JSON__true)-1);
+const std::string push_parser<JsonType>::True = std::string(JSON__true);
 template <typename JsonType>
-const typename json_traits<JsonType>::string_t
-push_parser<JsonType>::False
-  = typename json_traits<JsonType>::string_t(JSON__false,
-                                      JSON__false+sizeof(JSON__false)-1);
+const std::string push_parser<JsonType>::False = std::string(JSON__false);
 template <typename JsonType>
-const typename json_traits<JsonType>::string_t
-push_parser<JsonType>::Null
-  = typename json_traits<JsonType>::string_t(JSON__null,
-                                      JSON__null+sizeof(JSON__null)-1);
+const std::string push_parser<JsonType>::Null = std::string(JSON__null);
 
 //=== [PRINTER] ===
 // the usual boost::variant visitor class
