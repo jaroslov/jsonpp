@@ -8,16 +8,18 @@
 
 template <typename Char, std::size_t BUFLEN=256>
 class transcode_iterator {
-  const std::size_t BACKLEN = sizeof(char)*BUFLEN;
-  const std::size_t TRANLEN = sizeof(Char)*BUFLEN;
+  static const std::size_t BACKLEN = sizeof(char)*BUFLEN;
+  static const std::size_t TRANLEN = sizeof(Char)*BUFLEN;
   typedef std::basic_istream<Char> stream_type;
 public:
   transcode_iterator ()
-    : stream_(0), cd_((iconv_t)-1) {
+    : stream_(0), cd_((iconv_t)-1)
+    , tran_off_(0), back_off_(0) {
     this->zero();
   }
   transcode_iterator (stream_type& str)
-    : stream_(&str), cd_((iconv_t)-1) {
+    : stream_(&str), cd_((iconv_t)-1)
+    , tran_off_(0), back_off_(0){
     this->zero();
   }
   transcode_iterator (transcode_iterator const& ti)
@@ -31,6 +33,8 @@ protected:
     std::memset(this->tran_buffer_, 0, TRANLEN);
   }
   void copy (transcode_iterator const& ti) {
+    this->tran_off_ = ti.tran_off_;
+    this->back_off_ = ti.back_off_;
     std::memcpy(this->back_buffer_, ti.back_buffer_, BACKLEN);
     std::memcpy(this->tran_buffer_, ti.tran_buffer_, TRANLEN);
   }
@@ -38,6 +42,7 @@ private:
   stream_type *stream_;
   char back_buffer_[BUFLEN];
   Char tran_buffer_[BUFLEN];
+  std::size_t tran_off_, back_off_;
   iconv_t cd_;
 };
 
