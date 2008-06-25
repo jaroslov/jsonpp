@@ -9,6 +9,8 @@ jsonT: test_json.cpp json/*.hpp jtest
 	./jtest Examples/*.*
 
 viptrtest: valued_interface_ptr/valued_interface_ptr.hpp test_viptr.cpp
+	g++ -O3 -I. test_viptr.cpp -o viptr
+	./viptr
 
 belT: bel/*.hpp test_bel.cpp
 	g++ -O3 -I. test_bel.cpp -o btest
