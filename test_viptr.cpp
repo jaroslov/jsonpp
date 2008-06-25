@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-#include <valued_interface_pt/valued_interface_ptr.hpp>
+#include <valued_interface_ptr/valued_interface_ptr.hpp>
 
 struct foo_base {
   virtual int foo () const = 0;
@@ -13,7 +13,7 @@ struct foo_t : foo_base {
 
 int main (int argc, char *argv[]) {
 
-  typedef valued_interface_ptr<foo_base> foo_base_ptr;
+  typedef viptr::valued_interface_ptr<foo_base> foo_base_ptr;
   typedef std::vector<foo_base_ptr> v_foo_base_ptrs;
 
   v_foo_base_ptrs buffer;
