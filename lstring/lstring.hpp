@@ -12,19 +12,14 @@ namespace lstring {
 
 	namespace detail {
 		/*
-
-			Legal Chunks:
-			  istring
-				reference-to-chunk
-				list-of-chunks
+			We create a data-structure that looks (essentially) like a grammar table for a CFG.
+			However, there are some extra rules for operating on the table.
 
 		 */
-		template <typename String>
-		struct make_chunk {
-			typedef typename boost::make_recursive_variant<
-				String,
-				std::list<boost::recursive_variant_>::iterator
-				>::type type;
+		struct entry {
+			
+		};
+		struct table {
 		};
 	}
 
