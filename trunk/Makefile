@@ -54,5 +54,8 @@ vpath_tests: vtest xpgtl/*.hpp test_vpath.cpp
 	echo "//foo[0]/.[10]/ancestor-or-self/node()" | ./vtest
 	echo "/..[1]/child::bar[0]/&lt;child&gt;" | ./vtest
 
+lstr: lstring/lstring.hpp test_lstring.cpp
+	g++ -O3 -I. test_lstring.cpp -o lstr
+
 clean:
 	rm jtest vtest btest;
