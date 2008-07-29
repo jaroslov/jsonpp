@@ -319,7 +319,7 @@ namespace JSONpp {
 		
 		template <typename Iter>
 		value_t parse (Iter begin, Iter end, bool extensions=false) {
-			this->extensions = extensions;
+			this->extensions_ = extensions;
 			// make a copy of the input string into our internal
 			// string type to simplify things, heavy-weight, but
 			// we can optimize later
@@ -332,6 +332,10 @@ namespace JSONpp {
 		}
 		
 	private:
+		// allows certain extensions to be used:
+		// 0. none supported (needs metaprogramming)
+		bool extensions_;
+
 		// We're going to re-dispatch on the sequence [b,e) instead
 		// of the token-container. This is a hand-written recursive
 		// descent parser. Note that the JSON standard is "pseudo-regular"
