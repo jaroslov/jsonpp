@@ -23,8 +23,8 @@ xtest: xpgtl/*.hpp test_xpath.cpp
 	g++ -O3 -I. test_xpath.cpp -o xtest -liconv >& error.text || open -a SubEthaEdit error.text
 
 tpath: test_tp.cpp treepath/*.hpp
-	g++ -O3 -I. test_tp.cpp -o xp -liconv
-	./xp "self::array" examples/*.*
+	g++ -O3 -I. test_tp.cpp -o ttest -liconv
+	./ttest "self::array" examples/*.*
 
 xpathG: xpgtl/*.hpp test_xpath.cpp
 	g++ -g -I. test_xpath.cpp -o xtest -liconv
@@ -62,4 +62,4 @@ lstr: lstring/lstring.hpp test_lstring.cpp
 	g++ -O3 -I. test_lstring.cpp -o lstr
 
 clean:
-	rm jtest vtest btest;
+	rm -f jtest vtest btest ttest;
