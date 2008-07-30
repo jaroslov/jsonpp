@@ -15,7 +15,8 @@ int main (int argc, char *argv[]) {
   std::locale loc("");
   std::wcout.imbue(loc);
 
-	std::cout << "Path: " << path << std::endl;
+	std::cout << std::string(20, '=') << std::endl;
+	std::cout << "Path: " << path << std::endl << std::endl << std::endl;
 
 	argv += 2;
 
