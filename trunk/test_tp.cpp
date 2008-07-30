@@ -4,6 +4,7 @@
 #include <sstream>
 #include <json/jsonpp.hpp>
 #include <treepath/simple_xpath.hpp>
+#include <treepath/query.hpp>
 
 int main (int argc, char *argv[]) {
 

@@ -2,6 +2,7 @@
 #define TREEPATH_QUERY
 
 #include <boost/tuple/tuple.hpp>
+#include <boost/shared_ptr.hpp>
 
 namespace treepath {
 
@@ -28,7 +29,10 @@ namespace treepath {
 
 	 */
 
-	template <typename T, typename Tag>
+	struct treepath_ {};
+	static const treepath_ treepath = treepath_();
+
+	template <typename T, typename Tag=treepath_>
 	struct node_traits {
 		typedef typename T::test_type test_type;
 		typedef typename T::node_variant node_variant;
@@ -37,12 +41,28 @@ namespace treepath {
 
 	template <typename T, typename Tag>
 	std::pair<typename node_traits<T, Tag>::child_iterator, typename node_traits<T, Tag>::child_iterator>
-	get_children (T const& t, Tag) {
+	get_children (T const& t, Tag tag=treepath) {
 		return std::make_pair(t.begin(), t.end());
 	}
 
-	template <typename T, typename Tag>
-	struct Node {
+	template <typename Test, typename Tag=treepath_>
+	struct NodeBase {
+		typedef Test test_type;
+		typedef Tag tag_type;
+
+		virtual ~ NodeBase () {}
+		virtual test_type const& test () const = 0;
+		virtual void first_child () const = 0;
+		virtual void last_child () const = 0;
+		virtual void first_sibling () const = 0;
+		virtual void last_sibling () const = 0;
+		virtual void self_iterator () const = 0;
+
+		boost::shared_ptr<NodeBase> parent;
+	};
+
+	template <typename T, typename Tag=treepath_>
+	struct Node : public NodeBase<typename node_traits<T>::test_type, Tag> {
 		typedef T node_type;
 		typedef Tag tag_type;
 
@@ -51,22 +71,36 @@ namespace treepath {
 		typedef typename node_traits_t::node_variant node_variant;
 		typedef typename node_traits_t::child_iterator child_iterator;
 
+		Node () : node(0) {}
+
 		Node (T const& nd, child_iterator fsib, child_iterator lsib, child_iterator s)
-			: node(nd) {
+			: node(&nd) {
 			this->siblings.first = fsib;
 			this->siblings.last = lsib;
 			this->siblings.self = s;
-			this->siblings.current = fsib;
 			boost::tie(this->children.first, this->children.last) = get_children(this->node);
 		}
 
-		T const& node;
-		test_type test;
+		virtual ~ Node () {
+			this->node = 0;
+		}
+
+		virtual test_type const& test () const {
+			return this->test_m;
+		}
+		virtual void first_child () const {}
+		virtual void last_child () const {}
+		virtual void first_sibling () const {}
+		virtual void last_sibling () const {}
+		virtual void self_iterator () const {}
+
+		T const* node;
+		test_type test_m;
 		struct {
 			child_iterator first, last;
 		} children;
 		struct {
-			child_iterator first, last, self, current;
+			child_iterator first, last, self;
 		} siblings;
 	};
 
