@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <stdexcept>
 
 namespace treepath {
 
@@ -12,6 +13,15 @@ namespace treepath {
 		bool operator () (T const&) const { return false; }
 		template <typename T1, typename T2>
 		bool operator () (T1 const&, T2 const&) const { return false; }
+	};
+
+	struct bad_axis_name : public std::exception {
+		bad_axis_name (std::string const& axis) : axis_("badly formed axis name: "+axis) {}
+		virtual ~ bad_axis_name () throw() {}
+		virtual const char* what () const throw() {
+			return this->axis_.c_str();
+		}
+		std::string axis_;
 	};
 	
 	struct name_enum {
@@ -30,6 +40,7 @@ namespace treepath {
 			preceding_sibling = 'P',
 			self = 's',
 		};
+
 		static name_e from_string (std::string const& str) {
 			if ("ancestor" == str) return ancestor;
 			else if ("ancestor-or-self" == str) return ancestor_or_self;
@@ -44,8 +55,9 @@ namespace treepath {
 			else if ("preceding" == str) return preceding;
 			else if ("preceding-sibling" == str) return preceding_sibling;
 			else if ("self" == str) return self;
-			else throw std::exception();
+			else throw bad_axis_name(str);
 		}
+
 		static const char* to_string (name_e const& N) {
 			switch (N) {
 			case ancestor: return "ancestor";
@@ -61,59 +73,67 @@ namespace treepath {
 			case preceding: return "preceding";
 			case preceding_sibling: return "preceding-sibling";
 			case self: return "self";
-			default: throw std::exception();
+			default: throw bad_axis_name("unknown enumeration");
 			}
+		}
+	};
+
+	struct bad_axis_nodetest : public std::exception {
+		bad_axis_nodetest (std::string const& axis) : axis_("badly formed axis node-test: "+axis) {}
+		virtual ~ bad_axis_nodetest () throw() {}
+		virtual const char* what () const throw() {
+			return this->axis_.c_str();
+		}
+		std::string axis_;
+	};
+
+	struct nodetest_enum {
+		enum nodetest_e {
+			node = 'n',
+			nodewild = '*',
+			text = 't',
+			comment = 'c',
+			processing_instruction = 'p',
+		};
+
+		static nodetest_e from_string (std::string const& str) {
+			if ("*" == str) return nodewild;
+			else if ("text()" == str) return text;
+			else if ("comment()" == str) return comment;
+			else if ("processing-instruction()" == str) return processing_instruction;
+			else return node;
+		}
+
+		static const char* to_string (nodetest_e const& n, std::string const& node) {
+			if (nodewild == n) return "*";
+			else if (text == n) return "text()";
+			else if (comment == n) return "comment()";
+			else if (processing_instruction == n) return "processing-instruction()";
+			else return node.c_str();
 		}
 	};
 
 	template <typename Test, typename Predicate=predicate>
 	struct axis {
-		struct test_t {
-			bool wild_m;
-			Test test_m;
-			test_t () {}
-			test_t (bool b) : wild_m(b) {}
-			test_t (Test const& t) : wild_m(false), test_m(t) {}
-			void operator = (test_t const& t) {
-				this->wild_m = t.wild_m;
-				this->test_m = t.test_m;
-			}
-			void operator = (Test const& t) {
-				this->wild_m = false;
-				this->test_m = t;
-			}
-			void operator = (bool b) {
-				this->wild_m = b;
-			}
-			operator bool () const {
-				return this->wild_m;
-			}
-		};
 
-		typedef name_enum::name_e name;
-		typedef test_t test;
-		typedef Predicate predicate;
+		typedef name_enum::name_e name_t;
+		typedef nodetest_enum::nodetest_e node_t;
+		typedef Test test_t;
+		typedef Predicate predicate_t;
 
 		axis () {}
-		axis (name const& N)
-			: name_m(N) {}
-		axis (name const& N, Test const& T)
-			: name_m(N), test_m(T) {}
-		axis (name const& N, Test const& T, predicate const& P)
-			: name_m(N), test_m(T), predicate_m(P) {}
+		axis (name_t const& nm, node_t const& nd, test_t const& tst, predicate_t const& pred=Predicate())
+			: name(nm), node(nd), test(tst), predicate(pred) {}
 
 		friend std::ostream& operator << (std::ostream& ostr, axis<Test, Predicate> const& a) {
-			ostr << name_enum::to_string(a.name_m) << "::";
-			if (a.test_m)
-				ostr << "*";
-			else
-				ostr << a.test_m.test_m;
+			ostr << name_enum::to_string(a.name) << "::" << nodetest_enum::to_string(a.node, a.test);
 			return ostr;
 		}
 		
-		name name_m;
-		test test_m;
-		predicate predicate_m;
+		name_t name;
+		node_t node;
+		test_t test;
+		predicate_t predicate;
 	};
 
 	template <typename Test, typename Predicate=predicate>

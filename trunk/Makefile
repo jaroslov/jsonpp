@@ -23,8 +23,14 @@ xtest: xpgtl/*.hpp test_xpath.cpp
 	g++ -O3 -I. test_xpath.cpp -o xtest -liconv >& error.text || open -a SubEthaEdit error.text
 
 tpath: test_tp.cpp treepath/*.hpp
-	g++ -O3 -I. test_tp.cpp -o ttest -liconv
-	./ttest "self::array" examples/*.*
+	@g++ -O3 -I. test_tp.cpp -o ttest -liconv
+	@./ttest "self::array" examples/*.*
+	@./ttest "self::array/child::string" examples/*.*
+	@./ttest "descendant-or-self::string" examples/*.*
+	@./ttest "self::object" examples/*.*
+	@./ttest "self::object/child::array" examples/*.*
+	@./ttest "self::array/child::object" examples/*.*
+	@./ttest "self::joins/child::object/child::a1/child::inputs/child::array/child::string" examples/*.*
 
 xpathG: xpgtl/*.hpp test_xpath.cpp
 	g++ -g -I. test_xpath.cpp -o xtest -liconv
