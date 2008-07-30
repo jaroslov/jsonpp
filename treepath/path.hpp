@@ -1,6 +1,9 @@
 #ifndef TREEPATH_PATH
 #define TREEPATH_PATH
 
+#include <iostream>
+#include <string>
+
 namespace treepath {
 
 	struct predicate {

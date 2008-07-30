@@ -22,7 +22,7 @@ vpath: xpgtl/*.hpp test_vpath.cpp
 xtest: xpgtl/*.hpp test_xpath.cpp
 	g++ -O3 -I. test_xpath.cpp -o xtest -liconv >& error.text || open -a SubEthaEdit error.text
 
-xp: xpath.cpp
+xp: xpath.cpp treepath/*.hpp
 	g++ -O3 -I. xpath.cpp -o xp -liconv
 	./xp "self::array" examples/*.*
 
