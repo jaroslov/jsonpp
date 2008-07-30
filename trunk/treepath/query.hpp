@@ -51,14 +51,14 @@ namespace treepath {
 		typedef Tag tag_type;
 
 		virtual ~ NodeBase () {}
-		virtual test_type const& test () const = 0;
+		virtual test_type const& node_test () const = 0;
 		virtual void first_child () const = 0;
 		virtual void last_child () const = 0;
 		virtual void first_sibling () const = 0;
 		virtual void last_sibling () const = 0;
 		virtual void self_iterator () const = 0;
 
-		boost::shared_ptr<NodeBase> parent;
+		boost::shared_ptr<NodeBase<Test, Tag> > parent;
 	};
 
 	template <typename T, typename Tag=treepath_>
@@ -85,8 +85,8 @@ namespace treepath {
 			this->node = 0;
 		}
 
-		virtual test_type const& test () const {
-			return this->test_m;
+		virtual test_type const& node_test () const {
+			return get_node_test(*this->node);
 		}
 		virtual void first_child () const {}
 		virtual void last_child () const {}
@@ -95,7 +95,6 @@ namespace treepath {
 		virtual void self_iterator () const {}
 
 		T const* node;
-		test_type test_m;
 		struct {
 			child_iterator first, last;
 		} children;
@@ -103,6 +102,10 @@ namespace treepath {
 			child_iterator first, last, self;
 		} siblings;
 	};
+
+	template <typename T, typename Predicate>
+	void query (T const& t, path<typename node_traits<T>::test_type, Predicate> const& path) {
+	}
 
 }
 

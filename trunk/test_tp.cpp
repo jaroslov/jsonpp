@@ -6,6 +6,18 @@
 #include <treepath/simple_xpath.hpp>
 #include <treepath/query.hpp>
 
+namespace treepath {
+
+	template <typename Tag>
+	struct node_traits<JSONpp::json_v, Tag> {
+		// look at <json/xpath.hpp>
+		typedef std::string test_type;
+		typedef JSONpp::json_v node_variant;
+		typedef int child_iterator;
+	};
+
+}
+
 int main (int argc, char *argv[]) {
 
 	if (argc < 3)
@@ -30,6 +42,8 @@ int main (int argc, char *argv[]) {
       std::istream_iterator<wchar_t,wchar_t> ctr(wifstr);
       std::istream_iterator<wchar_t,wchar_t> cnd;
       JSONpp::json_v json = JSONpp::parse(ctr, cnd);
+
+			treepath::query(json, path);
 
       std::cout << std::endl;
     } catch (std::exception& e) {
