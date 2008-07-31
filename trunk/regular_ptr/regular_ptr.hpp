@@ -13,7 +13,7 @@ There should also be a weak-pointer version of this, as well.
 
 */
 
-namespace smart_ptr {
+namespace jsonpp {
 	
 	namespace detail {
 
