@@ -13,87 +13,108 @@ There should also be a weak-pointer version of this, as well.
 
 */
 
-namespace viptr {
+namespace smart_ptr {
+	
+	namespace detail {
 
-namespace detail {
+		template <typename T>
+		struct regular_storage {
+			virtual ~ regular_storage () {}
+			virtual T* get_ptr () = 0;
+			virtual const T* get_ptr() const = 0;
+			virtual regular_storage<T>* copy () const = 0;
+			virtual bool equals (regular_storage<T> const& rs) const = 0;
+			virtual bool not_equals (regular_storage<T> const& rs) const = 0;
+		};
 
-template <typename Interface>
-class valued_interface_base {
-public:
-  virtual Interface* get_ptr () = 0;
-  virtual Interface const* get_ptr () const = 0;
-  virtual valued_interface_base<Interface>* clone () const = 0;
-  virtual ~ valued_interface_base () {}
-};
+		template <typename T, typename U>
+		struct cloning_storage : regular_storage<U> {
+			cloning_storage () : value_() {}
+			cloning_storage (T const& t) : value_(t) {}
+			virtual ~ cloning_storage () {}
+			virtual U* get_ptr () { return &this->value_; }
+			virtual const U* get_ptr () const { return &this->value_; }
+			virtual regular_storage<U>* copy () const {
+				return new cloning_storage<T, U>(this->value_);
+			}
+			virtual bool equals (regular_storage<U> const* rs) const {
+				const T *downcast_other = dynamic_cast<const T*>(rs->get_ptr());
+				return downcast_other and (*downcast_other == this->value_);
+			}
+			virtual bool not_equals (regular_storage<U> const* rs) const {
+				const T *downcast_other = dynamic_cast<const T*>(rs->get_ptr());
+				if (not downcast_other) return true;
+				return *downcast_other != this->value_;
+			}
 
-template <typename Interface, typename Value>
-class valued_interface : public valued_interface_base<Interface> {
-public:
-  valued_interface () {}
-  valued_interface (Value const& val) : value_m(val) {}
-  valued_interface (valued_interface const& vi)
-    : value_m(vi.value_m) {}
-  virtual ~ valued_interface () {}
-  void operator = (valued_interface const& vi) {
-    this->value_m = vi.value_m;
-  }
-  void operator = (Value const& val) {
-    this->value_m = val;
-  }
-  virtual Interface* get_ptr () { return &this->value_m; }
-  virtual Interface const* get_ptr () const { return &this->value_m; }
-  virtual valued_interface_base<Interface>* clone () const {
-    return new valued_interface<Interface, Value>(this->value_m);
-  }
-private:
-  Value value_m;
-};
+			T value_;
+		};
 
-}
+	}
 
-template <typename Interface>
-class valued_interface_ptr {
-public:
-  valued_interface_ptr () : ivalue_m(0) {}
-  template <typename Value>
-  valued_interface_ptr (Value const& v)
-    : ivalue_m(new detail::valued_interface<Interface, Value>(v)) {}
-  valued_interface_ptr (valued_interface_ptr const& viptr)
-    : ivalue_m(viptr.clone()) {}
-  virtual ~ valued_interface_ptr () {
-    this->clear();
-  }
-  void operator = (valued_interface_ptr const& viptr) {
-    this->copy(viptr);
-  }
-  Interface* operator -> () { return this->ivalue_m->get_ptr(); }
-  Interface const* operator -> () const { return this->ivalue_m->get_ptr(); }
-  Interface& operator * () { return *this->operator->(); }
-  Interface const& operator * () const { return *this->operator->(); }
-  void clear () {
-    if (0 != this->ivalue_m)
-      delete this->ivalue_m;
-    this->ivalue_m = 0;
-  }
-  bool empty () const {
-    return 0 == this->ivalue_m;
-  }
-  template <typename Value>
-  void set (Value const& v) {
-    this->clear();
-    this->ivalue_m = new detail::valued_interface<Interface, Value>(v);
-  }
-protected:
-  void copy (valued_interface_ptr const& viptr) {
-    this->clear();
-    this->ivalue_m = viptr.clone();
-  }
-  detail::valued_interface_base<Interface>* clone () const {
-    return this->ivalue_m->clone();
-  }
-private:
-  detail::valued_interface_base<Interface> *ivalue_m;
-};
+	template <typename T>
+	class regular_ptr {
+	public:
+		regular_ptr () : indirect_value_(0) {}
+		regular_ptr (regular_ptr<T> const& r) {
+			this->indirect_value_ = 0;
+			this->copy_from(r);
+		}
+		template <typename U>
+		regular_ptr (regular_ptr<U> const& r) {
+			this->indirect_value_ = 0;
+			this->copy_from(r);
+		}
+		template <typename U>
+		regular_ptr (U const& u) {
+			this->copy(u);
+		}
+		~ regular_ptr () {
+			this->clear();
+		}
+
+		template <typename U>
+		regular_ptr<T>& operator = (regular_ptr<U> const& r) {
+			this->copy_from(r);
+		}
+
+		void clear () {
+			if (0 != this->indirect_value_)
+				delete this->indirect_value_;
+			this->indirect_value_ = 0;
+		}
+
+		bool valid () const { return 0 != this->indirect_value_; }
+
+		template <typename U>
+		void copy (U const& u) {
+			this->clear();
+			this->indirect_value_ = cloning_storage<U, T>(u);
+		}
+		template <typename U>
+		void copy_from (regular_ptr<U> const& r) {
+			this->clear();
+			this->indirect_value_ = r.indirect_value_->copy();
+		}
+
+		template <typename U>
+		friend bool operator == (regular_ptr<T> const& left, regular_ptr<U> const& right) {
+			return left.indirect_value_->equals(right.indirect_value_);
+		}
+		template <typename U>
+		friend bool operator != (regular_ptr<T> const& left, regular_ptr<U> const& right) {
+			return left.indirect_value->not_equals(right.indirect_value_);
+		}
+
+		friend void swap (regular_ptr<T>& left, regular_ptr<T>& right) {
+			detail::storage_regular<T> *tmp = left.indirect_value_;
+			left.indirect_value_ = right.indirect_value_;
+			right.indirect_value_ = tmp;
+		}
+
+	private:
+		detail::regular_storage<T> *indirect_value_;
+	};
 
 }
 
