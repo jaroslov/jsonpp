@@ -18,36 +18,40 @@ namespace smart_ptr {
 	namespace detail {
 
 		template <typename T>
-		struct regular_storage {
-			virtual ~ regular_storage () {}
+		struct interface {
+			virtual ~ interface () {}
 			virtual T* get_ptr () = 0;
 			virtual const T* get_ptr() const = 0;
-			virtual regular_storage<T>* copy () const = 0;
-			virtual bool equals (regular_storage<T> const& rs) const = 0;
-			virtual bool not_equals (regular_storage<T> const& rs) const = 0;
+			virtual interface<T>* copy () const = 0;
+			virtual bool equals (interface<T> const*) const = 0;
+			virtual bool not_equals (interface<T> const*) const = 0;
 		};
 
 		template <typename T, typename U>
-		struct cloning_storage : regular_storage<U> {
-			cloning_storage () : value_() {}
-			cloning_storage (T const& t) : value_(t) {}
-			virtual ~ cloning_storage () {}
-			virtual U* get_ptr () { return &this->value_; }
-			virtual const U* get_ptr () const { return &this->value_; }
-			virtual regular_storage<U>* copy () const {
-				return new cloning_storage<T, U>(this->value_);
-			}
-			virtual bool equals (regular_storage<U> const* rs) const {
-				const T *downcast_other = dynamic_cast<const T*>(rs->get_ptr());
-				return downcast_other and (*downcast_other == this->value_);
-			}
-			virtual bool not_equals (regular_storage<U> const* rs) const {
-				const T *downcast_other = dynamic_cast<const T*>(rs->get_ptr());
-				if (not downcast_other) return true;
-				return *downcast_other != this->value_;
+		struct copier : public interface<T> {
+			copier () {}
+			copier (U const& u) : value(u) {}
+			virtual ~ copier () {}
+
+			virtual T* get_ptr () { return &this->value; }
+			virtual const T* get_ptr () const { return &this->value; }
+
+			virtual interface<T>* copy () const {
+				return new copier<T, U>(this->value);
 			}
 
-			T value_;
+			virtual bool equals (interface<T> const* other) const {
+				const U* dcother = dynamic_cast<const U*>(other->get_ptr());
+				if (0 == dcother) return false;
+				return *dcother == this->value;
+			}
+			virtual bool not_equals (interface<T> const* other) const {
+				const U* dcother = dynamic_cast<const U*>(other->get_ptr());
+				if (0 == dcother) return true;
+				return *dcother != this->value;
+			}
+
+			U value;
 		};
 
 	}
@@ -55,65 +59,82 @@ namespace smart_ptr {
 	template <typename T>
 	class regular_ptr {
 	public:
-		regular_ptr () : indirect_value_(0) {}
+		regular_ptr () : store(0) {}
 		regular_ptr (regular_ptr<T> const& r) {
-			this->indirect_value_ = 0;
-			this->copy_from(r);
-		}
-		template <typename U>
-		regular_ptr (regular_ptr<U> const& r) {
-			this->indirect_value_ = 0;
+			this->store = 0;
 			this->copy_from(r);
 		}
 		template <typename U>
 		regular_ptr (U const& u) {
+			this->store = 0;
 			this->copy(u);
 		}
 		~ regular_ptr () {
 			this->clear();
 		}
 
+		regular_ptr<T>& operator = (regular_ptr<T> const& r) {
+			this->copy_from(r);
+			return *this;
+		}
+
 		template <typename U>
 		regular_ptr<T>& operator = (regular_ptr<U> const& r) {
 			this->copy_from(r);
+			return *this;
 		}
-
-		void clear () {
-			if (0 != this->indirect_value_)
-				delete this->indirect_value_;
-			this->indirect_value_ = 0;
-		}
-
-		bool valid () const { return 0 != this->indirect_value_; }
 
 		template <typename U>
-		void copy (U const& u) {
-			this->clear();
-			this->indirect_value_ = cloning_storage<U, T>(u);
+		regular_ptr<T>& operator = (U const& u) {
+			this->copy(u);
+			return *this;
 		}
-		template <typename U>
-		void copy_from (regular_ptr<U> const& r) {
-			this->clear();
-			this->indirect_value_ = r.indirect_value_->copy();
-		}
+
+		T* operator -> () { return this->store->get_ptr(); }
+		const T* operator -> () const { return this->store->get_ptr(); }
+		T& operator * () { return *this->store->get_ptr(); }
+		const T& operator * () const { return *this->store->get_ptr(); }
 
 		template <typename U>
 		friend bool operator == (regular_ptr<T> const& left, regular_ptr<U> const& right) {
-			return left.indirect_value_->equals(right.indirect_value_);
+			return left.store->equals(right.store);
 		}
 		template <typename U>
 		friend bool operator != (regular_ptr<T> const& left, regular_ptr<U> const& right) {
-			return left.indirect_value->not_equals(right.indirect_value_);
+			return left.store->not_equals(right.store);
+		}
+
+		template <typename S>
+		void print_value (S const& t) {
+			std::cout << t->foo() << std::endl;
+		}
+
+		void clear () {
+			if (0 != this->store) {
+				delete this->store;
+			}
+			this->store = 0;
+		}
+
+		template <typename U>
+		void copy_from (regular_ptr<U> const& r) {
+			this->clear();
+			this->store = r.store->copy();
+		}
+		template <typename U>
+		void copy (U const& u) {
+			this->clear();
+			this->store = new detail::copier<T, U>(u);
 		}
 
 		friend void swap (regular_ptr<T>& left, regular_ptr<T>& right) {
-			detail::storage_regular<T> *tmp = left.indirect_value_;
-			left.indirect_value_ = right.indirect_value_;
-			right.indirect_value_ = tmp;
+			detail::interface<T> *tmp = left.store;
+			left.store = right.store;
+			right.store = tmp;
 		}
 
 	private:
-		detail::regular_storage<T> *indirect_value_;
+		detail::interface<T> *store;
 	};
 
 }
