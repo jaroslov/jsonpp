@@ -13,7 +13,7 @@ There should also be a weak-pointer version of this, as well.
 
 */
 
-namespace jsonpp {
+namespace utility {
 	
 	namespace detail {
 
