@@ -6,12 +6,22 @@
 #include <treepath/simple_xpath.hpp>
 #include <treepath/query.hpp>
 
+namespace treepath {
+
+	template <typename Tag>
+	struct node_traits<json::json_v, Tag> {
+		typedef int node_variant;
+		typedef std::wstring node_test_type;
+	};
+
+}
+
 int main (int argc, char *argv[]) {
 
 	if (argc < 3)
 		return 0;
 
-	treepath::simple_xpath::path_t path = treepath::simple_xpath::parse(argv[1]);
+	treepath::path<std::wstring> path = treepath::simple_xpath::parse(argv[1]);
 
   std::locale loc("");
   std::wcout.imbue(loc);
