@@ -13,6 +13,7 @@ namespace treepath {
 	struct node_traits {
 		typedef typename Node::node_variant node_variant;
 		typedef typename Node::node_test_type node_test_type;
+		typedef typename Node::child_iterator child_iterator;
 	};
 
 	template <typename Node, typename Tag>

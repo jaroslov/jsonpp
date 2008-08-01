@@ -41,7 +41,9 @@ namespace treepath {
 			self = 's',
 		};
 
-		static name_e from_string (std::string const& str) {
+		template <typename String>
+		static name_e from_string (String const& Str) {
+			const std::string str(Str.begin(), Str.end());
 			if ("ancestor" == str) return ancestor;
 			else if ("ancestor-or-self" == str) return ancestor_or_self;
 			else if ("attribute" == str) return attribute;
@@ -96,7 +98,9 @@ namespace treepath {
 			processing_instruction = 'p',
 		};
 
-		static nodetest_e from_string (std::string const& str) {
+		template <typename String>
+		static nodetest_e from_string (String const& Str) {
+			const std::string str(Str.begin(), Str.end());
 			if ("*" == str) return nodewild;
 			else if ("text()" == str) return text;
 			else if ("comment()" == str) return comment;
@@ -104,12 +108,14 @@ namespace treepath {
 			else return node;
 		}
 
-		static const char* to_string (nodetest_e const& n, std::string const& node) {
+		template <typename String>
+		static const char* to_string (nodetest_e const& n, String const& node) {
+			const std::string str(node.begin(), node.end());
 			if (nodewild == n) return "*";
 			else if (text == n) return "text()";
 			else if (comment == n) return "comment()";
 			else if (processing_instruction == n) return "processing-instruction()";
-			else return node.c_str();
+			else return str.c_str();
 		}
 	};
 
@@ -125,7 +131,8 @@ namespace treepath {
 		axis (name_t const& nm, node_t const& nd, test_t const& tst, predicate_t const& pred=Predicate())
 			: name(nm), node(nd), test(tst), predicate(pred) {}
 
-		friend std::ostream& operator << (std::ostream& ostr, axis<Test, Predicate> const& a) {
+		template <typename Char>
+		friend std::basic_ostream<Char>& operator << (std::basic_ostream<Char>& ostr, axis<Test, Predicate> const& a) {
 			ostr << name_enum::to_string(a.name) << "::" << nodetest_enum::to_string(a.node, a.test);
 			return ostr;
 		}
@@ -144,7 +151,8 @@ namespace treepath {
 		axis_type const& operator [] (std::size_t i) const { return this->path_m[i]; }
 		std::size_t size () const { return this->path_m.size(); }
 
-		friend std::ostream& operator << (std::ostream& ostr, path<Test, Predicate> const& p) {
+		template <typename Char>
+		friend std::basic_ostream<Char>& operator << (std::basic_ostream<Char>& ostr, path<Test, Predicate> const& p) {
 			for (std::size_t i=0; i<p.size(); ++i) {
 				ostr << p[i];
 				if ((i+1) < p.size())
