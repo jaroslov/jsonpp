@@ -5,6 +5,7 @@
 #include <boost/shared_ptr.hpp>
 #include <utility/regular_ptr.hpp>
 #include <utility/begin-end.hpp>
+#include <treepath/concepts.hpp>
 
 namespace treepath {
 
