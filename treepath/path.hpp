@@ -39,6 +39,7 @@ namespace treepath {
 			preceding = 'p',
 			preceding_sibling = 'P',
 			self = 's',
+			unknown = '0',
 		};
 
 		template <typename String>
@@ -96,6 +97,7 @@ namespace treepath {
 			text = 't',
 			comment = 'c',
 			processing_instruction = 'p',
+			unknown = '0',
 		};
 
 		template <typename String>
