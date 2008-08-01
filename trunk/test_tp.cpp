@@ -23,7 +23,7 @@ int main (int argc, char *argv[]) {
 
 	treepath::path<std::wstring> path = treepath::simple_xpath::parse(argv[1]);
 
-  std::locale loc("");
+  /*std::locale loc("");
   std::wcout.imbue(loc);
 
 	std::cout << std::string(20, '=') << std::endl;
@@ -47,7 +47,7 @@ int main (int argc, char *argv[]) {
     } catch (std::exception& e) {
       std::cout << "error: " << e.what() << std::endl;
     }
-  }
+		}*/
 
 	return 0;
 }
