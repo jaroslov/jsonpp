@@ -12,8 +12,8 @@ namespace treepath {
 
 	}
 
-	template <typename Node, typename Test, typename Predicate>
-	void query (Node const& root, path<Test, Predicate> const& path) {
+	template <typename Node, typename Predicate, typename Tag>
+	void query (Node const& root, path<typename node_traits<Node, Tag>::node_test_type, Predicate> const& path) {
 	}
 
 }
