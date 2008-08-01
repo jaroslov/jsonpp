@@ -3,7 +3,7 @@
 
 #include <boost/tuple/tuple.hpp>
 #include <boost/shared_ptr.hpp>
-#include <regular_ptr/regular_ptr.hpp>
+#include <utility/regular_ptr.hpp>
 
 namespace treepath {
 
@@ -17,7 +17,7 @@ namespace treepath {
 
 	template <typename Node, typename Test, typename Predicate>
 	void query (Node const& root, path<Test, Predicate> const& path) {
-		typedef jsonpp::regular_ptr<detail::node_interface> node_interface_t;
+		typedef utility::regular_ptr<detail::node_interface> node_interface_t;
 		typedef boost::tuple<node_interface_t, std::size_t> work_item_t;
 		// get<0>(w_item) => node
 		// get<1>(w_item) => path-index
