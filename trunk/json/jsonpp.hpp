@@ -1,5 +1,3 @@
-// BEL library
-#include <bel/begin-end.hpp>
 // boost
 #include <boost/variant.hpp>
 #include <boost/variant/recursive_variant.hpp>
@@ -13,6 +11,8 @@
 #include <vector>
 // iconv
 #include <iconv.h>
+// BEL library
+#include <utility/begin-end.hpp>
 
 #ifndef JSON_PARSER
 #define JSON_PARSER
