@@ -10,9 +10,36 @@ namespace treepath {
 
 	template <typename Tag>
 	struct node_traits<JSONpp::json_v, Tag> {
-		typedef int node_variant;
+		typedef boost::variant<
+      typename JSONpp::json_gen::value_t const*,  // store values (never used)
+      typename JSONpp::json_gen::string_t const*, // store strings
+      typename JSONpp::json_gen::number_t const*, // store "numbers" (double)
+      typename JSONpp::json_gen::object_t const*, // store objects
+      typename JSONpp::json_gen::array_t const*,  // store arrays
+      typename JSONpp::json_gen::bool_t const*,   // store booleans
+      typename JSONpp::json_gen::null_t const*   // store Null> node_variant;
+			> node_variant;
 		typedef std::wstring node_test_type;
 	};
+
+  std::wstring node_test (JSONpp::nil, treepath_<JSONpp::json_v>) {
+    return L"nil";
+  }
+  std::wstring node_test (bool, treepath_<JSONpp::json_v>) {
+    return L"bool";
+  }
+  std::wstring node_test (std::string, treepath_<JSONpp::json_v>) {
+    return L"string";
+  }
+  std::wstring node_test (std::vector<JSONpp::json_v>, treepath_<JSONpp::json_v>) {
+    return L"array";
+  }
+  std::wstring node_test (std::map<std::string,JSONpp::json_v>, treepath_<JSONpp::json_v>) {
+    return L"object";
+  }
+  std::wstring node_test (JSONpp::json_v, treepath_<JSONpp::json_v>) {
+    return L"json";
+  }
 
 }
 
@@ -42,8 +69,8 @@ int main (int argc, char *argv[]) {
       std::istream_iterator<wchar_t,wchar_t> ctr(wifstr);
       std::istream_iterator<wchar_t,wchar_t> cnd;
       JSONpp::json_v json = JSONpp::parse(ctr, cnd);
-			
-			treepath::query(json, path, treepath::treepath);
+
+			treepath::query(json, path, treepath::treepath_<JSONpp::json_v>());
 			
       std::cout << std::endl;
     } catch (std::exception& e) {
