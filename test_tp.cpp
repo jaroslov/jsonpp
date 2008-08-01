@@ -6,21 +6,42 @@
 #include <treepath/simple_xpath.hpp>
 #include <treepath/query.hpp>
 
+namespace bel {
+
+	template <>
+	struct iterator<JSONpp::json_v, treepath::treepath_<JSONpp::json_v> > {
+		typedef treepath::trivial_variant_iterator<JSONpp::json_v> type;
+	};
+
+	template <>
+	std::pair<trivial_variant_iterator<JSONpp::json_v>,
+						trivial_variant_iterator<JSONpp::json_v> >
+	sequence (JSONpp::json_v const& json, treepath::treepath_<JSONpp::json_v>) {
+		return std::make_pair(trivial_variant_iterator<JSONpp::json_v>(json),
+													trivial_variant_iterator<JSONpp::json_v>());
+	}
+
+}
+
 namespace treepath {
 
-	template <typename Tag>
-	struct node_traits<JSONpp::json_v, Tag> {
+	template <>
+	struct node_traits<JSONpp::json_v, treepath_<JSONpp::json_v> > {
 		typedef boost::variant<
-      typename JSONpp::json_gen::value_t const*,  // store values (never used)
-      typename JSONpp::json_gen::string_t const*, // store strings
-      typename JSONpp::json_gen::number_t const*, // store "numbers" (double)
-      typename JSONpp::json_gen::object_t const*, // store objects
-      typename JSONpp::json_gen::array_t const*,  // store arrays
-      typename JSONpp::json_gen::bool_t const*,   // store booleans
-      typename JSONpp::json_gen::null_t const*   // store Null> node_variant;
+      JSONpp::json_gen::value_t const*,  // store values (never used)
+      JSONpp::json_gen::string_t const*, // store strings
+      JSONpp::json_gen::number_t const*, // store "numbers" (double)
+      JSONpp::json_gen::object_t const*, // store objects
+      JSONpp::json_gen::array_t const*,  // store arrays
+      JSONpp::json_gen::bool_t const*,   // store booleans
+      JSONpp::json_gen::null_t const*   // store Null> node_variant;
 			> node_variant;
+
 		typedef std::wstring node_test_type;
 	};
+
+	template <>
+	struct has_children<JSONpp::json_v, treepath_<JSONpp::json_v> > : boost::mpl::true_ {}
 
   std::wstring node_test (JSONpp::nil, treepath_<JSONpp::json_v>) {
     return L"nil";

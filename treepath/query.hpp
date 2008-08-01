@@ -2,12 +2,16 @@
 #define TREEPATH_QUERY
 
 #include <vector>
+
 #include <boost/tuple/tuple.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/any.hpp>
 #include <boost/variant.hpp>
+#include <boost/utility.hpp>
+
 #include <utility/regular_ptr.hpp>
 #include <utility/begin-end.hpp>
+
 #include <treepath/concepts.hpp>
 
 namespace treepath {
@@ -32,6 +36,74 @@ namespace treepath {
 			}
 			
 			Test test;
+		};
+
+		template <typename Tag>
+		struct get_first_child {
+			typedef boost::any result_type;
+
+			template <typename T>
+			boost::any operator () (T const& reference) const {
+				return this->stripped(*reference);
+			}
+
+			template <typename T>
+			typename boost::enable_if<has_children<T, Tag>,	boost::any>::type
+			stripped (T const& ref) const {
+				std::cout << "GOT FIRST CHILD" << std::endl;
+				return boost::any(children(ref).first);
+			}
+
+			template <typename T>
+			typename boost::disable_if<has_children<T, Tag>,	boost::any>::type
+			stripped (T const& ref) const {
+				std::cout << "NO FIRST CHILD" << std::endl;
+				return boost::any(0);
+			}
+
+			template <typename Variant>
+			static boost::any go (Variant const& var) {
+				get_first_child<Tag> gfc;
+				return boost::apply_visitor(gfc, var);
+			}
+		};
+
+		template <typename Variant, typename Tag>
+		struct get_child_and_increment {
+			typedef std::pair<bool, Variant> result_type;
+
+			template <typename T>
+			result_type operator () (T const& reference) const {
+				return this->stripped(*reference);
+			}
+
+			template <typename T>
+			typename boost::enable_if<has_children<T, Tag>,	result_type>::type
+			stripped (T const& ref) const {
+				typedef typename bel::iterator<T, Tag>::type child_iterator;
+				child_iterator &iter = boost::any_cast<child_iterator>(*this->iterator);
+				const child_iterator last = children(ref).second;
+				std::cout << "Num left: " << (last - iter) << std::flush;
+				if (last == iter)
+					return std::make_pair(false, Variant());
+				++iter;
+				std::cout << " remainder: " << (last - iter) << std::endl;
+				return std::make_pair(true, Variant(*iter));
+			}
+
+			template <typename T>
+			typename boost::disable_if<has_children<T, Tag>, result_type>::type
+			stripped (T const& ref) const {
+				return std::make_pair(false, Variant());
+			}
+
+			static result_type go (Variant const& var, boost::any& iter) {
+				get_child_and_increment<Variant, Tag> gcai;
+				gcai.iterator = &iter;
+				return boost::apply_visitor(gcai, var);
+			}
+
+			boost::any* iterator;
 		};
 
 	}
@@ -90,18 +162,37 @@ namespace treepath {
 				if (name_enum::unknown != boost::get<alt_>(top))
 					axis_name = boost::get<alt_>(top);
 
+				std::wcout << L"Index: " << boost::get<index_>(top) << std::flush;
+				std::wcout << L" Axis: " << axis << std::flush;
+				std::wcout << L" Name: " << axis_name << std::endl;
+
 				switch (axis_name) {
 				case name_enum::self: this->handle_self(top, axis); break;
+				case name_enum::child: this->handle_child(top, axis); break;
 				default:
+					std::wcout << L"Unknown " << std::endl;
 					this->work_list.clear();
 				};
 			}
-		}			
+		}
+
+		void handle_child (work_item_type& item, axis_type const& axis) {
+			typedef detail::get_child_and_increment<node_variant, Tag> gcai;
+			if (boost::get<iterator_>(item).empty()) {
+				// there is no iterator, of any kind; get the first iterator
+				boost::get<iterator_>(item) = detail::get_first_child<Tag>::go(*boost::get<node_>(item));
+			}
+			// get the next node, get a flag if the next node is valid
+			bool end_of_sequence = false;
+			boost::any result_iter;
+			boost::tie(end_of_sequence, result_iter) = gcai::go(*boost::get<node_>(item), boost::get<iterator_>(item));
+			this->work_list.clear();
+		}
 
 		void handle_self (work_item_type& item, axis_type const& axis) {
 			if (this->satisfies_test(item, axis)) {
 				boost::get<index_>(item) += 1;
-				boost::get<alt_>(item) = axis.name;
+				boost::get<alt_>(item) = name_enum::unknown;
 			} else
 				this->work_list.pop_back();
 		}
