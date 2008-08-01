@@ -1,6 +1,7 @@
 #ifndef TREEPATH_QUERY
 #define TREEPATH_QUERY
 
+#include <vector>
 #include <boost/tuple/tuple.hpp>
 #include <boost/shared_ptr.hpp>
 #include <utility/regular_ptr.hpp>
