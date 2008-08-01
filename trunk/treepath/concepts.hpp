@@ -2,6 +2,7 @@
 #define TREEPATH_CONCEPTS
 
 #include <utility/begin-end.hpp>
+#include <boost/mpl/bool.hpp>
 
 namespace treepath {
 
@@ -13,8 +14,10 @@ namespace treepath {
 	struct node_traits {
 		typedef typename Node::node_variant node_variant;
 		typedef typename Node::node_test_type node_test_type;
-		typedef typename Node::child_iterator child_iterator;
 	};
+
+	template <typename Node, typename Tag>
+	struct has_children : boost::mpl::false_ {};
 
 	template <typename Node, typename Tag>
 	std::pair<typename bel::iterator<Node, treepath_<Tag> >::type,
