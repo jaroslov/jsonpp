@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-#include <regular_ptr/regular_ptr.hpp>
+#include <utility/regular_ptr.hpp>
 
 class A_base {
 public:
@@ -32,7 +32,7 @@ bool operator == (G const& left, G const& right) { return left.value == right.va
 bool operator != (G const& left, G const& right) { return left.value != right.value; }
 
 void test_regular () {
-	typedef jsonpp::regular_ptr<A_base> a_ptr;
+	typedef utility::regular_ptr<A_base> a_ptr;
 
 	a_ptr rptr1, rptr2;
 	rptr1 = A<5>();
