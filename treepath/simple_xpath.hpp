@@ -25,7 +25,6 @@ namespace treepath {
 			return result;
 		}
 		
-		template <typename String>
 		struct bad_axis : public std::exception {
 			bad_axis (String const& axis) : axis_("badly formed axis: "+axis) {}
 			virtual ~ bad_axis () throw() {}
@@ -46,7 +45,7 @@ namespace treepath {
 			for (std::size_t i=0; i<path_parts.size(); ++i) {
 				std::vector<String> axis_parts = split(path_parts[i], "::");
 				if (2 != axis_parts.size())
-					throw bad_axis<String>(path_parts[i]);
+					throw bad_axis<String>();//path_parts[i]);
 				typename path<String>::axis_type axis(treepath::name_enum::from_string(axis_parts[0]),
 																							treepath::nodetest_enum::from_string(axis_parts[1]),
 																							axis_parts[1]);
