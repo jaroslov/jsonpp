@@ -1,9 +1,9 @@
 #define BEL_IOSTREAM
-#include <bel/begin-end.hpp>
 #include <vector>
 #include <list>
 #include <map>
 #include <set>
+#include <utility/begin-end.hpp>
 
 template <typename Ctr>
 void test_stl (Ctr& ctr) {
