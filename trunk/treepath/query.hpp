@@ -16,30 +16,6 @@
 
 namespace treepath {
 
-	namespace detail {
-
-		template <typename Test, typename Tag>
-		struct satisfies_test {
-			typedef bool result_type;
-			
-			template <typename T>
-			bool operator () (T const& reference) const {
-				//std::wcout << L"Testing against: " << this->test << " == " << node_test(*reference, Tag()) << std::endl;;
-				return this->test == node_test(*reference, Tag());
-			}
-			
-			template <typename Variant>
-			static bool go (Variant const& var, Test const& test) {
-				satisfies_test<Test, Tag> st;
-				st.test = test;
-				return boost::apply_visitor(st, var);
-			}
-			
-			Test test;
-		};
-
-	}
-
 	template <typename Node, typename Path, typename Tag=treepath_<> >
 	struct Query {
 		typedef typename Path::axis_type axis_type;
@@ -58,7 +34,71 @@ namespace treepath {
 		static const std::size_t alt_ = 4; // axis name
 		
 		typedef std::vector<work_item_type> work_list_type;
+
+		struct satisfies_test_visitor {
+			typedef bool result_type;
+			
+			template <typename T>
+			bool operator () (T const& reference) const {
+				return this->test == node_test(*reference, Tag());
+			}
+			
+			static bool go (node_variant const& var, node_test_type const& test) {
+				satisfies_test_visitor st;
+				st.test = test;
+				return boost::apply_visitor(st, var);
+			}
+			
+			node_test_type test;
+		};
+
+		template <typename Unary>
+		struct has_child_and_strip {
+			typedef typename Unary::result_type result_type;
+
+			template <typename T>
+			result_type operator () (T const& reference) const {
+				return this->strip(*reference);
+			}
+			template <typename T>
+			typename boost::enable_if<has_children<T, Tag>, result_type>::type
+			strip (T const& node) const {
+				return Unary::has_children_visit(node);
+			}
+			template <typename T>
+			typename boost::disable_if<has_children<T, Tag>, result_type>::type
+			strip (T const& node) const {
+				return Unary::no_children_visit(node);
+			}
+
+			static result_type go (node_variant const& var) {
+				has_child_and_strip<Unary> hcas;
+				return boost::apply_visitor(hcas, var);
+			}
+		};
+
+		struct no_child_iterator_tag {};
 		
+		struct get_first_child_visitor {
+			typedef boost::any result_type;
+
+			template <typename T>
+			static boost::any has_children_visit (T const& node) {
+				std::cout << typeid(node).name() << std::endl;
+				//children(node, Tag()).first;
+				return boost::any();
+			}
+
+			template <typename T>
+			static boost::any no_children_visit (T const& node) {
+				return boost::any(no_child_iterator_tag());
+			}
+
+			static boost::any go (node_variant const& var) {
+				return has_child_and_strip<get_first_child_visitor>::go(var);
+			}
+		};
+
 		void operator () (Node const& root, Path const& path) {
 			this->path = &path;
 			this->work_list.clear();
@@ -70,7 +110,7 @@ namespace treepath {
 																									0,
 																									name_enum::unknown));
 		}
-
+		
 		bool done () const {
 			return this->work_list.empty();
 		}
@@ -111,6 +151,7 @@ namespace treepath {
 		void handle_child (work_item_type& item, axis_type const& axis) {
 			if (boost::get<iterator_>(item).empty()) {
 				// there is no iterator, of any kind; get the first iterator
+				boost::get<iterator_>(item) = get_first_child_visitor::go(*boost::get<node_>(item));
 			}
 			// get the next node, get a flag if the next node is valid
 			bool end_of_sequence = false;
@@ -127,7 +168,7 @@ namespace treepath {
 		}
 		
 		bool satisfies_test (work_item_type& item, axis_type const& axis) {
-			return detail::satisfies_test<node_test_type, Tag>::go(*boost::get<node_>(item), axis.test);
+			return satisfies_test_visitor::go(*boost::get<node_>(item), axis.test);
 		}
 
 		const Path *path;
@@ -142,6 +183,34 @@ namespace treepath {
 		while (not Q.done()) {
 			Q.next();
 		}
+	}
+
+	struct unwrap_ {};
+	static const unwrap_ unwrap = unwrap_();
+
+	template <typename Node, typename Path, typename Tag>
+	struct unwrap_query {
+		typedef void result_type;
+
+		unwrap_query (Path const& p, Tag const& t) : path(p), tag(t) {}
+
+		template <typename T>
+		result_type operator () (T const& node) const {
+			query(node, this->path, this->tag);
+		}
+
+		static result_type go (Node const& node, Path const& path, Tag const& tag) {
+			unwrap_query<Node, Path, Tag> uq(path, tag);
+			boost::apply_visitor(uq, node);
+		}
+
+		Path const& path;
+		Tag const& tag;
+	};
+
+	template <typename Node, typename Path, typename Tag>
+	void query (Node const& root, Path const& path, Tag const& tag, unwrap_) {
+		unwrap_query<Node, Path, Tag>::go(root, path, tag);
 	}
 
 }
