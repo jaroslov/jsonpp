@@ -21,6 +21,7 @@ namespace treepath {
       JSONpp::json_gen::null_t const*   // store Null> node_variant;
 			> node_variant;
 
+		typedef treepath_<JSONpp::json_v> node_traits_tag;
 		typedef std::wstring node_test_type;
 	};
 
