@@ -275,6 +275,7 @@ namespace xpgtl {
       filter_on_type<FilterType const*> fot;
       return rdstl::visit(fot, ru);
     }
+
     ru_type next () {
       while (not this->work.empty()) {
         node &it = this->work.back();

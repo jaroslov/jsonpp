@@ -58,6 +58,7 @@ namespace treepath {
 			else if ("preceding" == str) return preceding;
 			else if ("preceding-sibling" == str) return preceding_sibling;
 			else if ("self" == str) return self;
+			else if ("unknown" == str) return unknown;
 			else throw bad_axis_name(str);
 		}
 
@@ -76,6 +77,7 @@ namespace treepath {
 			case preceding: return "preceding";
 			case preceding_sibling: return "preceding-sibling";
 			case self: return "self";
+			case unknown: return "unknown";
 			default: throw bad_axis_name("unknown enumeration");
 			}
 		}
@@ -93,7 +95,7 @@ namespace treepath {
 	struct nodetest_enum {
 		enum nodetest_e {
 			node = 'n',
-			nodewild = '*',
+			wildcard = '*',
 			text = 't',
 			comment = 'c',
 			processing_instruction = 'p',
@@ -103,7 +105,7 @@ namespace treepath {
 		template <typename String>
 		static nodetest_e from_string (String const& Str) {
 			const std::string str(Str.begin(), Str.end());
-			if ("*" == str) return nodewild;
+			if ("*" == str) return wildcard;
 			else if ("text()" == str) return text;
 			else if ("comment()" == str) return comment;
 			else if ("processing-instruction()" == str) return processing_instruction;
@@ -113,7 +115,7 @@ namespace treepath {
 		template <typename String>
 		static const char* to_string (nodetest_e const& n, String const& node) {
 			const std::string str(node.begin(), node.end());
-			if (nodewild == n) return "*";
+			if (wildcard == n) return "*";
 			else if (text == n) return "text()";
 			else if (comment == n) return "comment()";
 			else if (processing_instruction == n) return "processing-instruction()";
