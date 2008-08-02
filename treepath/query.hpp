@@ -25,6 +25,8 @@ namespace treepath {
 			typedef typename node_traits::node_test_type test_t;
 			typedef typename node_traits::node_variant variant_t;
 
+			typedef typename Path::axis_type axis_type;
+
 			typedef boost::shared_ptr<variant_t> sh_variant_t;
 			typedef std::pair<bool, name_enum::name_e> alternate_name;
 			typedef boost::tuple<sh_variant_t, sh_variant_t, boost::any, std::size_t, alternate_name> item_t;
@@ -35,6 +37,22 @@ namespace treepath {
 			static const std::size_t iterator_any = 2;
 			static const std::size_t index = 3;
 			static const std::size_t alt_name = 4;
+
+			struct satisfies_test {
+				typedef bool result_type;
+
+				template <typename Node>
+				result_type operator () (Node const& dereferenceable) const {
+					return *this->test == node_test(*dereferenceable, tag_t());
+				}
+
+				static bool go (variant_t const& var, test_t const& test) {
+					satisfies_test st;
+					st.test = &test;
+				}
+
+				test_t const *test;
+			};
 
 			query () {}
 
@@ -53,10 +71,64 @@ namespace treepath {
 			}
 
 			void operator ++ () {
+				while (not this->queue.empty()) {
+					item_t &top = this->queue.back();
+
+					if (this->path->size() <= boost::get<index>(top)) {
+						variant_t const& var = *boost::get<node_ptr>(top);
+						this->queue.pop_back();
+						return;
+					}
+
+					axis_type const& axis = (*this->path)[boost::get<index>(top)];
+
+					name_enum::name_e axis_name = axis.name;
+					if (boost::get<alt_name>(top).first)
+						axis_name = boost::get<alt_name>(top).second;
+
+					switch (axis_name) {
+					case name_enum::self: this->handle_self(top, axis); break;
+					case name_enum::descendant: this->handle_descendant(top, axis); break;
+					case name_enum::descendant_or_self: this->handle_descendant_or_self(top, axis); break;
+					default:
+						this->queue.clear();
+						std::wcout << L"Did not recognize: " << axis << L" as " << name_enum::to_string(axis_name) << std::endl;
+					}
+				}
+			}
+
+			bool test (item_t& item, axis_type const& axis) {
+				return (nodetest_enum::wildcard == axis.node)
+					or satisfies_test::go(*boost::get<node_ptr>(item), axis.test);
+			}
+
+			void handle_self (item_t& item, axis_type const& axis) {
+				if (this->test(item, axis)) {
+					++boost::get<index>(item);
+				} else
+					this->queue.pop_back();
+			}
+
+			void handle_descendant (item_t& item, axis_type const& axis) {
+				if (boost::get<iterator_any>(item).empty()) {
+					std::wcout << L"Initialize first child for descendant" << std::endl;
+					boost::get<alt_name>(item).first = true;
+					boost::get<alt_name>(item).second = name_enum::unknown;
+				}
+			}
+
+			void handle_descendant_or_self (item_t& item, axis_type const& axis) {
+				item_t self = item;
+				boost::get<alt_name>(self) = std::make_pair(true, name_enum::self);
+				item_t descendant = item;
+				boost::get<alt_name>(descendant) = std::make_pair(true, name_enum::descendant);
+				this->queue.pop_back();
+				this->queue.push_back(descendant);
+				this->queue.push_back(self);
 			}
 
 			operator bool () const {
-				return false;
+				return this->queue.empty();
 			}
 
 			work_queue_t queue;
@@ -77,7 +149,6 @@ namespace treepath {
 		query.initialize(node, path);
 		while (not query) {
 			++query;
-			break;
 		}
 	}
 
