@@ -751,6 +751,47 @@ namespace JSONpp {
 	
 	typedef make_json_value<> json_gen;
 	typedef json_gen::value_t json_v;
+
+	template <typename Variant>
+	struct equality {
+		typedef bool result_type;
+
+		equality (Variant const& r) : right(r) {}
+
+		template <typename LeftType>
+		struct right_side {
+			typedef bool result_type;
+
+			right_side (LeftType const& l) : left(l) {}
+
+			template <typename T>
+			bool operator () (Right const& right) const {
+				return false;
+			}
+			bool operator () (LeftType const& right) const {
+				return this->left == right;
+			}
+
+			LeftType const& left;
+		};
+
+		template <typename Left>
+		bool operator () (Left const& left) const {
+			right_side<Left> rs(left);
+			return boost::apply_visitor(rs, this->right);
+		}
+
+		static bool go (Variant const& left, Variant const& right) {
+			equality eq(right);
+			return boost::apply_visitor(eq, left);
+		}
+
+		Variant const& right;
+	};
+
+	bool operator == (json_v const& left, json_v const& right) {
+		return equality<json_v>::go(left, right);
+	}
 	
 	// specialization of the standard JSON type for
 	// the json_traits class
