@@ -26,5 +26,9 @@ foo:
 	@./ttest "self::array/child::object" examples/*.*
 	@./ttest "self::joins/child::object/child::a1/child::inputs/child::array/child::string" examples/*.*
 
+tvi: test_tvi.cpp utility/*.hpp
+	@g++ -O3 -I. test_tvi.cpp -o ttvi
+	@./ttvi
+
 clean:
 	rm -f jtest vtest btest ttest;

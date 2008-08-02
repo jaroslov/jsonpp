@@ -13,6 +13,9 @@ There should also be a weak-pointer version of this, as well.
 
 */
 
+#include <boost/utility.hpp>
+#include <boost/type_traits/is_class.hpp>
+
 namespace utility {
 	
 	namespace detail {
@@ -41,14 +44,23 @@ namespace utility {
 			}
 
 			virtual bool equals (interface<T> const* other) const {
-				const U* dcother = dynamic_cast<const U*>(other->get_ptr());
+				return this->check_equality(other->get_ptr());
+			}
+			virtual bool not_equals (interface<T> const* other) const {
+				return not this->check_equality(other->get_ptr());
+			}
+
+			template <typename V>
+			typename boost::enable_if<boost::is_class<V>, bool>::type
+			check_equality (V const* other) const {
+				const U* dcother = dynamic_cast<const U*>(other);
 				if (0 == dcother) return false;
 				return *dcother == this->value;
 			}
-			virtual bool not_equals (interface<T> const* other) const {
-				const U* dcother = dynamic_cast<const U*>(other->get_ptr());
-				if (0 == dcother) return true;
-				return *dcother != this->value;
+			template <typename V>
+			typename boost::disable_if<boost::is_class<V>, bool>::type
+			check_equality (V const* other) const {
+				return this->value == *other;
 			}
 
 			U value;
@@ -115,6 +127,8 @@ namespace utility {
 			}
 			this->store = 0;
 		}
+
+		bool empty () const { return 0 == this->store; }
 
 		template <typename U>
 		void copy_from (regular_ptr<U> const& r) {
