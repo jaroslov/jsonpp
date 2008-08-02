@@ -110,6 +110,11 @@ namespace treepath {
 			}
 
 			void handle_descendant (item_t& item, axis_type const& axis) {
+				// TODO:
+				//   get the (potential) iterator
+				//   the iterator should return an item: the 'child' item
+				//   we add an alternate to the child which is 'descendant' and then we add the child
+				//   performs a DFS
 				if (boost::get<iterator_any>(item).empty()) {
 					std::wcout << L"Initialize first child for descendant" << std::endl;
 					boost::get<alt_name>(item).first = true;
