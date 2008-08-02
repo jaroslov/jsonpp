@@ -72,7 +72,7 @@ int main (int argc, char *argv[]) {
       std::istream_iterator<wchar_t,wchar_t> cnd;
       JSONpp::json_v json = JSONpp::parse(ctr, cnd);
 
-			treepath::query(json, path, treepath::treepath_<JSONpp::json_v>());
+			treepath::query(json, path, treepath::treepath_<JSONpp::json_v>(), treepath::unwrap);
 			
       std::cout << std::endl;
     } catch (std::exception& e) {
