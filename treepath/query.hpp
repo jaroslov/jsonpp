@@ -16,172 +16,68 @@
 
 namespace treepath {
 
-	template <typename Node, typename Path, typename Tag=treepath_<> >
-	struct Query {
-		typedef typename Path::axis_type axis_type;
+	namespace detail {
 
-		typedef node_traits<Node, Tag> root_traits;
-		typedef typename root_traits::node_variant node_variant;
-		typedef typename root_traits::node_test_type node_test_type;
-		
-		typedef boost::shared_ptr<node_variant> shared_node_variant;
-		
-		typedef boost::tuple<shared_node_variant, shared_node_variant, boost::any, std::size_t, name_enum::name_e> work_item_type;
-		static const std::size_t node_ = 0;
-		static const std::size_t parent_ = 1;
-		static const std::size_t iterator_ = 2; // (either child or sibling)
-		static const std::size_t index_ = 3; // for the path
-		static const std::size_t alt_ = 4; // axis name
-		
-		typedef std::vector<work_item_type> work_list_type;
+		template <typename Traits, typename Path>
+		struct query {
+			typedef Traits node_traits;
+			typedef typename node_traits::node_traits_tag tag_t;
+			typedef typename node_traits::node_test_type test_t;
+			typedef typename node_traits::node_variant variant_t;
 
-		struct satisfies_test_visitor {
-			typedef bool result_type;
-			
-			template <typename T>
-			bool operator () (T const& reference) const {
-				return this->test == node_test(*reference, Tag());
+			typedef boost::shared_ptr<variant_t> sh_variant_t;
+			typedef std::pair<bool, name_enum::name_e> alternate_name;
+			typedef boost::tuple<sh_variant_t, sh_variant_t, boost::any, std::size_t, alternate_name> item_t;
+			typedef std::vector<item_t> work_queue_t;
+
+			static const std::size_t node_ptr = 0;
+			static const std::size_t parent_ptr = 1;
+			static const std::size_t iterator_any = 2;
+			static const std::size_t index = 3;
+			static const std::size_t alt_name = 4;
+
+			query () {}
+
+			template <typename Node>
+			void initialize (Node const& root, Path const& path) {
+				this->path = &path;
+				this->queue.clear();
+
+				this->root = sh_variant_t(new variant_t(&root));
+				this->queue.push_back(boost::make_tuple(this->root,
+																								sh_variant_t(),
+																								boost::any(),
+																								0,
+																								std::make_pair(false,
+																															 name_enum::unknown)));
 			}
-			
-			static bool go (node_variant const& var, node_test_type const& test) {
-				satisfies_test_visitor st;
-				st.test = test;
-				return boost::apply_visitor(st, var);
+
+			void operator ++ () {
 			}
-			
-			node_test_type test;
+
+			operator bool () const {
+				return false;
+			}
+
+			work_queue_t queue;
+			Path const* path;
+			sh_variant_t root;
 		};
 
-		template <typename Unary>
-		struct has_child_and_strip {
-			typedef typename Unary::result_type result_type;
-
-			template <typename T>
-			result_type operator () (T const& reference) const {
-				return this->strip(*reference);
-			}
-			template <typename T>
-			typename boost::enable_if<has_children<T, Tag>, result_type>::type
-			strip (T const& node) const {
-				return Unary::has_children_visit(node);
-			}
-			template <typename T>
-			typename boost::disable_if<has_children<T, Tag>, result_type>::type
-			strip (T const& node) const {
-				return Unary::no_children_visit(node);
-			}
-
-			static result_type go (node_variant const& var) {
-				has_child_and_strip<Unary> hcas;
-				return boost::apply_visitor(hcas, var);
-			}
-		};
-
-		struct no_child_iterator_tag {};
-		
-		struct get_first_child_visitor {
-			typedef boost::any result_type;
-
-			template <typename T>
-			static boost::any has_children_visit (T const& node) {
-				std::cout << typeid(node).name() << std::endl;
-				//children(node, Tag()).first;
-				return boost::any();
-			}
-
-			template <typename T>
-			static boost::any no_children_visit (T const& node) {
-				return boost::any(no_child_iterator_tag());
-			}
-
-			static boost::any go (node_variant const& var) {
-				return has_child_and_strip<get_first_child_visitor>::go(var);
-			}
-		};
-
-		void operator () (Node const& root, Path const& path) {
-			this->path = &path;
-			this->work_list.clear();
-			this->snv_root = shared_node_variant(new node_variant(&root));
-			
-			this->work_list.push_back(boost::make_tuple(snv_root,
-																									shared_node_variant(),
-																									boost::any(),
-																									0,
-																									name_enum::unknown));
-		}
-		
-		bool done () const {
-			return this->work_list.empty();
-		}
-		
-		void next () {
-			// this is to get the next node, lazily
-			// will do as much work as necessary to get the next node
-			while (not this->work_list.empty()) {
-
-				work_item_type &top = this->work_list.back();
-				const std::size_t index = boost::get<index_>(top);
-
-				if (this->path->size() <= index) {
-					this->work_list.pop_back();
-					return;
-				}
-
-				const axis_type &axis = (*this->path)[index];
-
-				name_enum::name_e axis_name = axis.name;
-				if (name_enum::unknown != boost::get<alt_>(top))
-					axis_name = boost::get<alt_>(top);
-
-				std::wcout << L"Index: " << boost::get<index_>(top) << std::flush;
-				std::wcout << L" Axis: " << axis << std::flush;
-				std::wcout << L" Name: " << axis_name << std::endl;
-
-				switch (axis_name) {
-				case name_enum::self: this->handle_self(top, axis); break;
-				case name_enum::child: this->handle_child(top, axis); break;
-				default:
-					std::wcout << L"Unknown " << std::endl;
-					this->work_list.clear();
-				};
-			}
-		}
-
-		void handle_child (work_item_type& item, axis_type const& axis) {
-			if (boost::get<iterator_>(item).empty()) {
-				// there is no iterator, of any kind; get the first iterator
-				boost::get<iterator_>(item) = get_first_child_visitor::go(*boost::get<node_>(item));
-			}
-			// get the next node, get a flag if the next node is valid
-			bool end_of_sequence = false;
-			boost::any result_iter;
-			this->work_list.clear();
-		}
-
-		void handle_self (work_item_type& item, axis_type const& axis) {
-			if (this->satisfies_test(item, axis)) {
-				boost::get<index_>(item) += 1;
-				boost::get<alt_>(item) = name_enum::unknown;
-			} else
-				this->work_list.pop_back();
-		}
-		
-		bool satisfies_test (work_item_type& item, axis_type const& axis) {
-			return satisfies_test_visitor::go(*boost::get<node_>(item), axis.test);
-		}
-
-		const Path *path;
-		shared_node_variant snv_root;
-		work_list_type work_list;
-	};
+	}
 	
 	template <typename Node, typename Path, typename Tag>
 	void query (Node const& root, Path const& path, Tag const& tag) {
-		Query<Node, Path, Tag> Q;
-		Q(root, path);
-		while (not Q.done()) {
-			Q.next();
+		query_with_traits(node_traits<Node, Tag>(), root, path);
+	}
+
+	template <typename Traits, typename Node, typename Path>
+	void query_with_traits (Traits, Node const& node, Path const& path) {
+		detail::query<Traits, Path> query;
+		query.initialize(node, path);
+		while (not query) {
+			++query;
+			break;
 		}
 	}
 
@@ -192,20 +88,19 @@ namespace treepath {
 	struct unwrap_query {
 		typedef void result_type;
 
-		unwrap_query (Path const& p, Tag const& t) : path(p), tag(t) {}
+		unwrap_query (Path const& p) : path(p) {}
 
 		template <typename T>
 		result_type operator () (T const& node) const {
-			query(node, this->path, this->tag);
+			query_with_traits(node_traits<Node, Tag>(), node, this->path);
 		}
 
-		static result_type go (Node const& node, Path const& path, Tag const& tag) {
-			unwrap_query<Node, Path, Tag> uq(path, tag);
+		static result_type go (Node const& node, Path const& path, Tag) {
+			unwrap_query<Node, Path, Tag> uq(path);
 			boost::apply_visitor(uq, node);
 		}
 
 		Path const& path;
-		Tag const& tag;
 	};
 
 	template <typename Node, typename Path, typename Tag>

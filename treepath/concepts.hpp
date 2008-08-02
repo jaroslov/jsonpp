@@ -12,6 +12,7 @@ namespace treepath {
 	// Nodes are expected to specialize the bel::iterator meta-function
 	template <typename Node, typename Tag>
 	struct node_traits {
+		typedef Tag node_traits_tag;
 		typedef typename Node::node_variant node_variant;
 		typedef typename Node::node_test_type node_test_type;
 	};
