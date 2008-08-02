@@ -7,15 +7,6 @@
 #include <treepath/query.hpp>
 #include <utility/iterator.hpp>
 
-namespace bel {
-
-	template <>
-	struct iterator<JSONpp::json_v, treepath::treepath_<JSONpp::json_v> > {
-		typedef utility::trivial_value_iterator<JSONpp::json_v> type;
-	};
-
-}
-
 namespace treepath {
 
 	template <>
@@ -32,16 +23,6 @@ namespace treepath {
 
 		typedef std::wstring node_test_type;
 	};
-
-	template <>
-	struct has_children<JSONpp::json_v, treepath_<JSONpp::json_v> > : boost::mpl::true_ {};
-
-	std::pair<utility::trivial_value_iterator<JSONpp::json_v>,
-						utility::trivial_value_iterator<JSONpp::json_v> >
-	children (JSONpp::json_v const& json, treepath::treepath_<JSONpp::json_v>) {
-		return std::make_pair(utility::trivial_value_iterator<JSONpp::json_v>(json),
-													utility::trivial_value_iterator<JSONpp::json_v>());
-	}
 
   std::wstring node_test (JSONpp::nil, treepath_<JSONpp::json_v>) {
     return L"nil";
