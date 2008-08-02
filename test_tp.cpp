@@ -5,21 +5,14 @@
 #include <json/jsonpp.hpp>
 #include <treepath/simple_xpath.hpp>
 #include <treepath/query.hpp>
+#include <utility/iterator.hpp>
 
 namespace bel {
 
 	template <>
 	struct iterator<JSONpp::json_v, treepath::treepath_<JSONpp::json_v> > {
-		typedef treepath::trivial_variant_iterator<JSONpp::json_v> type;
+		typedef utility::trivial_value_iterator<JSONpp::json_v> type;
 	};
-
-	template <>
-	std::pair<trivial_variant_iterator<JSONpp::json_v>,
-						trivial_variant_iterator<JSONpp::json_v> >
-	sequence (JSONpp::json_v const& json, treepath::treepath_<JSONpp::json_v>) {
-		return std::make_pair(trivial_variant_iterator<JSONpp::json_v>(json),
-													trivial_variant_iterator<JSONpp::json_v>());
-	}
 
 }
 
@@ -41,7 +34,14 @@ namespace treepath {
 	};
 
 	template <>
-	struct has_children<JSONpp::json_v, treepath_<JSONpp::json_v> > : boost::mpl::true_ {}
+	struct has_children<JSONpp::json_v, treepath_<JSONpp::json_v> > : boost::mpl::true_ {};
+
+	std::pair<utility::trivial_value_iterator<JSONpp::json_v>,
+						utility::trivial_value_iterator<JSONpp::json_v> >
+	children (JSONpp::json_v const& json, treepath::treepath_<JSONpp::json_v>) {
+		return std::make_pair(utility::trivial_value_iterator<JSONpp::json_v>(json),
+													utility::trivial_value_iterator<JSONpp::json_v>());
+	}
 
   std::wstring node_test (JSONpp::nil, treepath_<JSONpp::json_v>) {
     return L"nil";
