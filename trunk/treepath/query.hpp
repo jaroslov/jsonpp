@@ -51,7 +51,7 @@ namespace treepath {
 			typename boost::enable_if<has_children<T, Tag>,	boost::any>::type
 			stripped (T const& ref) const {
 				std::cout << "GOT FIRST CHILD" << std::endl;
-				return boost::any(children(ref).first);
+				return boost::any(children(ref, Tag()).first);
 			}
 
 			template <typename T>
@@ -83,11 +83,9 @@ namespace treepath {
 				typedef typename bel::iterator<T, Tag>::type child_iterator;
 				child_iterator &iter = boost::any_cast<child_iterator>(*this->iterator);
 				const child_iterator last = children(ref).second;
-				std::cout << "Num left: " << (last - iter) << std::flush;
 				if (last == iter)
 					return std::make_pair(false, Variant());
 				++iter;
-				std::cout << " remainder: " << (last - iter) << std::endl;
 				return std::make_pair(true, Variant(*iter));
 			}
 
