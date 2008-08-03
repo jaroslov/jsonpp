@@ -127,7 +127,8 @@ namespace treepath {
 				}
 				template <typename Not>
 				result_type try_get (Not const& nope) const {
-					return L"( ??? )";
+					std::string tyname = typeid(nope).name();
+					return this->try_get(tyname);
 				}
 				result_type try_get (std::wstring const& wstr) const {
 					return wstr;
@@ -180,7 +181,7 @@ namespace treepath {
 
 					switch (axis_name) {
 					case name_enum::self: this->handle_self(top, axis); break;
-						//case name_enum::child: this->handle_child(top, axis); break;
+					case name_enum::child: this->handle_child(top, axis); break;
 					case name_enum::descendant: this->handle_descendant(top, axis); break;
 					case name_enum::descendant_or_self: this->handle_descendant_or_self(top, axis); break;
 					default:
@@ -202,6 +203,27 @@ namespace treepath {
 					this->queue.pop_back();
 			}
 
+			void handle_child (item_t& item, axis_type const& axis) {
+				// add children as 'self'
+				if (boost::get<iterator_any>(item).empty()) {
+					boost::get<iterator_any>(item) = get_first_child::go(*boost::get<node_ptr>(item));
+				}
+				bool valid_item = false;
+				variant_t child_item;
+				boost::tie(valid_item, child_item) = get_child_from::go(*boost::get<node_ptr>(item), boost::get<iterator_any>(item));
+				if (valid_item) {
+					std::wcout << L"Add Child: " << try_get_str::go(child_item) << std::endl;
+					item_t child = item;
+					boost::get<node_ptr>(child) = sh_variant_t(new variant_t(child_item));
+					boost::get<parent_ptr>(child) = boost::get<node_ptr>(item); // item is the child's parent
+					boost::get<alt_name>(child).first = true;
+					boost::get<alt_name>(child).second = name_enum::self;
+					this->queue.push_back(child);
+				} else {
+					this->queue.pop_back();
+				}
+			}
+
 			void handle_descendant (item_t& item, axis_type const& axis) {
 				//// we add a 'descendant' entry for each child
 				//   we add a 'child' entry for ourselves, once
@@ -218,8 +240,8 @@ namespace treepath {
 				variant_t child_item; // the variant reference
 				boost::tie(valid_item, child_item) = get_child_from::go(*boost::get<node_ptr>(item), boost::get<iterator_any>(item));
 				if (valid_item) {
+					std::wcout << L"Add Descendant" << std::endl;
 					// 3. we have a valid child
-					std::cout << L"HERE" << std::endl;
 					item_t descendant = item;
 					boost::get<alt_name>(descendant) = std::make_pair(true, name_enum::descendant);
 					boost::get<node_ptr>(descendant) = sh_variant_t(new variant_t(child_item));
@@ -231,9 +253,10 @@ namespace treepath {
 				}
 				if (add_self_as_child) {
 					item_t child = item;
+					boost::get<iterator_any>(child) = boost::any();
 					boost::get<alt_name>(child).first = true;
 					boost::get<alt_name>(child).second = name_enum::child;
-					//this->queue.push_back(child);
+					this->queue.push_back(child);
 				}
 			}
 
