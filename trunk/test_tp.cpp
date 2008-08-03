@@ -7,6 +7,15 @@
 #include <treepath/query.hpp>
 #include <utility/iterator.hpp>
 
+namespace bel {
+
+	template <>
+	struct iterator<JSONpp::json_gen::array_t, treepath::treepath_<JSONpp::json_v> > {
+		typedef JSONpp::json_gen::array_t::const_iterator type;
+	};
+
+}
+
 namespace treepath {
 
 	template <>
@@ -24,6 +33,9 @@ namespace treepath {
 		typedef treepath_<JSONpp::json_v> node_traits_tag;
 		typedef std::wstring node_test_type;
 	};
+
+	template <>
+	struct has_children<JSONpp::json_gen::array_t, treepath_<JSONpp::json_v> > : boost::mpl::true_ {};
 
   std::wstring node_test (JSONpp::nil, treepath_<JSONpp::json_v>) {
     return L"nil";

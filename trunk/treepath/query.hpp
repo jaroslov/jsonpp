@@ -38,6 +38,8 @@ namespace treepath {
 			static const std::size_t index = 3;
 			static const std::size_t alt_name = 4;
 
+			struct no_child_iterator {};
+
 			struct satisfies_test {
 				typedef bool result_type;
 
@@ -49,9 +51,54 @@ namespace treepath {
 				static bool go (variant_t const& var, test_t const& test) {
 					satisfies_test st;
 					st.test = &test;
+					return boost::apply_visitor(st, var);
 				}
 
 				test_t const *test;
+			};
+
+			struct get_first_child {
+				typedef boost::any result_type;
+
+				template <typename Node>
+				result_type operator () (Node const& dereferenceable) const {
+					return this->get_child(*dereferenceable);
+				}
+
+				template <typename Node>
+				typename boost::enable_if<has_children<Node, tag_t>, boost::any>::type
+				get_child (Node const& node) const {
+					return boost::any(children(node, tag_t()).first);
+				}
+				template <typename Node>
+				typename boost::disable_if<has_children<Node, tag_t>, boost::any>::type
+				get_child (Node const& node) const {
+					return boost::any(no_child_iterator());
+				}
+
+				static boost::any go (variant_t const& var) {
+					get_first_child gfc;
+					return boost::apply_visitor(gfc, var);
+				}
+			};
+
+			struct get_child_from {
+				typedef std::pair<bool, variant_t> result_type;
+
+				template <typename Node>
+				result_type operator () (Node const& dereferenceable) const {
+					return this->get_child(*dereferenceable);
+				}
+
+				// get-child...
+
+				static result_type go (variant_t const& var, boost::any& iter) {
+					get_child_from gcf;
+					gcf.iterator = &iter;
+					return boost::apply_visitor(gcf, var);
+				}
+
+				boost::any *iterator;
 			};
 
 			query () {}
@@ -115,11 +162,12 @@ namespace treepath {
 				//   the iterator should return an item: the 'child' item
 				//   we add an alternate to the child which is 'descendant' and then we add the child
 				//   performs a DFS
-				if (boost::get<iterator_any>(item).empty()) {
-					std::wcout << L"Initialize first child for descendant" << std::endl;
-					boost::get<alt_name>(item).first = true;
-					boost::get<alt_name>(item).second = name_enum::unknown;
-				}
+				if (boost::get<iterator_any>(item).empty())
+					boost::get<iterator_any>(item) = get_first_child::go(*boost::get<node_ptr>(item));
+				bool valid_item = false;
+				item_t child_item;
+				boost::tie(valid_item, child_item);
+				boost::get<alt_name>(item).second = name_enum::unknown;
 			}
 
 			void handle_descendant_or_self (item_t& item, axis_type const& axis) {
