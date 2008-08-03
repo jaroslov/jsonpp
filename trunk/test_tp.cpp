@@ -77,6 +77,20 @@ namespace treepath {
 
 }
 
+struct try_get_str {
+	typedef std::wstring result_type;
+
+	template <typename T>
+	std::wstring operator () (T const&) const { return L"(-?-)"; }
+	std::wstring operator () (std::wstring const* wstr) const { return L"\""+*wstr+L"\""; }
+	std::wstring operator () (std::string const* str) const { return L"\""+std::wstring(str->begin(), str->end())+L"\""; }
+
+	static result_type go (treepath::json_variant const& var) {
+		try_get_str tgs;
+		return boost::apply_visitor(tgs, var);
+	}
+};
+
 int main (int argc, char *argv[]) {
 
 	if (argc < 3)
@@ -104,7 +118,9 @@ int main (int argc, char *argv[]) {
       std::istream_iterator<wchar_t,wchar_t> cnd;
       JSONpp::json_v json = JSONpp::parse(ctr, cnd);
 
-			treepath::query(json, path, treepath::treepath_<JSONpp::json_v>());//, treepath::unwrap);
+			std::vector<treepath::json_variant> res = treepath::query(json, path, treepath::treepath_<JSONpp::json_v>());
+			for (std::size_t i=0; i<res.size(); ++i)
+				std::wcout << try_get_str::go(res[i]) << std::endl;
 			
       std::cout << std::endl;
     } catch (std::exception& e) {
