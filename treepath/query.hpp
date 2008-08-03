@@ -73,7 +73,7 @@ namespace treepath {
 				template <typename Node>
 				typename boost::disable_if<has_children<Node, tag_t>, boost::any>::type
 				get_child (Node const& node) const {
-					return boost::any(no_child_iterator());
+					return boost::any();
 				}
 
 				static boost::any go (variant_t const& var) {
@@ -180,6 +180,7 @@ namespace treepath {
 
 					switch (axis_name) {
 					case name_enum::self: this->handle_self(top, axis); break;
+						//case name_enum::child: this->handle_child(top, axis); break;
 					case name_enum::descendant: this->handle_descendant(top, axis); break;
 					case name_enum::descendant_or_self: this->handle_descendant_or_self(top, axis); break;
 					default:
@@ -202,27 +203,36 @@ namespace treepath {
 			}
 
 			void handle_descendant (item_t& item, axis_type const& axis) {
+				//// we add a 'descendant' entry for each child
+				//   we add a 'child' entry for ourselves, once
+				//
 				// a call to descendant:
 				//   1. if the iterator is "empty", this is the entry point, get the first iterator
-				if (boost::get<iterator_any>(item).empty())
+				bool add_self_as_child = false;
+				if (boost::get<iterator_any>(item).empty()) {
+					add_self_as_child = true;
 					boost::get<iterator_any>(item) = get_first_child::go(*boost::get<node_ptr>(item));
+				}
 				//   2. we have an iterator, dereference it & increment it
 				bool valid_item = false; // false if we're at the end of the sequence
 				variant_t child_item; // the variant reference
 				boost::tie(valid_item, child_item) = get_child_from::go(*boost::get<node_ptr>(item), boost::get<iterator_any>(item));
 				if (valid_item) {
 					// 3. we have a valid child
-					item_t child = item;
-					boost::get<alt_name>(child) = std::make_pair(true, name_enum::child);
-					boost::get<node_ptr>(child) = sh_variant_t(new variant_t(child_item));
-					boost::get<parent_ptr>(child) = boost::get<parent_ptr>(item);
-					item_t descendant = child;
+					item_t descendant = item;
 					boost::get<alt_name>(descendant) = std::make_pair(true, name_enum::descendant);
+					boost::get<node_ptr>(descendant) = sh_variant_t(new variant_t(child_item));
+					boost::get<parent_ptr>(descendant) = boost::get<parent_ptr>(item);
 					this->queue.push_back(descendant);
-					this->queue.push_back(child);
 				} else {
 					// 4. out of children... so pop item
 					this->queue.pop_back();
+				}
+				if (add_self_as_child) {
+					item_t child = item;
+					boost::get<alt_name>(child).first = true;
+					boost::get<alt_name>(child).second = name_enum::child;
+					this->queue.push_back(child);
 				}
 			}
 
