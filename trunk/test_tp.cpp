@@ -18,21 +18,40 @@ namespace bel {
 
 namespace treepath {
 
-	template <>
-	struct node_traits<JSONpp::json_v, treepath_<JSONpp::json_v> > {
-		typedef boost::variant<
-      JSONpp::json_gen::value_t const*,  // store values (never used)
-      JSONpp::json_gen::string_t const*, // store strings
-      JSONpp::json_gen::number_t const*, // store "numbers" (double)
-      JSONpp::json_gen::object_t const*, // store objects
-      JSONpp::json_gen::array_t const*,  // store arrays
-      JSONpp::json_gen::bool_t const*,   // store booleans
-      JSONpp::json_gen::null_t const*   // store Null> node_variant;
-			> node_variant;
+	typedef boost::variant<
+		JSONpp::json_gen::value_t const*,  // store values (never used)
+		JSONpp::json_gen::string_t const*, // store strings
+		JSONpp::json_gen::number_t const*, // store "numbers" (double)
+		JSONpp::json_gen::object_t const*, // store objects
+		JSONpp::json_gen::array_t const*,  // store arrays
+		JSONpp::json_gen::bool_t const*,   // store booleans
+		JSONpp::json_gen::null_t const*   // store Null> node_variant;
+		> json_variant;
 
+	template <>
+	struct node_traits<JSONpp::json_v, treepath_<JSONpp::json_v> > {		
+		typedef json_variant node_variant;
 		typedef treepath_<JSONpp::json_v> node_traits_tag;
 		typedef std::wstring node_test_type;
 	};
+
+	struct get_json_reference {
+		typedef json_variant result_type;
+
+		template <typename T>
+		result_type operator () (T const& node) const {
+			return result_type(&node);
+		}
+
+		static result_type go (JSONpp::json_v const& json) {
+			get_json_reference gjr;
+			return boost::apply_visitor(gjr, json);
+		}
+	};
+
+	json_variant get_reference (JSONpp::json_v const& json, treepath_<JSONpp::json_v>) {
+		return get_json_reference::go(json);
+	}
 
 	template <>
 	struct has_children<JSONpp::json_gen::array_t, treepath_<JSONpp::json_v> > : boost::mpl::true_ {};
@@ -85,7 +104,7 @@ int main (int argc, char *argv[]) {
       std::istream_iterator<wchar_t,wchar_t> cnd;
       JSONpp::json_v json = JSONpp::parse(ctr, cnd);
 
-			treepath::query(json, path, treepath::treepath_<JSONpp::json_v>(), treepath::unwrap);
+			treepath::query(json, path, treepath::treepath_<JSONpp::json_v>());//, treepath::unwrap);
 			
       std::cout << std::endl;
     } catch (std::exception& e) {

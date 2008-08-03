@@ -99,7 +99,7 @@ namespace treepath {
 					const child_iterator last = children(node, tag_t()).second;
 					if (last == *iter)
 						return result_type(false, variant_t());
-					variant_t var = &**iter;
+					variant_t var = get_reference(**iter, tag_t());
 					++*iter;
 					return result_type(true, var);
 				}
@@ -118,6 +118,20 @@ namespace treepath {
 				boost::any *iterator;
 			};
 
+			struct report_type {
+				typedef test_t result_type;
+
+				template <typename T>
+				result_type operator () (T const& t) const {
+					return node_test(*t, tag_t());
+				}
+
+				static result_type go (variant_t const& var) {
+					report_type rt;
+					return boost::apply_visitor(rt, var);
+				}
+			};
+
 			struct try_get_str {
 				typedef std::wstring result_type;
 
@@ -128,7 +142,8 @@ namespace treepath {
 				template <typename Not>
 				result_type try_get (Not const& nope) const {
 					std::string tyname = typeid(nope).name();
-					return this->try_get(tyname);
+					//return this->try_get(tyname);
+					return L"(-?-)";
 				}
 				result_type try_get (std::wstring const& wstr) const {
 					return wstr;
@@ -150,13 +165,15 @@ namespace treepath {
 				this->path = &path;
 				this->queue.clear();
 
-				this->root = sh_variant_t(new variant_t(&root));
+				this->root = sh_variant_t(new variant_t(get_reference(root, tag_t())));
 				this->queue.push_back(boost::make_tuple(this->root,
 																								sh_variant_t(),
 																								boost::any(),
 																								0,
 																								std::make_pair(false,
 																															 name_enum::unknown)));
+
+				this->get_next_valid();
 			}
 
 			variant_t operator * () const {
@@ -164,6 +181,10 @@ namespace treepath {
 			}
 
 			void operator ++ () {
+				this->get_next_valid();
+			}
+
+			void get_next_valid () {
 				while (not this->queue.empty()) {
 					item_t &top = this->queue.back();
 
@@ -212,7 +233,6 @@ namespace treepath {
 				variant_t child_item;
 				boost::tie(valid_item, child_item) = get_child_from::go(*boost::get<node_ptr>(item), boost::get<iterator_any>(item));
 				if (valid_item) {
-					std::wcout << L"Add Child: " << try_get_str::go(child_item) << std::endl;
 					item_t child = item;
 					boost::get<node_ptr>(child) = sh_variant_t(new variant_t(child_item));
 					boost::get<parent_ptr>(child) = boost::get<node_ptr>(item); // item is the child's parent
@@ -231,26 +251,32 @@ namespace treepath {
 				// a call to descendant:
 				//   1. if the iterator is "empty", this is the entry point, get the first iterator
 				bool add_self_as_child = false;
+				std::wcout << L"(D0)" << std::endl;
 				if (boost::get<iterator_any>(item).empty()) {
 					add_self_as_child = true;
+					std::wcout << L"(D0.5)" << std::endl;
 					boost::get<iterator_any>(item) = get_first_child::go(*boost::get<node_ptr>(item));
 				}
+				std::wcout << L"(D1)" << std::endl;
 				//   2. we have an iterator, dereference it & increment it
 				bool valid_item = false; // false if we're at the end of the sequence
 				variant_t child_item; // the variant reference
 				boost::tie(valid_item, child_item) = get_child_from::go(*boost::get<node_ptr>(item), boost::get<iterator_any>(item));
+				std::wcout << L"(D2)" << std::endl;
 				if (valid_item) {
-					std::wcout << L"Add Descendant" << std::endl;
+					//std::wcout << "Add descendant: " << report_type::go(child_item) << std::endl;
 					// 3. we have a valid child
 					item_t descendant = item;
 					boost::get<alt_name>(descendant) = std::make_pair(true, name_enum::descendant);
 					boost::get<node_ptr>(descendant) = sh_variant_t(new variant_t(child_item));
 					boost::get<parent_ptr>(descendant) = boost::get<parent_ptr>(item);
+					boost::get<iterator_any>(descendant) = boost::any();
 					this->queue.push_back(descendant);
 				} else {
 					// 4. out of children... so pop item
 					this->queue.pop_back();
 				}
+				std::wcout << L"(D3)" << std::endl;
 				if (add_self_as_child) {
 					item_t child = item;
 					boost::get<iterator_any>(child) = boost::any();
@@ -258,6 +284,7 @@ namespace treepath {
 					boost::get<alt_name>(child).second = name_enum::child;
 					this->queue.push_back(child);
 				}
+				std::wcout << L"(D4)" << std::endl;
 			}
 
 			void handle_descendant_or_self (item_t& item, axis_type const& axis) {
@@ -292,39 +319,10 @@ namespace treepath {
 		detail::query<Traits, Path> query;
 		query.initialize(node, path);
 		while (not query) {
+			std::wcout << detail::query<Traits, Path>::try_get_str::go(*query) << std::endl;
 			++query;
-			if (query)
-				std::wcout << detail::query<Traits, Path>::try_get_str::go(*query) << std::endl;
 		}
 	}
-
-	struct unwrap_ {};
-	static const unwrap_ unwrap = unwrap_();
-
-	template <typename Node, typename Path, typename Tag>
-	struct unwrap_query {
-		typedef void result_type;
-
-		unwrap_query (Path const& p) : path(p) {}
-
-		template <typename T>
-		result_type operator () (T const& node) const {
-			query_with_traits(node_traits<Node, Tag>(), node, this->path);
-		}
-
-		static result_type go (Node const& node, Path const& path, Tag) {
-			unwrap_query<Node, Path, Tag> uq(path);
-			boost::apply_visitor(uq, node);
-		}
-
-		Path const& path;
-	};
-
-	template <typename Node, typename Path, typename Tag>
-	void query (Node const& root, Path const& path, Tag const& tag, unwrap_) {
-		unwrap_query<Node, Path, Tag>::go(root, path, tag);
-	}
-
 }
 
 #endif//TREEPATH_QUERY
