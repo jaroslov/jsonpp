@@ -214,7 +214,9 @@ namespace treepath {
 					// 3. we have a valid child
 					item_t child = item;
 					boost::get<alt_name>(child) = std::make_pair(true, name_enum::child);
-					item_t descendant = item;
+					boost::get<node_ptr>(child) = sh_variant_t(new variant_t(child_item));
+					boost::get<parent_ptr>(child) = boost::get<parent_ptr>(item);
+					item_t descendant = child;
 					boost::get<alt_name>(descendant) = std::make_pair(true, name_enum::descendant);
 					this->queue.push_back(descendant);
 					this->queue.push_back(child);
