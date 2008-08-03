@@ -219,6 +219,7 @@ namespace treepath {
 				boost::tie(valid_item, child_item) = get_child_from::go(*boost::get<node_ptr>(item), boost::get<iterator_any>(item));
 				if (valid_item) {
 					// 3. we have a valid child
+					std::cout << L"HERE" << std::endl;
 					item_t descendant = item;
 					boost::get<alt_name>(descendant) = std::make_pair(true, name_enum::descendant);
 					boost::get<node_ptr>(descendant) = sh_variant_t(new variant_t(child_item));
@@ -232,7 +233,7 @@ namespace treepath {
 					item_t child = item;
 					boost::get<alt_name>(child).first = true;
 					boost::get<alt_name>(child).second = name_enum::child;
-					this->queue.push_back(child);
+					//this->queue.push_back(child);
 				}
 			}
 
