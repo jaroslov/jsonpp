@@ -91,6 +91,19 @@ namespace treepath {
 				}
 
 				// get-child...
+				template <typename Node>
+				typename boost::enable_if<has_children<Node, tag_t>, result_type>::type
+				get_child (Node const& node) const {
+					typedef typename bel::iterator<Node, tag_t>::type child_iterator;
+					child_iterator &iter = boost::get<child_iterator>(*this->iterator);
+					return result_type(false, variant_t());
+				}
+				template <typename Node>
+				typename boost::disable_if<has_children<Node, tag_t>, result_type>::type
+				get_child (Node const& node) const {
+					return result_type(false, variant_t());
+				}
+				
 
 				static result_type go (variant_t const& var, boost::any& iter) {
 					get_child_from gcf;
