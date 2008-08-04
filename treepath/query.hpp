@@ -286,6 +286,7 @@ namespace treepath {
 			}
 
 			void handle_ancestor_or_self (sh_item_t& item, axis_type const& axis) {
+				throw std::exception();
 			}
 
 			void handle_attribute (sh_item_t& item, axis_type const& axis) {
