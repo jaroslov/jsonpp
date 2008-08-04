@@ -45,13 +45,14 @@ namespace treepath {
 					// as opposed to the "values"
 					this->child_iterator = boost::any();
 					this->sibling.iterator = boost::any();
+					this->attribute_iterator = boost::any();
 				}
 
 				variant_t node;
 				sh_item_t parent_ptr;
 				std::size_t index;
 				alternate_name_t alternate_name;
-				boost::any child_iterator;
+				boost::any child_iterator, attribute_iterator;
 				struct {
 					boost::any iterator;
 					boost::any self;
@@ -60,7 +61,7 @@ namespace treepath {
 			typedef boost::shared_ptr<item_t> sh_item_t;
 			typedef std::vector<sh_item_t> work_queue_t;
 
-			struct satisfies_test {
+			struct satisfies_node_test {
 				typedef bool result_type;
 
 				template <typename Node>
@@ -69,7 +70,7 @@ namespace treepath {
 				}
 
 				static bool go (variant_t const& var, test_t const& test) {
-					satisfies_test st;
+					satisfies_node_test st;
 					st.test = &test;
 					return boost::apply_visitor(st, var);
 				}
@@ -138,17 +139,16 @@ namespace treepath {
 				boost::any *iterator;
 			};
 
-			struct report_type {
+			struct get_node_test {
 				typedef test_t result_type;
 
 				template <typename T>
 				result_type operator () (T const& t) const {
-					std::wcout << t << std::endl;
 					return node_test(*t, tag_t());
 				}
 
 				static result_type go (variant_t const& var) {
-					report_type rt;
+					get_node_test rt;
 					return boost::apply_visitor(rt, var);
 				}
 			};
@@ -205,6 +205,7 @@ namespace treepath {
 
 					if (this->path->size() <= top->index) {
 						this->result_value = top->node;
+						this->list_ancestors(top);
 						this->queue.pop_back();
 						return;
 					}
@@ -216,10 +217,12 @@ namespace treepath {
 						axis_name = top->alternate_name.second;
 
 					switch (axis_name) {
-					case name_enum::self: this->handle_self(top, axis); break;
+						//case name_enum::attribute: this->handle_attribute(top, axis); break;
 					case name_enum::child: this->handle_child(top, axis); break;
 					case name_enum::descendant: this->handle_descendant(top, axis); break;
 					case name_enum::descendant_or_self: this->handle_descendant_or_self(top, axis); break;
+						//case name_enum::parent: this->handle_parent(top, axis); break;
+					case name_enum::self: this->handle_self(top, axis); break;
 					default:
 						this->queue.clear();
 						std::wcout << L"Did not recognize: " << axis << L" as " << name_enum::to_string(axis_name) << std::endl;
@@ -227,16 +230,45 @@ namespace treepath {
 				}
 			}
 
-			bool test (item_t const& item, axis_type const& axis) {
+			void list_ancestors (sh_item_t const& shitem, bool non_self=false) {
+				std::wcout << (non_self?L" => ":L"Leaf: ") << get_node_test::go(shitem->node) << std::flush;
+				if (shitem->parent_ptr)
+					this->list_ancestors(shitem->parent_ptr, true);
+				if (not non_self)
+					std::wcout << std::endl;
+			}
+
+			bool test_node (item_t const& item, axis_type const& axis) {
 				return (nodetest_enum::wildcard == axis.node)
-					or satisfies_test::go(item.node, axis.test);
+					or satisfies_node_test::go(item.node, axis.test);
 			}
 
 			void handle_self (sh_item_t& item, axis_type const& axis) {
-				if (this->test(*item, axis)) {
+				// a terminal; a call to self resolves to an index increase or a pop
+				if (this->test_node(*item, axis)) {
 					++item->index;
 				} else
 					this->queue.pop_back();
+			}
+			/*
+			void handle_parent (sh_item_t& item, axis_type const& axis) {
+				// there is only ever (at most) one parent, so we always pop it
+				sh_item_t current = item;
+				this->queue.pop_back();
+				if (current->parent_ptr) {
+					sh_item_t parent = sh_item_t(new item_t(*current->parent_ptr, current->index));
+					parent->alternate_name.first = true;
+					parent->alternate_name.second = name_enum::self;
+					if (current->parent_ptr->parent_ptr) // add the ancestors, as necessary
+						parent->parent_ptr = current->parent_ptr->parent_ptr;
+					this->queue.push_back(child);
+				}
+			}
+			*/
+			void handle_attribute (sh_item_t& item, axis_type const& axis) {
+				//// We build a new sh-item; if it works, then we add the attribute
+				//// otherwise we pop
+				throw std::exception();
 			}
 
 			void handle_child (sh_item_t& item, axis_type const& axis) {
