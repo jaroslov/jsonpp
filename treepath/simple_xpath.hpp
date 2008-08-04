@@ -44,7 +44,7 @@ namespace treepath {
 		path<String> parse (String const& str) {
 			/*
 				must be of this form:
-				name::test/name::test/.../name::test
+				axis::test/axis::test/.../axis::test
 			*/
 			typedef typename path<String>::location_type location_type;
 			path<String> path;

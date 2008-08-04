@@ -25,7 +25,7 @@ namespace treepath {
 	};
 	
 	struct axis_enum {
-		enum name_e {
+		enum axis_e {
 			ancestor = 'a',
 			ancestor_or_self = 'A',
 			attribute = '@',
@@ -43,7 +43,7 @@ namespace treepath {
 		};
 
 		template <typename String>
-		static name_e from_string (String const& Str) {
+		static axis_e from_string (String const& Str) {
 			const std::string str(Str.begin(), Str.end());
 			if ("ancestor" == str) return ancestor;
 			else if ("ancestor-or-self" == str) return ancestor_or_self;
@@ -62,7 +62,7 @@ namespace treepath {
 			else throw bad_location_axis(str);
 		}
 
-		static const char* to_string (name_e const& N) {
+		static const char* to_string (axis_e const& N) {
 			switch (N) {
 			case ancestor: return "ancestor";
 			case ancestor_or_self: return "ancestor-or-self";
@@ -124,22 +124,22 @@ namespace treepath {
 	template <typename Test, typename Predicate=predicate>
 	struct location {
 
-		typedef axis_enum::name_e name_t;
+		typedef axis_enum::axis_e axis_t;
 		typedef nodetest_enum::nodetest_e node_t;
 		typedef Test test_t;
 		typedef Predicate predicate_t;
 
 		location () {}
-		location (name_t const& nm, node_t const& nd, test_t const& tst, predicate_t const& pred=Predicate())
-			: name(nm), node(nd), test(tst), predicate(pred) {}
+		location (axis_t const& ax, node_t const& nd, test_t const& tst, predicate_t const& pred=Predicate())
+			: axis(ax), node(nd), test(tst), predicate(pred) {}
 
 		template <typename Char>
-		friend std::basic_ostream<Char>& operator << (std::basic_ostream<Char>& ostr, location<Test, Predicate> const& a) {
-			ostr << axis_enum::to_string(a.name) << "::" << nodetest_enum::to_string(a.node, a.test);
+		friend std::basic_ostream<Char>& operator << (std::basic_ostream<Char>& ostr, location<Test, Predicate> const& loc) {
+			ostr << axis_enum::to_string(loc.axis) << "::" << nodetest_enum::to_string(loc.node, loc.test);
 			return ostr;
 		}
 		
-		name_t name;
+		axis_t axis;
 		node_t node;
 		test_t test;
 		predicate_t predicate;
