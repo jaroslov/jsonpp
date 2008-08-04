@@ -260,10 +260,11 @@ namespace treepath {
 				this->queue.pop_back();
 				if (current->parent_ptr) {
 					sh_item_t parent = sh_item_t(new item_t(current->parent_ptr->node, current->index));
+					parent->clear_state();
 					parent->alternate_name.first = true;
 					parent->alternate_name.second = name_enum::self;
-					if (current->parent_ptr->parent_ptr) // add the ancestors, as necessary
-						parent->parent_ptr = current->parent_ptr->parent_ptr;
+					parent->parent_ptr = current->parent_ptr->parent_ptr;
+					parent->sibling.self = current->parent_ptr->sibling.self;
 					this->queue.push_back(parent);
 				}
 			}
@@ -276,8 +277,7 @@ namespace treepath {
 					sh_item_t parent = sh_item_t(new item_t(current->parent_ptr->node, current->index));
 					parent->alternate_name.first = true;
 					parent->alternate_name.second = name_enum::ancestor;
-					if (current->parent_ptr->parent_ptr) // add the ancestors, as necessary
-						parent->parent_ptr = current->parent_ptr->parent_ptr;
+					parent->parent_ptr = current->parent_ptr->parent_ptr;
 					this->queue.push_back(parent);
 					item->alternate_name.first = true;
 					item->alternate_name.second = name_enum::parent;
@@ -286,7 +286,14 @@ namespace treepath {
 			}
 
 			void handle_ancestor_or_self (sh_item_t& item, axis_type const& axis) {
-				throw std::exception();
+				sh_item_t self = sh_item_t(new item_t(item->node, item->index));
+				self->parent_ptr = item->parent_ptr;
+				self->sibling.self = item->sibling.self;
+				self->alternate_name.first = true;
+				self->alternate_name.second = name_enum::self;
+				item->alternate_name.first = true;
+				item->alternate_name.second = name_enum::ancestor;
+				this->queue.push_back(self);
 			}
 
 			void handle_attribute (sh_item_t& item, axis_type const& axis) {
@@ -351,6 +358,8 @@ namespace treepath {
 				if (add_self_as_child) {
 					sh_item_t child = sh_item_t(new item_t(*item));
 					child->clear_state();
+					child->parent_ptr = item->parent_ptr;
+					child->sibling.self = item->sibling.self;
 					child->alternate_name.first = true;
 					child->alternate_name.second = name_enum::child;
 					this->queue.push_back(child);
