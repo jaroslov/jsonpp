@@ -217,13 +217,18 @@ namespace treepath {
 						axis_name = top->alternate_name.second;
 
 					switch (axis_name) {
-						//case name_enum::attribute: this->handle_attribute(top, axis); break;
 					case name_enum::ancestor: this->handle_ancestor(top, axis); break;
 					case name_enum::ancestor_or_self: this->handle_ancestor_or_self(top, axis); break;
+						//case name_enum::attribute: this->handle_attribute(top, axis); break;
 					case name_enum::child: this->handle_child(top, axis); break;
 					case name_enum::descendant: this->handle_descendant(top, axis); break;
 					case name_enum::descendant_or_self: this->handle_descendant_or_self(top, axis); break;
+						//case name_enum::following: this->handle_following(top, axis); break;
+						//case name_enum::following_sibling: this->handle_following_sibling(top, axis); break;
+						//case name_enum::namespace_: this->handle_namespace(top, axis); break;
 					case name_enum::parent: this->handle_parent(top, axis); break;
+						//case name_enum::preceding: this->handle_preceding(top, axis); break;
+						//case name_enum::preceding_sibling: this->handle_preceding_sibling(top, axis); break;
 					case name_enum::self: this->handle_self(top, axis); break;
 					default:
 						this->queue.clear();
