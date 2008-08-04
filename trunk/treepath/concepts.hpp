@@ -16,8 +16,6 @@ namespace treepath {
 	template <typename Node, typename Tag>
 	struct node_traits {
 		typedef Tag node_traits_tag;
-		typedef typename Node::children_iterator_tag children_iterator_tag;
-		typedef typename Node::attributes_iterator_tag attributes_iterator_tag;
 		typedef typename Node::node_variant node_variant;
 		typedef typename Node::node_test_type node_test_type;
 	};
@@ -26,9 +24,9 @@ namespace treepath {
 	struct has_children : boost::mpl::false_ {};
 
 	template <typename Node, typename Tag>
-	std::pair<typename bel::iterator<Node, treepath_<Tag> >::type,
-						typename bel::iterator<Node, treepath_<Tag> >::type>
-	children (Node const& node, treepath_<Tag> const& tag) {
+	std::pair<typename bel::iterator<Node, Tag>::type,
+						typename bel::iterator<Node, Tag>::type>
+	children (Node const& node, Tag const& tag) {
 		return bel::sequence(node, tag);
 	}
 
