@@ -308,8 +308,14 @@ namespace treepath {
 			}
 
 			bool test_node (item_t const& item, location_type const& location) {
-				return (nodetest_enum::node == location.node and is_node(item.node, tag_t()))
-					or satisfies_node_test::go(item.node, location.test);
+				bool node_test_p = satisfies_node_test::go(item.node, location.test);
+				switch (location.node) {
+				case nodetest_enum::node:	return is_node(item.node, tag_t());
+				case nodetest_enum::text: return is_text(item.node, tag_t());
+				case nodetest_enum::comment: return is_comment(item.node, tag_t());
+				case nodetest_enum::processing_instruction: return is_processing_instruction(item.node, tag_t()) and node_test_p;
+				default: return node_test_p;
+				}
 			}
 
 			void handle_self (sh_item_t& item, location_type const& location) {
