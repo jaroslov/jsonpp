@@ -15,16 +15,16 @@ namespace treepath {
 		bool operator () (T1 const&, T2 const&) const { return false; }
 	};
 
-	struct bad_axis_name : public std::exception {
-		bad_axis_name (std::string const& axis) : axis_("badly formed axis name: "+axis) {}
-		virtual ~ bad_axis_name () throw() {}
+	struct bad_location_axis : public std::exception {
+		bad_location_axis (std::string const& axis) : axis_("badly formed location axis: "+axis) {}
+		virtual ~ bad_location_axis () throw() {}
 		virtual const char* what () const throw() {
 			return this->axis_.c_str();
 		}
 		std::string axis_;
 	};
 	
-	struct name_enum {
+	struct axis_enum {
 		enum name_e {
 			ancestor = 'a',
 			ancestor_or_self = 'A',
@@ -59,7 +59,7 @@ namespace treepath {
 			else if ("preceding-sibling" == str) return preceding_sibling;
 			else if ("self" == str) return self;
 			else if ("unknown" == str) return unknown;
-			else throw bad_axis_name(str);
+			else throw bad_location_axis(str);
 		}
 
 		static const char* to_string (name_e const& N) {
@@ -78,7 +78,7 @@ namespace treepath {
 			case preceding_sibling: return "preceding-sibling";
 			case self: return "self";
 			case unknown: return "unknown";
-			default: throw bad_axis_name("unknown enumeration");
+			default: throw bad_location_axis("unknown enumeration");
 			}
 		}
 	};
@@ -94,9 +94,9 @@ namespace treepath {
 
 	struct nodetest_enum {
 		enum nodetest_e {
+			test = 't',
 			node = 'n',
-			wildcard = '*',
-			text = 't',
+			text = 'x',
 			comment = 'c',
 			processing_instruction = 'p',
 			unknown = '0',
@@ -105,18 +105,16 @@ namespace treepath {
 		template <typename String>
 		static nodetest_e from_string (String const& Str) {
 			const std::string str(Str.begin(), Str.end());
-			if ("*" == str) return wildcard;
-			else if ("text()" == str) return text;
+			if ("text()" == str) return text;
 			else if ("comment()" == str) return comment;
 			else if ("processing-instruction()" == str) return processing_instruction;
-			else return node;
+			else return test;
 		}
 
 		template <typename String>
 		static const char* to_string (nodetest_e const& n, String const& node) {
 			const std::string str(node.begin(), node.end());
-			if (wildcard == n) return "*";
-			else if (text == n) return "text()";
+			if (text == n) return "text()";
 			else if (comment == n) return "comment()";
 			else if (processing_instruction == n) return "processing-instruction()";
 			else return str.c_str();
@@ -124,20 +122,20 @@ namespace treepath {
 	};
 
 	template <typename Test, typename Predicate=predicate>
-	struct axis {
+	struct location {
 
-		typedef name_enum::name_e name_t;
+		typedef axis_enum::name_e name_t;
 		typedef nodetest_enum::nodetest_e node_t;
 		typedef Test test_t;
 		typedef Predicate predicate_t;
 
-		axis () {}
-		axis (name_t const& nm, node_t const& nd, test_t const& tst, predicate_t const& pred=Predicate())
+		location () {}
+		location (name_t const& nm, node_t const& nd, test_t const& tst, predicate_t const& pred=Predicate())
 			: name(nm), node(nd), test(tst), predicate(pred) {}
 
 		template <typename Char>
-		friend std::basic_ostream<Char>& operator << (std::basic_ostream<Char>& ostr, axis<Test, Predicate> const& a) {
-			ostr << name_enum::to_string(a.name) << "::" << nodetest_enum::to_string(a.node, a.test);
+		friend std::basic_ostream<Char>& operator << (std::basic_ostream<Char>& ostr, location<Test, Predicate> const& a) {
+			ostr << axis_enum::to_string(a.name) << "::" << nodetest_enum::to_string(a.node, a.test);
 			return ostr;
 		}
 		
@@ -149,10 +147,10 @@ namespace treepath {
 
 	template <typename Test, typename Predicate=predicate>
 	struct path {
-		typedef axis<Test, Predicate> axis_type;
-		typedef std::vector<axis_type> path_type;
+		typedef location<Test, Predicate> location_type;
+		typedef std::vector<location_type> path_type;
 		
-		axis_type const& operator [] (std::size_t i) const { return this->path_m[i]; }
+		location_type const& operator [] (std::size_t i) const { return this->path_m[i]; }
 		std::size_t size () const { return this->path_m.size(); }
 
 		template <typename Char>

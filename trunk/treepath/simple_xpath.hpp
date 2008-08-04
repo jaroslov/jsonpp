@@ -46,16 +46,16 @@ namespace treepath {
 				must be of this form:
 				name::test/name::test/.../name::test
 			*/
-			typedef typename path<String>::axis_type axis_type;
+			typedef typename path<String>::location_type location_type;
 			path<String> path;
 			std::vector<String> path_parts = split(str, to_string<String>("/"));
 			for (std::size_t i=0; i<path_parts.size(); ++i) {
 				std::vector<String> axis_parts = split(path_parts[i], to_string<String>("::"));
 				if (2 != axis_parts.size())
 					throw bad_axis(std::string(path_parts[i].begin(), path_parts[1].end()));
-				axis_type axis(treepath::name_enum::from_string(axis_parts[0]),
-											 treepath::nodetest_enum::from_string(axis_parts[1]),
-											 axis_parts[1]);
+				location_type axis(treepath::axis_enum::from_string(axis_parts[0]),
+													 treepath::nodetest_enum::from_string(axis_parts[1]),
+													 axis_parts[1]);
 				path.path_m.push_back(axis);
 			}
 			return path;

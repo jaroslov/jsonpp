@@ -25,19 +25,19 @@ namespace treepath {
 			typedef typename node_traits::node_test_type test_t;
 			typedef typename node_traits::node_variant variant_t;
 
-			typedef typename Path::axis_type axis_type;
+			typedef typename Path::location_type location_type;
 
 			typedef boost::shared_ptr<variant_t> sh_variant_t;
-			typedef std::pair<bool, name_enum::name_e> alternate_name_t;
+			typedef std::pair<bool, axis_enum::name_e> alternate_name_t;
 
 			struct item_t {
 				typedef boost::shared_ptr<item_t> sh_item_t;
 
-				item_t () : alternate_name(false, name_enum::unknown) {}
+				item_t () : alternate_name(false, axis_enum::unknown) {}
 				item_t (variant_t const& node, std::size_t idx)
 					: node(node), index(idx)
-					, alternate_name(false, name_enum::unknown) {}
-				item_t (variant_t const& node, name_enum::name_e const& name)
+					, alternate_name(false, axis_enum::unknown) {}
+				item_t (variant_t const& node, axis_enum::name_e const& name)
 					: node(node), alternate_name(true, name) {}
 
 				void clear_state () {
@@ -210,29 +210,29 @@ namespace treepath {
 						return;
 					}
 
-					axis_type const& axis = (*this->path)[top->index];
+					location_type const& axis = (*this->path)[top->index];
 
-					name_enum::name_e axis_name = axis.name;
+					axis_enum::name_e axis_name = axis.name;
 					if (top->alternate_name.first)
 						axis_name = top->alternate_name.second;
 
 					switch (axis_name) {
-					case name_enum::ancestor: this->handle_ancestor(top, axis); break;
-					case name_enum::ancestor_or_self: this->handle_ancestor_or_self(top, axis); break;
-						//case name_enum::attribute: this->handle_attribute(top, axis); break;
-					case name_enum::child: this->handle_child(top, axis); break;
-					case name_enum::descendant: this->handle_descendant(top, axis); break;
-					case name_enum::descendant_or_self: this->handle_descendant_or_self(top, axis); break;
-						//case name_enum::following: this->handle_following(top, axis); break;
-						//case name_enum::following_sibling: this->handle_following_sibling(top, axis); break;
-						//case name_enum::namespace_: this->handle_namespace(top, axis); break;
-					case name_enum::parent: this->handle_parent(top, axis); break;
-						//case name_enum::preceding: this->handle_preceding(top, axis); break;
-						//case name_enum::preceding_sibling: this->handle_preceding_sibling(top, axis); break;
-					case name_enum::self: this->handle_self(top, axis); break;
+					case axis_enum::ancestor: this->handle_ancestor(top, axis); break;
+					case axis_enum::ancestor_or_self: this->handle_ancestor_or_self(top, axis); break;
+						//case axis_enum::attribute: this->handle_attribute(top, axis); break;
+					case axis_enum::child: this->handle_child(top, axis); break;
+					case axis_enum::descendant: this->handle_descendant(top, axis); break;
+					case axis_enum::descendant_or_self: this->handle_descendant_or_self(top, axis); break;
+						//case axis_enum::following: this->handle_following(top, axis); break;
+						//case axis_enum::following_sibling: this->handle_following_sibling(top, axis); break;
+						//case axis_enum::namespace_: this->handle_namespace(top, axis); break;
+					case axis_enum::parent: this->handle_parent(top, axis); break;
+						//case axis_enum::preceding: this->handle_preceding(top, axis); break;
+						//case axis_enum::preceding_sibling: this->handle_preceding_sibling(top, axis); break;
+					case axis_enum::self: this->handle_self(top, axis); break;
 					default:
 						this->queue.clear();
-						std::wcout << L"Did not recognize: " << axis << L" as " << name_enum::to_string(axis_name) << std::endl;
+						std::wcout << L"Did not recognize: " << axis << L" as " << axis_enum::to_string(axis_name) << std::endl;
 					}
 				}
 			}
@@ -245,12 +245,12 @@ namespace treepath {
 					std::wcout << std::endl;
 			}
 
-			bool test_node (item_t const& item, axis_type const& axis) {
-				return (nodetest_enum::wildcard == axis.node)
+			bool test_node (item_t const& item, location_type const& axis) {
+				return (nodetest_enum::node == axis.node and is_node(item.node, tag_t()))
 					or satisfies_node_test::go(item.node, axis.test);
 			}
 
-			void handle_self (sh_item_t& item, axis_type const& axis) {
+			void handle_self (sh_item_t& item, location_type const& axis) {
 				// a terminal; a call to self resolves to an index increase or a pop
 				if (this->test_node(*item, axis)) {
 					++item->index;
@@ -259,7 +259,7 @@ namespace treepath {
 					this->queue.pop_back();
 			}
 
-			void handle_parent (sh_item_t& item, axis_type const& axis) {
+			void handle_parent (sh_item_t& item, location_type const& axis) {
 				// there is only ever (at most) one parent, so we always pop it
 				sh_item_t current = item;
 				this->queue.pop_back();
@@ -267,47 +267,47 @@ namespace treepath {
 					sh_item_t parent = sh_item_t(new item_t(current->parent_ptr->node, current->index));
 					parent->clear_state();
 					parent->alternate_name.first = true;
-					parent->alternate_name.second = name_enum::self;
+					parent->alternate_name.second = axis_enum::self;
 					parent->parent_ptr = current->parent_ptr->parent_ptr;
 					parent->sibling.self = current->parent_ptr->sibling.self;
 					this->queue.push_back(parent);
 				}
 			}
 
-			void handle_ancestor (sh_item_t& item, axis_type const& axis) {
+			void handle_ancestor (sh_item_t& item, location_type const& axis) {
 				// if there is a parent, add self as an ancestor and then add self as parent
 				sh_item_t current = item;
 				this->queue.pop_back();
 				if (current->parent_ptr) {
 					sh_item_t parent = sh_item_t(new item_t(current->parent_ptr->node, current->index));
 					parent->alternate_name.first = true;
-					parent->alternate_name.second = name_enum::ancestor;
+					parent->alternate_name.second = axis_enum::ancestor;
 					parent->parent_ptr = current->parent_ptr->parent_ptr;
 					this->queue.push_back(parent);
 					item->alternate_name.first = true;
-					item->alternate_name.second = name_enum::parent;
+					item->alternate_name.second = axis_enum::parent;
 					this->queue.push_back(item);
 				}
 			}
 
-			void handle_ancestor_or_self (sh_item_t& item, axis_type const& axis) {
+			void handle_ancestor_or_self (sh_item_t& item, location_type const& axis) {
 				sh_item_t self = sh_item_t(new item_t(item->node, item->index));
 				self->parent_ptr = item->parent_ptr;
 				self->sibling.self = item->sibling.self;
 				self->alternate_name.first = true;
-				self->alternate_name.second = name_enum::self;
+				self->alternate_name.second = axis_enum::self;
 				item->alternate_name.first = true;
-				item->alternate_name.second = name_enum::ancestor;
+				item->alternate_name.second = axis_enum::ancestor;
 				this->queue.push_back(self);
 			}
 
-			void handle_attribute (sh_item_t& item, axis_type const& axis) {
+			void handle_attribute (sh_item_t& item, location_type const& axis) {
 				//// We build a new sh-item; if it works, then we add the attribute
 				//// otherwise we pop
 				throw std::exception();
 			}
 
-			void handle_child (sh_item_t& item, axis_type const& axis) {
+			void handle_child (sh_item_t& item, location_type const& axis) {
 				// add children as 'self'
 				if (item->child_iterator.empty()) {
 					item->child_iterator = get_first_child::go(item->node);
@@ -321,7 +321,7 @@ namespace treepath {
 					sh_item_t child = sh_item_t(new item_t(child_var, item->index));
 					child->parent_ptr = item;
 					child->alternate_name.first = true;
-					child->alternate_name.second = name_enum::self;
+					child->alternate_name.second = axis_enum::self;
 					child->sibling.self = item->child_iterator;
 					this->queue.push_back(child);
 				} else {
@@ -329,7 +329,7 @@ namespace treepath {
 				}
 			}
 	
-			void handle_descendant (sh_item_t& item, axis_type const& axis) {
+			void handle_descendant (sh_item_t& item, location_type const& axis) {
 				//// we add a 'descendant' entry for each child
 				//   we add a 'child' entry for ourselves, once
 				//
@@ -354,7 +354,7 @@ namespace treepath {
 					descendant->clear_state();
 					descendant->parent_ptr = item;
 					descendant->alternate_name.first = true;
-					descendant->alternate_name.second = name_enum::descendant;
+					descendant->alternate_name.second = axis_enum::descendant;
 					descendant->sibling.self = item->child_iterator;
 					this->queue.push_back(descendant);
 				} else
@@ -366,16 +366,16 @@ namespace treepath {
 					child->parent_ptr = item->parent_ptr;
 					child->sibling.self = item->sibling.self;
 					child->alternate_name.first = true;
-					child->alternate_name.second = name_enum::child;
+					child->alternate_name.second = axis_enum::child;
 					this->queue.push_back(child);
 				}
 			}
 
-			void handle_descendant_or_self (sh_item_t& item, axis_type const& axis) {
+			void handle_descendant_or_self (sh_item_t& item, location_type const& axis) {
 				item->alternate_name.first = true;
-				item->alternate_name.second = name_enum::descendant;
+				item->alternate_name.second = axis_enum::descendant;
 				sh_item_t self = sh_item_t(new item_t(*item));
-				self->alternate_name.second = name_enum::self;
+				self->alternate_name.second = axis_enum::self;
 				self->parent_ptr = item->parent_ptr;
 				self->sibling.self = item->sibling.self;
 				self->clear_state();
