@@ -9,6 +9,10 @@ namespace treepath {
 	template <typename Tag=void> struct treepath_ {};
 	static const treepath_<> treepath = treepath_<>();
 
+	template <typename Tag=void> struct children_ {};
+
+	template <typename Tag=void> struct attributes_ {};
+
 	// Nodes are expected to specialize the bel::iterator meta-function
 	template <typename Node, typename Tag>
 	struct node_traits {
