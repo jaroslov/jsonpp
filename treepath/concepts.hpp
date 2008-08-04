@@ -7,7 +7,6 @@
 namespace treepath {
 
 	template <typename Tag=void> struct treepath_ {};
-	static const treepath_<> treepath = treepath_<>();
 
 	template <typename Tag=void> struct children_ {};
 
@@ -17,6 +16,8 @@ namespace treepath {
 	template <typename Node, typename Tag>
 	struct node_traits {
 		typedef Tag node_traits_tag;
+		typedef typename Node::children_iterator_tag children_iterator_tag;
+		typedef typename Node::attributes_iterator_tag attributes_iterator_tag;
 		typedef typename Node::node_variant node_variant;
 		typedef typename Node::node_test_type node_test_type;
 	};

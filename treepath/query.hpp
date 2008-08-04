@@ -14,6 +14,8 @@
 
 #include <treepath/concepts.hpp>
 
+char DIFFERENTIATE_BETWEEN_CHILD_AND_ITERATOR_WITH_NEW_ITERATOR_TAGS[-1];
+
 namespace treepath {
 
 	namespace detail {
