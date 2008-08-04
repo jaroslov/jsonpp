@@ -22,6 +22,8 @@ namespace treepath {
 		struct query {
 			typedef Traits node_traits;
 			typedef typename node_traits::node_traits_tag tag_t;
+			typedef typename node_traits::children_iterator_tag child_tag_t;
+			typedef typename node_traits::attributes_iterator_tag attr_tag_t;
 			typedef typename node_traits::node_test_type test_t;
 			typedef typename node_traits::node_variant variant_t;
 
@@ -89,7 +91,7 @@ namespace treepath {
 				template <typename Node>
 				typename boost::enable_if<has_children<Node, tag_t>, boost::any>::type
 				get_child (Node const& node) const {
-					return boost::any(children(node, tag_t()).first);
+					return boost::any(children(node, child_tag_t()).first);
 				}
 				template <typename Node>
 				typename boost::disable_if<has_children<Node, tag_t>, boost::any>::type
@@ -115,9 +117,9 @@ namespace treepath {
 				template <typename Node>
 				typename boost::enable_if<has_children<Node, tag_t>, result_type>::type
 				get_child (Node const& node) const {
-					typedef typename bel::iterator<Node, tag_t>::type child_iterator;
+					typedef typename bel::iterator<Node, child_tag_t>::type child_iterator;
 					child_iterator *iter = boost::any_cast<child_iterator>(this->iterator);
-					const child_iterator last = children(node, tag_t()).second;
+					const child_iterator last = children(node, child_tag_t()).second;
 					if (last == *iter)
 						return result_type(false, variant_t());
 					variant_t var = get_reference(**iter, tag_t());
@@ -134,6 +136,66 @@ namespace treepath {
 					get_child_from gcf;
 					gcf.iterator = &iter;
 					return boost::apply_visitor(gcf, var);
+				}
+
+				boost::any *iterator;
+			};
+
+			struct get_first_attribute {
+				typedef boost::any result_type;
+
+				template <typename Node>
+				result_type operator () (Node const& dereferenceable) const {
+					return this->get_attr(*dereferenceable);
+				}
+
+				template <typename Node>
+				typename boost::enable_if<has_attributes<Node, tag_t>, boost::any>::type
+				get_attr (Node const& node) const {
+					return boost::any(attributes(node, attr_tag_t()).first);
+				}
+				template <typename Node>
+				typename boost::disable_if<has_attributes<Node, tag_t>, boost::any>::type
+				get_attr (Node const& node) const {
+					return boost::any();
+				}
+
+				static boost::any go (variant_t const& var) {
+					get_first_attribute gfa;
+					return boost::apply_visitor(gfa, var);
+				}
+			};
+
+			struct get_attribute_from {
+				typedef std::pair<bool, variant_t> result_type;
+
+				template <typename Node>
+				result_type operator () (Node const& dereferenceable) const {
+					return this->get_attr(*dereferenceable);
+				}
+
+				template <typename Node>
+				typename boost::enable_if<has_attributes<Node, tag_t>, result_type>::type
+				get_attr (Node const& node) const {
+					typedef typename bel::iterator<Node, attr_tag_t>::type attr_iterator;
+					attr_iterator *iter = boost::any_cast<attr_iterator>(this->iterator);
+					const attr_iterator last = attributes(node, attr_tag_t()).second;
+					if (last == *iter)
+						return result_type(false, variant_t());
+					variant_t var = get_reference(**iter, tag_t());
+					++*iter;
+					return result_type(true, var);
+				}
+				template <typename Node>
+				typename boost::disable_if<has_attributes<Node, tag_t>, result_type>::type
+				get_attr (Node const& node) const {
+					return result_type(false, variant_t());
+				}
+
+				static result_type go (variant_t const& var, boost::any& iter) {
+					get_attribute_from gaf;
+					gaf.iterator = &iter;
+					return boost::apply_visitor(gaf, var);
 				}
 
 				boost::any *iterator;
@@ -219,7 +281,7 @@ namespace treepath {
 					switch (axis_name) {
 					case axis_enum::ancestor: this->handle_ancestor(top, location); break;
 					case axis_enum::ancestor_or_self: this->handle_ancestor_or_self(top, location); break;
-						//case axis_enum::attribute: this->handle_attribute(top, location); break;
+					case axis_enum::attribute: this->handle_attribute(top, location); break;
 					case axis_enum::child: this->handle_child(top, location); break;
 					case axis_enum::descendant: this->handle_descendant(top, location); break;
 					case axis_enum::descendant_or_self: this->handle_descendant_or_self(top, location); break;
@@ -301,32 +363,32 @@ namespace treepath {
 				this->queue.push_back(self);
 			}
 
-			void handle_attribute (sh_item_t& item, location_type const&) {
-				//// We build a new sh-item; if it works, then we add the attribute
-				//// otherwise we pop
-				throw std::exception();
-			}
-
-			void handle_child (sh_item_t& item, location_type const&) {
-				// add children as 'self'
-				if (item->child_iterator.empty()) {
-					item->child_iterator = get_first_child::go(item->node);
+			template <typename GetFirst, typename GetFrom>
+			void handle_subnode (sh_item_t& item, location_type const&, boost::any& iter, GetFirst, GetFrom) {
+				if (iter.empty()) {
+					iter = GetFirst::go(item->node);
 				}
 
 				bool valid_item = false;
-				variant_t child_var;
-				boost::tie(valid_item, child_var) = get_child_from::go(item->node, item->child_iterator);
+				variant_t subnode_var;
+				boost::tie(valid_item, subnode_var) = GetFrom::go(item->node, iter);
 
 				if (valid_item) {
-					sh_item_t child = sh_item_t(new item_t(child_var, item->index));
-					child->parent_ptr = item;
-					child->alternate_axis.first = true;
-					child->alternate_axis.second = axis_enum::self;
-					child->sibling.self = item->child_iterator;
-					this->queue.push_back(child);
-				} else {
+					sh_item_t subnode = sh_item_t(new item_t(subnode_var, item->index));
+					subnode->parent_ptr = item;
+					subnode->alternate_axis = std::make_pair(true, axis_enum::self);
+					subnode->sibling.self = iter;
+					this->queue.push_back(subnode);
+				} else
 					this->queue.pop_back();
-				}
+			}
+
+			void handle_child (sh_item_t& item, location_type const& loc) {
+				this->handle_subnode(item, loc, item->child_iterator, get_first_child(), get_child_from());
+			}
+
+			void handle_attribute (sh_item_t& item, location_type const& loc) {
+				this->handle_subnode(item, loc, item->attribute_iterator, get_first_attribute(), get_attribute_from());
 			}
 	
 			void handle_descendant (sh_item_t& item, location_type const&) {

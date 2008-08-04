@@ -10,7 +10,7 @@
 namespace bel {
 
 	template <>
-	struct iterator<JSONpp::json_gen::array_t, treepath::treepath_<JSONpp::json_v> > {
+	struct iterator<JSONpp::json_gen::array_t, treepath::children_<JSONpp::json_v> > {
 		typedef JSONpp::json_gen::array_t::const_iterator type;
 	};
 
@@ -36,6 +36,12 @@ namespace treepath {
 		typedef attributes_<JSONpp::json_v> attributes_iterator_tag;
 		typedef std::wstring node_test_type;
 	};
+
+	std::pair<JSONpp::json_gen::array_t::const_iterator,
+						JSONpp::json_gen::array_t::const_iterator>
+	children (JSONpp::json_gen::array_t const& arr, children_<JSONpp::json_v>) {
+		return std::make_pair(arr.begin(), arr.end());
+	}
 
 	struct get_json_reference {
 		typedef json_variant result_type;
