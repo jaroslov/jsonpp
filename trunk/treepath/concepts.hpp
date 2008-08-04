@@ -35,6 +35,11 @@ namespace treepath {
 	// the return type (iter) is bel::iterator<Node, attributes_iterator_tag>::type
 
 	template <typename Node, typename Tag>
+	struct has_namespace : boost::mpl::false_ {};
+
+	// a function return a reference to the namespace node
+
+	template <typename Node, typename Tag>
 	typename node_traits<Node, Tag>::node_variant
 	parent (Node const& node, Tag) {
 		return node.get_parent();
