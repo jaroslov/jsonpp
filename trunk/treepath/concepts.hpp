@@ -66,6 +66,16 @@ namespace treepath {
 		return false;
 	}
 
+	template <typename Node, typename Tag>
+	bool is_attribute (Node const& node, Tag) {
+		return false;
+	}
+
+	template <typename Node, typename Tag>
+	bool is_namespace (Node const& node, Tag) {
+		return false;
+	}
+
 }
 
 #endif//TREEPATH_CONCEPTS

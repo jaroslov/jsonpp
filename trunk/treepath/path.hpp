@@ -105,7 +105,8 @@ namespace treepath {
 		template <typename String>
 		static nodetest_e from_string (String const& Str) {
 			const std::string str(Str.begin(), Str.end());
-			if ("text()" == str) return text;
+			if ("*" == str or "node()" == str) return node;
+			else if ("text()" == str) return text;
 			else if ("comment()" == str) return comment;
 			else if ("processing-instruction()" == str) return processing_instruction;
 			else return test;
@@ -117,6 +118,7 @@ namespace treepath {
 			if (text == n) return "text()";
 			else if (comment == n) return "comment()";
 			else if (processing_instruction == n) return "processing-instruction()";
+			else if (nodetest_enum::node == n) return "node()";
 			else return str.c_str();
 		}
 	};
