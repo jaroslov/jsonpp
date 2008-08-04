@@ -14,7 +14,7 @@ rptr: utility/*.hpp test_regular_ptr.cpp
 
 tpath: test_tp.cpp treepath/*.hpp
 	@g++ -O3 -I. test_tp.cpp -o ttest -liconv
-	@./ttest "descendant-or-self::string/parent::array" examples/*.text.json
+	@./ttest "descendant-or-self::string" examples/*.text.json
 
 foo:
 	@./ttest "self::json/child::array" examples/*.*

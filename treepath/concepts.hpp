@@ -39,6 +39,26 @@ namespace treepath {
 		return node.node_test();
 	}
 
+	template <typename Node, typename Tag>
+	bool is_node (Node const& node, Tag) {
+		return true;
+	}
+
+	template <typename Node, typename Tag>
+	bool is_text (Node const& node, Tag) {
+		return false;
+	}
+
+	template <typename Node, typename Tag>
+	bool is_processing_instruction (Node const& node, Tag) {
+		return false;
+	}
+
+	template <typename Node, typename Tag>
+	bool is_comment (Node const& node, Tag) {
+		return false;
+	}
+
 }
 
 #endif//TREEPATH_CONCEPTS
