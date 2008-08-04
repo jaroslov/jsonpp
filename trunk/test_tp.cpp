@@ -32,6 +32,8 @@ namespace treepath {
 	struct node_traits<JSONpp::json_v, treepath_<JSONpp::json_v> > {		
 		typedef json_variant node_variant;
 		typedef treepath_<JSONpp::json_v> node_traits_tag;
+		typedef children_<JSONpp::json_v> children_iterator_tag;
+		typedef attributes_<JSONpp::json_v> attributes_iterator_tag;
 		typedef std::wstring node_test_type;
 	};
 
