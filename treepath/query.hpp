@@ -218,10 +218,12 @@ namespace treepath {
 
 					switch (axis_name) {
 						//case name_enum::attribute: this->handle_attribute(top, axis); break;
+					case name_enum::ancestor: this->handle_ancestor(top, axis); break;
+					case name_enum::ancestor_or_self: this->handle_ancestor_or_self(top, axis); break;
 					case name_enum::child: this->handle_child(top, axis); break;
 					case name_enum::descendant: this->handle_descendant(top, axis); break;
 					case name_enum::descendant_or_self: this->handle_descendant_or_self(top, axis); break;
-						//case name_enum::parent: this->handle_parent(top, axis); break;
+					case name_enum::parent: this->handle_parent(top, axis); break;
 					case name_enum::self: this->handle_self(top, axis); break;
 					default:
 						this->queue.clear();
@@ -247,24 +249,45 @@ namespace treepath {
 				// a terminal; a call to self resolves to an index increase or a pop
 				if (this->test_node(*item, axis)) {
 					++item->index;
+					item->alternate_name.first = false;
 				} else
 					this->queue.pop_back();
 			}
-			/*
+
 			void handle_parent (sh_item_t& item, axis_type const& axis) {
 				// there is only ever (at most) one parent, so we always pop it
 				sh_item_t current = item;
 				this->queue.pop_back();
 				if (current->parent_ptr) {
-					sh_item_t parent = sh_item_t(new item_t(*current->parent_ptr, current->index));
+					sh_item_t parent = sh_item_t(new item_t(current->parent_ptr->node, current->index));
 					parent->alternate_name.first = true;
 					parent->alternate_name.second = name_enum::self;
 					if (current->parent_ptr->parent_ptr) // add the ancestors, as necessary
 						parent->parent_ptr = current->parent_ptr->parent_ptr;
-					this->queue.push_back(child);
+					this->queue.push_back(parent);
 				}
 			}
-			*/
+
+			void handle_ancestor (sh_item_t& item, axis_type const& axis) {
+				// if there is a parent, add self as an ancestor and then add self as parent
+				sh_item_t current = item;
+				this->queue.pop_back();
+				if (current->parent_ptr) {
+					sh_item_t parent = sh_item_t(new item_t(current->parent_ptr->node, current->index));
+					parent->alternate_name.first = true;
+					parent->alternate_name.second = name_enum::ancestor;
+					if (current->parent_ptr->parent_ptr) // add the ancestors, as necessary
+						parent->parent_ptr = current->parent_ptr->parent_ptr;
+					this->queue.push_back(parent);
+					item->alternate_name.first = true;
+					item->alternate_name.second = name_enum::parent;
+					this->queue.push_back(item);
+				}
+			}
+
+			void handle_ancestor_or_self (sh_item_t& item, axis_type const& axis) {
+			}
+
 			void handle_attribute (sh_item_t& item, axis_type const& axis) {
 				//// We build a new sh-item; if it works, then we add the attribute
 				//// otherwise we pop
@@ -338,6 +361,8 @@ namespace treepath {
 				item->alternate_name.second = name_enum::descendant;
 				sh_item_t self = sh_item_t(new item_t(*item));
 				self->alternate_name.second = name_enum::self;
+				self->parent_ptr = item->parent_ptr;
+				self->sibling.self = item->sibling.self;
 				self->clear_state();
 				this->queue.push_back(self);
 			}
