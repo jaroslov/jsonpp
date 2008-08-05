@@ -4,6 +4,7 @@
 // STL
 #include <exception>
 #include <iostream>
+#include <fstream>
 #include <map>
 #include <sstream>
 #include <stdexcept>
@@ -774,6 +775,14 @@ namespace JSONpp {
 		return parser(first, last);
 	}
 	
+	json_v open (std::string const& filename) {
+		std::wifstream wifstr(filename.c_str());
+		wifstr >> std::noskipws;
+		std::istream_iterator<wchar_t,wchar_t> ctr(wifstr);
+		std::istream_iterator<wchar_t,wchar_t> cnd;
+		return JSONpp::parse(ctr, cnd);
+	}
+
 	//=== [JSON IOMANIPULATOR] ===
 	// this controls the format of the outputted JSON type
 	class iomanipulator_ {
