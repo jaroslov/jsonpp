@@ -991,8 +991,7 @@ namespace JSONpp {
 	template <typename CharT>
 	std::basic_ostream<CharT>&
 	operator << (std::basic_ostream<CharT>& bostr, json_v const& json) {
-		json_to_string<json_v> jts;
-		bostr << jts.translate(json, iomanipulator_::format(bostr));
+		bostr << JSONpp::printer(json);
 		return bostr;
 	}
 

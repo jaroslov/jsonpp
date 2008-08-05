@@ -1,6 +1,6 @@
 all: json bel rptr tpath
 
-json: test_json.cpp json/*.hpp jtest
+json: test_json.cpp json/*.hpp
 	@g++ -O3 -I. test_json.cpp -o jtest -liconv
 	@./jtest Examples/*.*
 
